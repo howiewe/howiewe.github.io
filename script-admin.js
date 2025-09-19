@@ -1,0 +1,141 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // --- IndexedDB 幫手函式 ---
+    const dbName = 'ProductCatalogDB';
+    const dbVersion = 1;
+    function openDB() { return new Promise((resolve, reject) => { const request = indexedDB.open(dbName, dbVersion); request.onerror = event => reject(`無法開啟 IndexedDB 資料庫: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); request.onupgradeneeded = event => { const db = event.target.result; if (!db.objectStoreNames.contains('products')) db.createObjectStore('products', { keyPath: 'id' }); if (!db.objectStoreNames.contains('categories')) db.createObjectStore('categories', { keyPath: 'id' }); }; }); }
+    function readData(storeName) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readonly'); const store = transaction.objectStore(storeName); const request = store.getAll(); request.onerror = event => reject(`無法從 ${storeName} 讀取資料: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); }); }
+    function writeData(storeName, data) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readwrite'); const store = transaction.objectStore(storeName); store.clear(); data.forEach(item => store.put(item)); transaction.oncomplete = () => resolve(); transaction.onerror = event => reject(`無法寫入資料至 ${storeName}: ${event.target.errorCode}`); }); }
+
+    // --- DOM 元素宣告 ---
+    const productList = document.getElementById('product-list');
+    const form = document.getElementById('product-form');
+    const formTitle = document.getElementById('form-title');
+    const productIdInput = document.getElementById('product-id');
+    const searchBox = document.getElementById('search-box');
+    const themeToggle = document.getElementById('theme-toggle');
+    const categoryTreeContainer = document.getElementById('category-tree');
+    const categorySelect = document.getElementById('product-category-select');
+    const editModal = document.getElementById('edit-modal-container');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const addNewBtn = document.getElementById('add-new-btn');
+    const deleteBtn = document.getElementById('delete-btn');
+    const cropperModal = document.getElementById('cropper-modal-container');
+    const cropperImage = document.getElementById('cropper-image');
+    const cropConfirmBtn = document.getElementById('crop-confirm-btn');
+    const cropCancelBtn = document.getElementById('crop-cancel-btn');
+    const cropRotateBtn = document.getElementById('crop-rotate-btn');
+    const uploadImageBtn = document.getElementById('upload-image-btn');
+    const imageUploadInput = document.getElementById('product-image-upload');
+    const mainImagePreview = document.getElementById('main-image-preview');
+    const thumbnailListAdmin = document.getElementById('thumbnail-list-admin');
+    const imageSizeSlider = document.getElementById('image-size');
+    const imageSizeValue = document.getElementById('image-size-value');
+    const ean13Input = document.getElementById('product-ean13');
+    const pageOverlay = document.getElementById('page-overlay');
+    const menuToggleBtn = document.getElementById('menu-toggle-btn');
+    const importBtn = document.getElementById('import-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const githubTokenInput = document.getElementById('github-token');
+    const githubRepoInput = document.getElementById('github-repo');
+    const saveGithubSettingsBtn = document.getElementById('save-github-settings-btn');
+    const syncToGithubBtn = document.getElementById('sync-to-github-btn');
+
+    // --- 全域變數 ---
+    let allProducts = [], allCategories = [];
+    let cropper;
+    let currentCategoryId = 'all';
+    let currentImageUrls = [];
+    let sortableInstance = null;
+    
+    // --- 響應式側邊欄 ---
+    function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
+    menuToggleBtn.addEventListener('click', toggleSidebar);
+    pageOverlay.addEventListener('click', toggleSidebar);
+
+    // --- 分類樹 ---
+    function buildCategoryTree() { const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`; function createTreeHTML(nodes) { let subHtml = '<ul>'; for (const node of nodes) { subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`; if (node.children.length > 0) subHtml += createTreeHTML(node.children); subHtml += '</li>'; } return subHtml + '</ul>'; } categoryTreeContainer.innerHTML = html + createTreeHTML(tree) + '</ul>'; let selectOptions = '<option value="" disabled>請選擇分類</option>'; function createSelectOptions(nodes, depth = 0) { for (const node of nodes) { selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; if (node.children.length > 0) createSelectOptions(node.children, depth + 1); } } createSelectOptions(tree); categorySelect.innerHTML = selectOptions; }
+    categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const targetLink = e.target.closest('a'); if (targetLink) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); targetLink.classList.add('active'); currentCategoryId = targetLink.dataset.id === 'all' ? 'all' : parseInt(targetLink.dataset.id); renderProducts(); if (window.innerWidth <= 992) toggleSidebar(); } });
+
+    // --- 產品渲染 ---
+    function getCategoryIdsWithChildren(startId) { if (startId === 'all') return null; const ids = new Set([startId]); const queue = [startId]; while (queue.length > 0) { const children = allCategories.filter(c => c.parentId === queue.shift()); for (const child of children) { ids.add(child.id); queue.push(child.id); } } return ids; }
+    function renderProducts() { const searchTerm = searchBox.value.toLowerCase(); const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId); const filteredProducts = allProducts.filter(p => { const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId)); const matchesSearch = p.name.toLowerCase().includes(searchTerm); return matchesCategory && matchesSearch; }); productList.innerHTML = ''; if (filteredProducts.length === 0) { productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>'; return; } filteredProducts.forEach(product => { const card = document.createElement('div'); card.className = 'product-card'; card.onclick = () => openEditModal(product.id); const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : ''; card.innerHTML = ` <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 100}%;"></div> <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div> `; productList.appendChild(card); }); }
+
+    // --- 自動儲存 (至 IndexedDB) ---
+    async function updateAndSave(storeName, data, showSuccessToast = true) { if (storeName === 'products') { allProducts = data; } else if (storeName === 'categories') { allCategories = data; } await writeData(storeName, data); if (showSuccessToast) showToast('變更已自動儲存至本地', 'success'); if (storeName === 'categories') buildCategoryTree(); renderProducts(); }
+    
+    // --- Modal & 表單邏輯 ---
+    function openModal(modal) { modal.classList.remove('hidden'); }
+    function closeModal(modal) { modal.classList.add('hidden'); }
+    form.addEventListener('submit', async (e) => { e.preventDefault(); const id = productIdInput.value; const newProductData = { id: id ? parseInt(id) : Date.now(), name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value, ean13: document.getElementById('product-ean13').value, price: parseFloat(document.getElementById('product-price').value), description: document.getElementById('product-description').value, imageUrls: currentImageUrls, imageSize: parseInt(imageSizeSlider.value), categoryId: parseInt(categorySelect.value) }; if(!newProductData.categoryId) { alert("請選擇一個產品分類！"); return; } let updatedProducts; if (id) { updatedProducts = allProducts.map(p => p.id == id ? newProductData : p); } else { updatedProducts = [...allProducts, newProductData]; } await updateAndSave('products', updatedProducts); closeModal(editModal); });
+    function openEditModal(id) { resetForm(); const product = allProducts.find(p => p.id == id); if (product) { formTitle.textContent = '編輯產品'; productIdInput.value = product.id; document.getElementById('product-name').value = product.name; document.getElementById('product-sku').value = product.sku; ean13Input.value = product.ean13; document.getElementById('product-price').value = product.price; document.getElementById('product-description').value = product.description; categorySelect.value = product.categoryId; currentImageUrls = product.imageUrls ? [...product.imageUrls] : []; renderAdminImagePreview(); imageSizeSlider.value = product.imageSize || 100; imageSizeValue.textContent = imageSizeSlider.value; const initialScale = (product.imageSize || 100) / 100; mainImagePreview.style.transform = `scale(${initialScale})`; deleteBtn.classList.remove('hidden'); deleteBtn.onclick = () => deleteProduct(product.id); updateBarcodePreview(); openModal(editModal); initSortable(); } }
+    async function deleteProduct(id) { if (confirm('您確定要刪除這個產品嗎？此操作無法復原。')) { const updatedProducts = allProducts.filter(p => p.id != id); await updateAndSave('products', updatedProducts, false); showToast('產品已從本地刪除', 'info'); closeModal(editModal); } }
+    function resetForm() { form.reset(); productIdInput.value = ''; currentImageUrls = []; renderAdminImagePreview(); imageSizeSlider.value = 100; imageSizeValue.textContent = 100; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); }
+    function initSortable() { if (sortableInstance) { sortableInstance.destroy(); } try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const movedItem = currentImageUrls.splice(evt.oldIndex, 1)[0]; currentImageUrls.splice(evt.newIndex, 0, movedItem); renderAdminImagePreview(); }, }); } catch(e) { console.error("SortableJS 初始化失敗! 請檢查函式庫是否成功載入。", e); showToast('拖曳排序功能載入失敗', 'error'); } }
+    function renderAdminImagePreview() { thumbnailListAdmin.innerHTML = ''; if (currentImageUrls.length > 0) { mainImagePreview.src = currentImageUrls[0]; mainImagePreview.style.display = 'block'; currentImageUrls.forEach((url, index) => { const thumbItem = document.createElement('div'); thumbItem.className = 'thumbnail-item'; if (index === 0) thumbItem.classList.add('active'); thumbItem.innerHTML = ` <img src="${url}" data-index="${index}" alt="縮圖 ${index + 1}"> <button type="button" class="delete-thumb-btn" data-index="${index}" title="刪除此圖">&times;</button> `; thumbnailListAdmin.appendChild(thumbItem); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; } }
+    thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const indexToDelete = parseInt(target.dataset.index); currentImageUrls.splice(indexToDelete, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const indexToShow = parseInt(target.dataset.index); mainImagePreview.src = currentImageUrls[indexToShow]; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(item => item.classList.remove('active')); target.parentElement.classList.add('active'); } });
+    
+    // --- 圖片裁切邏輯 ---
+    uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
+    imageUploadInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (event) => { cropperImage.src = event.target.result; openModal(cropperModal); if(cropper) cropper.destroy(); cropper = new Cropper(cropperImage, { aspectRatio: NaN, viewMode: 1, background: false, autoCropArea: 1, ready: function () { const imageData = this.cropper.getImageData(); this.cropper.setCropBoxData({ left: 0, top: 0, width: imageData.naturalWidth, height: imageData.naturalHeight, }); } }); }; reader.readAsDataURL(file); e.target.value = ''; });
+    cropConfirmBtn.addEventListener('click', () => { const canvas = cropper.getCroppedCanvas({ maxWidth: 1024, maxHeight: 1024, imageSmoothingQuality: 'high' }); currentImageUrls.push(canvas.toDataURL('image/png')); renderAdminImagePreview(); closeModal(cropperModal); });
+    cropCancelBtn.addEventListener('click', () => closeModal(cropperModal));
+    if (cropRotateBtn) { cropRotateBtn.addEventListener('click', () => { if (cropper) { cropper.rotate(90); } }); }
+    
+    // --- EAN13 預覽 & 圖片大小滑桿 ---
+    function updateBarcodePreview() { const value = ean13Input.value; const previewSvg = document.getElementById('barcode-preview'); if (value.length >= 12 && value.length <= 13) { try { JsBarcode(previewSvg, value, { format: "EAN13", lineColor: "#000", width: 2, height: 50, displayValue: true }); previewSvg.style.display = 'block'; } catch (e) { previewSvg.style.display = 'none'; } } else { previewSvg.style.display = 'none'; } }
+    ean13Input.addEventListener('input', updateBarcodePreview);
+    imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if(mainImagePreview) { const scaleValue = newSize / 100; mainImagePreview.style.transform = `scale(${scaleValue})`; } });
+
+    // --- GitHub API 相關邏輯 ---
+    function saveGithubSettings() { localStorage.setItem('githubToken', githubTokenInput.value); localStorage.setItem('githubRepo', githubRepoInput.value); showToast('GitHub 設定已儲存!', 'success'); }
+    function loadGithubSettings() { githubTokenInput.value = localStorage.getItem('githubToken') || ''; githubRepoInput.value = localStorage.getItem('githubRepo') || ''; }
+    async function syncToGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); const productsPath = 'products.json'; const categoriesPath = 'categories.json'; if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要將目前的本地資料覆蓋到 GitHub 儲存庫嗎？此操作無法復原。')) return; syncToGithubBtn.textContent = '同步中...'; syncToGithubBtn.disabled = true; try { await updateGithubFile(token, repo, productsPath, '更新產品資料', JSON.stringify(allProducts, null, 2)); showToast('products.json 同步成功!', 'info'); await updateGithubFile(token, repo, categoriesPath, '更新分類資料', JSON.stringify(allCategories, null, 2)); showToast('categories.json 同步成功!', 'info'); showToast('所有資料已成功同步至 GitHub!', 'success'); } catch (error) { console.error('GitHub 同步失敗:', error); showToast(`同步失敗: ${error.message}`, 'error'); } finally { syncToGithubBtn.textContent = '將目前資料同步至 GitHub'; syncToGithubBtn.disabled = false; } }
+    async function updateGithubFile(token, repo, path, message, content) { const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`; const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', }; let sha; try { const getFileResponse = await fetch(apiUrl, { headers }); if (getFileResponse.ok) { const fileData = await getFileResponse.json(); sha = fileData.sha; } else if (getFileResponse.status !== 404) { throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`); } } catch (e) { throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`); } const encodedContent = btoa(unescape(encodeURIComponent(content))); const body = { message: message, content: encodedContent, sha: sha }; const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body), }); if (!updateResponse.ok) { const errorData = await updateResponse.json(); throw new Error(`更新 ${path} 失敗: ${errorData.message}`); } return await updateResponse.json(); }
+
+    // --- 本機匯入/匯出邏輯 ---
+    importBtn.addEventListener('click', async () => { if (!confirm('匯入將會覆蓋您目前的所有本地資料，確定要繼續嗎？')) return; try { showToast('請先選擇您的 products.json 檔案', 'info'); const [prodHandle] = await window.showOpenFilePicker({ types: [{ description: '產品 JSON', accept: { 'application/json': ['.json'] } }] }); showToast('接著請選擇您的 categories.json 檔案', 'info'); const [catHandle] = await window.showOpenFilePicker({ types: [{ description: '分類 JSON', accept: { 'application/json': ['.json'] } }] }); const prodFile = await prodHandle.getFile(); const catFile = await catHandle.getFile(); const newProducts = JSON.parse(await prodFile.text()); const newCategories = JSON.parse(await catFile.text()); await updateAndSave('products', newProducts, false); await updateAndSave('categories', newCategories, false); showToast('資料匯入並覆蓋成功！', 'success'); } catch (err) { if (err.name !== 'AbortError') showToast('讀取檔案失敗', 'error'); } });
+    exportBtn.addEventListener('click', async () => { try { const prodBlob = new Blob([JSON.stringify(allProducts, null, 2)], { type: 'application/json' }); const catBlob = new Blob([JSON.stringify(allCategories, null, 2)], { type: 'application/json' }); const download = (blob, filename) => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }; download(prodBlob, 'products.json'); download(catBlob, 'categories.json'); showToast('資料已匯出成 JSON 檔案！', 'success'); } catch (err) { showToast('匯出失敗！', 'error'); } });
+    
+    // --- UI/UX & 初始化 ---
+    function showToast(message, type = 'info', duration = 3000) { const toastContainer = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
+    addNewBtn.addEventListener('click', () => { resetForm(); formTitle.textContent = '新增產品'; openModal(editModal); });
+    modalCloseBtn.addEventListener('click', () => closeModal(editModal));
+    editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(editModal); });
+    searchBox.addEventListener('input', renderProducts);
+    async function init() {
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark') document.body.classList.add('dark-mode');
+        themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
+        
+        loadGithubSettings();
+        saveGithubSettingsBtn.addEventListener('click', saveGithubSettings);
+        syncToGithubBtn.addEventListener('click', syncToGithub);
+        
+        try {
+            let productsFromDB = await readData('products');
+            let categoriesFromDB = await readData('categories');
+            if (productsFromDB.length === 0 || categoriesFromDB.length === 0) {
+                showToast('首次使用，正在從預設 JSON 檔案載入資料...', 'info', 5000);
+                const [prodRes, catRes] = await Promise.all([ fetch('products.json?t=' + new Date().getTime()), fetch('categories.json?t=' + new Date().getTime()) ]);
+                const initialProducts = await prodRes.json();
+                const initialCategories = await catRes.json();
+                const migratedProducts = initialProducts.map(p => { if (p.imageDataUrl && !p.imageUrls) { p.imageUrls = [p.imageDataUrl]; delete p.imageDataUrl; } else if (!p.imageUrls) { p.imageUrls = []; } return p; });
+                await writeData('products', migratedProducts);
+                await writeData('categories', initialCategories);
+                allProducts = migratedProducts;
+                allCategories = initialCategories;
+                showToast('初始資料載入完成！', 'success');
+            } else {
+                allProducts = productsFromDB;
+                allCategories = categoriesFromDB;
+                showToast('已從本地資料庫載入您的工作進度', 'info');
+            }
+            buildCategoryTree();
+            renderProducts();
+        } catch (err) {
+            console.error("初始化失敗:", err);
+            showToast('系統初始化失敗，請檢查瀏覽器設定', 'error');
+        }
+    }
+    init();
+});

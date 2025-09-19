@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>產品管理後台</title>
+    <!-- JsBarcode -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <!-- Cropper.js -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <!-- SortableJS -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <!-- Google Fonts & Main Stylesheet -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="toast-container"></div>
+    <div id="page-overlay" class="hidden"></div>
+
+    <header>
+        <div class="header-content">
+            <button id="menu-toggle-btn" class="menu-toggle-btn" title="分類選單">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <h1>產品管理後台</h1>
+            <button id="theme-toggle" title="切換深色/淺色模式">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sun"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <aside id="category-sidebar">
+            <nav id="category-tree"></nav>
+        </aside>
+
+        <main>
+            <div class="container">
+                <div class="toolbar">
+                    <input type="search" id="search-box" placeholder="搜尋產品名稱...">
+                    <button id="add-new-btn" class="btn btn-primary">新增產品</button>
+                </div>
+                <div id="product-list" class="product-grid"></div>
+            </div>
+
+            <div class="container file-ops-container">
+                <h2>GitHub 線上同步</h2>
+                <p>在這裡設定您的 GitHub 資訊，可以將產品資料直接同步到線上儲存庫。所有設定只會儲存在您的本機瀏覽器中。</p>
+                <div id="github-settings-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="github-token">Personal Access Token</label>
+                            <input type="password" id="github-token" placeholder="貼上你的 ghp_... Token">
+                        </div>
+                        <div class="form-group">
+                            <label for="github-repo">儲存庫 (格式: username/repo-name)</label>
+                            <input type="text" id="github-repo" placeholder="例如: your-name/my-products">
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" id="save-github-settings-btn" class="btn btn-secondary">儲存設定</button>
+                        <button type="button" id="sync-to-github-btn" class="btn btn-primary">將目前資料同步至 GitHub</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container file-ops-container">
+                <h2>本機資料備份與匯入</h2>
+                <p>所有變更都會自動儲存在您的瀏覽器中 (IndexedDB)。您可以使用以下按鈕進行手動備份或從檔案匯入資料。</p>
+                <div class="button-group">
+                    <button id="import-btn" class="btn btn-secondary">從 JSON 檔案匯入</button>
+                    <button id="export-btn" class="btn btn-danger">將目前資料匯出成 JSON</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 編輯/新增 Modal -->
+    <div id="edit-modal-container" class="modal-container hidden">
+        <div class="modal-content">
+            <button id="modal-close-btn" class="close-btn" title="關閉">&times;</button>
+            <h2 id="form-title">編輯產品</h2>
+            <form id="product-form" novalidate>
+                <input type="hidden" id="product-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="product-name">產品名稱</label>
+                        <input type="text" id="product-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-sku">產品編號 (SKU)</label>
+                        <input type="text" id="product-sku" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-category-select">產品分類</label>
+                        <select id="product-category-select" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-price">產品價格</label>
+                        <input type="number" id="product-price" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="product-ean13">EAN-13 條碼 (12或13碼)</label>
+                    <input type="text" id="product-ean13" maxlength="13" pattern="\d{12,13}">
+                    <div class="barcode-preview-container">
+                        <svg id="barcode-preview"></svg>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="product-description">產品描述</label>
+                    <textarea id="product-description" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>產品圖片 (可拖曳縮圖排序)</label>
+                    <div class="image-gallery-admin">
+                        <div class="main-image-wrapper">
+                            <img id="main-image-preview" src="" alt="主要圖片預覽">
+                        </div>
+                        <div id="thumbnail-list-admin" class="thumbnail-list">
+                            <!-- 縮圖將由 JS 動態生成 -->
+                        </div>
+                    </div>
+                    <button type="button" id="upload-image-btn" class="btn btn-secondary">上傳新圖片</button>
+                    <input type="file" id="product-image-upload" accept="image/png, image/jpeg, image/webp" class="hidden">
+                </div>
+                <div class="form-group">
+                    <label for="image-size">圖片顯示大小: <span id="image-size-value">100</span>%</label>
+                    <input type="range" id="image-size" min="10" max="100" value="100">
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">儲存產品 (至本地)</button>
+                    <button type="button" id="delete-btn" class="btn btn-danger hidden">刪除此產品</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 圖片裁切 Modal -->
+    <div id="cropper-modal-container" class="modal-container hidden">
+        <div class="modal-content cropper-modal-content">
+            <h2>裁切圖片</h2>
+            <div class="cropper-image-container">
+                <img id="cropper-image" src="">
+            </div>
+            <div class="button-group">
+                <button type="button" id="crop-confirm-btn" class="btn btn-primary">確認裁切</button>
+                <button type="button" id="crop-rotate-btn" class="btn btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    旋轉 90°
+                </button>
+                <button type="button" id="crop-cancel-btn" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script-admin.js"></script>
+</body>
+</html>
+
+
+
