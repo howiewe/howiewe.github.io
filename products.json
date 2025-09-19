@@ -57,7 +57,9 @@
     "ean13": "4715432109875",
     "price": 1280,
     "description": "耐磨帆布材質，搭配皮革點綴，多口袋設計方便收納隨身物品。",
-    "imageUrls": [],
+    "imageUrls": [
+      "/images/product-17005-1758299230975-0.jpeg"
+    ],
     "imageSize": 95,
     "categoryId": 5
   }
