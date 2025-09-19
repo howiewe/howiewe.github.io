@@ -7,8 +7,8 @@
     "price": 1890,
     "description": "頂級人體工學設計，2.4GHz 無線連接，靜音按鍵。",
     "imageUrls": [
-      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17001-1758293336874-0.png",
-      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17001-1758290358623-0.png"
+      "/images/product-17001-1758297399845-0.png",
+      "/images/product-17001-1758297402481-1.png"
     ],
     "imageSize": 90,
     "categoryId": 3
@@ -21,11 +21,8 @@
     "price": 2499,
     "description": "25L 大容量，防潑水牛津布材質，內含 15.6 吋筆電夾層。",
     "imageUrls": [
-      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17002-1758293413433-0.png",
-      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17002-1758290361549-3.png",
-      "https://via.placeholder.com/600x600.png?text=Backpack+Front",
-      "https://via.placeholder.com/600x600.png?text=Backpack+Side",
-      "https://via.placeholder.com/600x600.png?text=Backpack+Inside"
+      "/images/product-17002-1758297404672-0.png",
+      "/images/product-17002-1758297406155-1.png"
     ],
     "imageSize": 100,
     "categoryId": 5
@@ -65,6 +62,7 @@
     "price": 1280,
     "description": "耐磨帆布材質，搭配皮革點綴，多口袋設計方便收納隨身物品。",
     "imageUrls": [
+      "/images/product-17005-1758297408591-0.png",
       "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17005-1758291010753-0.png",
       "https://via.placeholder.com/500x700.png?text=Side+Bag"
     ],
