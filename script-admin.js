@@ -137,14 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.value = '';
     });
     cropConfirmBtn.addEventListener('click', () => {
-        const canvas = cropper.getCroppedCanvas({ maxWidth: 1024, maxHeight: 1024, imageSmoothingQuality: 'high' });
-        canvas.toBlob((blob) => {
-            const previewUrl = URL.createObjectURL(blob);
-            currentImageItems.push({ url: previewUrl, blob: blob, isNew: true });
-            renderAdminImagePreview();
-        }, 'image/jpeg', 0.8);
-        closeModal(cropperModal);
-    });
+    const canvas = cropper.getCroppedCanvas({ maxWidth: 1024, maxHeight: 1024, imageSmoothingQuality: 'high' });
+    // 改回輸出 JPEG 的 Data URL
+    currentImageUrls.push(canvas.toDataURL('image/jpeg', 0.8)); 
+    renderAdminImagePreview();
+    closeModal(cropperModal);
+});
     cropCancelBtn.addEventListener('click', () => closeModal(cropperModal));
     if (cropRotateBtn) { cropRotateBtn.addEventListener('click', () => { if (cropper) { cropper.rotate(90); } }); }
     
@@ -158,103 +156,113 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadGithubSettings() { const token = localStorage.getItem('githubToken') || ''; const repo = localStorage.getItem('githubRepo') || ''; githubTokenInput.value = token; githubRepoInput.value = repo; if (!token || !repo) { pullFromGithubBtn.disabled = true; } }
     
     async function syncToGithub() {
-        const token = localStorage.getItem('githubToken');
-        const repo = localStorage.getItem('githubRepo');
-        if (!token || !repo) {
-            showToast('請先儲存您的 GitHub 設定', 'error');
-            return;
-        }
-        if (!confirm('確定要將目前的本地資料覆蓋到 GitHub 儲存庫嗎？此操作無法復原。')) return;
+    const token = localStorage.getItem('githubToken');
+    const repo = localStorage.getItem('githubRepo');
+    if (!token || !repo) {
+        showToast('請先儲存您的 GitHub 設定', 'error');
+        return;
+    }
+    if (!confirm('確定要將目前的本地資料覆蓋到 GitHub 儲存庫嗎？此操作無法復原。')) return;
 
-        syncToGithubBtn.disabled = true;
-        syncToGithubBtn.querySelector('svg').style.display = 'none';
-        syncToGithubBtn.append(' 推送中...');
+    syncToGithubBtn.disabled = true;
+    syncToGithubBtn.querySelector('svg').style.display = 'none';
+    syncToGithubBtn.append(' 推送中...');
 
-        try {
-            const imagesPath = 'images';
-            let productsToSync = JSON.parse(JSON.stringify(allProducts));
-            
-            for (const product of productsToSync) {
-                if (!product.imageUrls || product.imageUrls.length === 0) continue;
+    try {
+        const imagesPath = 'images';
+        // 這是關鍵：我們不再依賴全域變數，而是重新處理 allProducts
+        let productsToSync = JSON.parse(JSON.stringify(allProducts)); 
+        
+        // 輔助函式：將 Canvas 轉為 Blob 的 Promise 版本
+        const canvasToBlob = (canvas) => {
+            return new Promise(resolve => {
+                canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.8);
+            });
+        };
+
+        console.log('步驟 1: 掃描並上傳新圖片...');
+        for (const product of productsToSync) {
+            if (!product.imageUrls || product.imageUrls.length === 0) continue;
+
+            for (let i = 0; i < product.imageUrls.length; i++) {
+                const url = product.imageUrls[i];
                 
-                for (let i = 0; i < product.imageUrls.length; i++) {
-                    const localUrl = product.imageUrls[i];
-                    // 在本地的 currentImageItems 中找到對應的 Blob
-                    const imageItem = currentImageItems.find(item => item.url === localUrl);
-                    
-                    if (imageItem && imageItem.isNew) {
-                        const blob = imageItem.blob;
-                        const fileExtension = blob.type.split('/')[1] || 'jpg';
-                        const fileName = `product-${product.id}-${Date.now()}-${i}.${fileExtension}`;
-                        const filePath = `${imagesPath}/${fileName}`;
+                // 只處理新的 Data URL 圖片
+                if (url.startsWith('data:image')) {
+                    // 【重要邏輯】直接從 Data URL 創建圖片和 Canvas 來獲取 Blob
+                    const blob = dataURLtoBlob(url);
+                    const fileExtension = blob.type.split('/')[1] || 'png';
+                    const fileName = `product-${product.id}-${Date.now()}-${i}.${fileExtension}`;
+                    const filePath = `${imagesPath}/${fileName}`;
 
-                        showToast(`正在上傳圖片 ${fileName}...`, 'info');
-                        const response = await updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob);
-                        
-                        // 使用相對路徑更新
-                        product.imageUrls[i] = `/${filePath}`;
-                        showToast(`圖片 ${fileName} 上傳成功!`, 'success');
-                    }
+                    showToast(`正在上傳圖片 ${fileName}...`, 'info');
+                    console.log(`上傳新圖片至: ${filePath}`);
+                    
+                    const response = await updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob);
+                    
+                    // 【重要修正】確保儲存的是 Cloudflare Pages 需要的相對路徑
+                    product.imageUrls[i] = `/${filePath}`;
+                    showToast(`圖片 ${fileName} 上傳成功!`, 'success');
                 }
             }
-
-            await updateGithubFile(token, repo, 'products.json', '更新產品資料', JSON.stringify(productsToSync, null, 2));
-            showToast('products.json 推送成功!', 'info');
-            
-            await updateGithubFile(token, repo, 'categories.json', '更新分類資料', JSON.stringify(allCategories, null, 2));
-            showToast('categories.json 推送成功!', 'info');
-
-            allProducts = productsToSync;
-            await updateAndSave('products', allProducts, false);
-
-            showToast('所有資料已成功同步至 GitHub!', 'success');
-        } catch (error) {
-            console.error('GitHub 同步失敗:', error);
-            showToast(`推送失敗: ${error.message}`, 'error');
-        } finally {
-            requestAnimationFrame(() => {
-                syncToGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="display: inline-block;"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg> Push (推送本地變更)';
-                syncToGithubBtn.disabled = false;
-            });
         }
+
+        console.log('步驟 2: 圖片處理完成，正在推送 JSON 資料...');
+        await updateGithubFile(token, repo, 'products.json', '更新產品資料', JSON.stringify(productsToSync, null, 2));
+        showToast('products.json 推送成功!', 'info');
+        
+        await updateGithubFile(token, repo, 'categories.json', '更新分類資料', JSON.stringify(allCategories, null, 2));
+        showToast('categories.json 推送成功!', 'info');
+        
+        // 用包含了新 URL 的資料來更新本地狀態
+        allProducts = productsToSync;
+        await updateAndSave('products', allProducts, false);
+
+        showToast('所有資料已成功同步至 GitHub!', 'success');
+
+    } catch (error) {
+        console.error('GitHub 同步失敗:', error);
+        showToast(`推送失敗: ${error.message}`, 'error');
+    } finally {
+        requestAnimationFrame(() => {
+            syncToGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="display: inline-block;"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg> Push (推送本地變更)';
+            syncToGithubBtn.disabled = false;
+        });
     }
+}
 
     async function updateGithubFile(token, repo, path, message, content) {
-        const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
-        const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' };
-        let sha;
-
-        try {
-            const getFileResponse = await fetch(apiUrl, { headers, cache: 'no-store' });
-            if (getFileResponse.ok) {
-                sha = (await getFileResponse.json()).sha;
-            } else if (getFileResponse.status !== 404) {
-                throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`);
-            }
-        } catch (e) {
-            throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`);
+    const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+    const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' };
+    let sha;
+    try {
+        const getFileResponse = await fetch(apiUrl, { headers, cache: 'no-store' });
+        if (getFileResponse.ok) {
+            sha = (await getFileResponse.json()).sha;
+        } else if (getFileResponse.status !== 404) {
+            throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`);
         }
-
-        const getBase64 = (fileOrString) => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(fileOrString);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = (error) => reject(error);
-        });
-        
-        const encodedContent = await getBase64(content);
-
-        const body = { message: message, content: encodedContent };
-        if (sha) body.sha = sha;
-
-        const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
-
-        if (!updateResponse.ok) {
-            const errorData = await updateResponse.json();
-            throw new Error(`更新 ${path} 失敗: ${errorData.message}`);
-        }
-        return await updateResponse.json();
+    } catch (e) {
+        throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`);
     }
+
+    const getBase64 = (fileOrString) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(fileOrString instanceof Blob ? fileOrString : new Blob([fileOrString]));
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = (error) => reject(error);
+    });
+    
+    const encodedContent = await getBase64(content);
+    const body = { message, content };
+    if (sha) body.sha = sha;
+
+    const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
+    if (!updateResponse.ok) {
+        throw new Error(`更新 ${path} 失敗: ${(await updateResponse.json()).message}`);
+    }
+    return await updateResponse.json();
+}
 
     async function pullFromGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要從 GitHub 拉取最新資料嗎？這將會覆蓋您目前未同步的本地變更。')) return; pullFromGithubBtn.disabled = true; pullFromGithubBtn.querySelector('svg').style.display = 'none'; pullFromGithubBtn.append(' 拉取中...'); try { const categoriesContent = await readGithubFile(token, repo, 'categories.json'); const newCategories = JSON.parse(categoriesContent); showToast('已成功拉取 categories.json', 'info'); const productsContent = await readGithubFile(token, repo, 'products.json'); const newProducts = JSON.parse(productsContent); showToast('已成功拉取 products.json', 'info'); await updateAndSave('categories', newCategories, false); await updateAndSave('products', newProducts, false); setUIState(true); showToast('資料拉取並同步至本地成功！', 'success'); } catch (error) { console.error('從 GitHub 拉取失敗:', error); showToast(`拉取失敗: ${error.message}`); } finally { requestAnimationFrame(() => { pullFromGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg> Pull (拉取線上資料)'; pullFromGithubBtn.disabled = false; }); } }
     
