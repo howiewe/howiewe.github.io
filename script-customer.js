@@ -218,10 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         async function loadData() {
             try {
-                const cacheBuster = `?t=${new Date().getTime()}`;
                 const [prodRes, catRes] = await Promise.all([
-                    fetch(`products.json${cacheBuster}`),
-                    fetch(`categories.json${cacheBuster}`)
+                    fetch('products.json', { cache: 'no-store' }),
+                    fetch('categories.json', { cache: 'no-store' })
                 ]);
                 if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
                 const loadedProducts = await prodRes.json();
