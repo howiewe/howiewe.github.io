@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveGithubSettings() { const token = githubTokenInput.value; const repo = githubRepoInput.value; if (token && repo) { localStorage.setItem('githubToken', token); localStorage.setItem('githubRepo', repo); showToast('GitHub 設定已儲存!', 'success'); pullFromGithubBtn.disabled = false; } else { showToast('Token 和儲存庫不能為空', 'error'); } }
     function loadGithubSettings() { const token = localStorage.getItem('githubToken') || ''; const repo = localStorage.getItem('githubRepo') || ''; githubTokenInput.value = token; githubRepoInput.value = repo; if (!token || !repo) { pullFromGithubBtn.disabled = true; } }
     // 【徹底改造】這是新的核心推送邏輯
+// 【最終修正版 v2】採用更穩健的 for...of 迴圈搭配 async/await
 async function syncToGithub() {
     const token = localStorage.getItem('githubToken');
     const repo = localStorage.getItem('githubRepo');
@@ -145,69 +146,73 @@ async function syncToGithub() {
     }
     if (!confirm('確定要將目前的本地資料覆蓋到 GitHub 儲存庫嗎？此操作無法復原。')) return;
 
+    // --- 準備階段 ---
     syncToGithubBtn.disabled = true;
     syncToGithubBtn.querySelector('svg').style.display = 'none';
     syncToGithubBtn.append(' 推送中...');
+    console.log('--- GitHub 同步開始 ---');
 
     try {
-        const imagesPath = 'images'; // 我們將把圖片上傳到這個資料夾
-        let productsToSync = JSON.parse(JSON.stringify(allProducts)); // 深度拷貝一份來處理
-        const uploadPromises = []; // 用來存放所有圖片的上傳任務
+        const imagesPath = 'images';
+        let productsToSync = JSON.parse(JSON.stringify(allProducts));
+        let newImagesCount = 0;
 
-        // 步驟 1: 遍歷所有產品和圖片，找出新的 Base64 圖片並上傳
+        // --- 步驟 1: 【重要修正】使用 for...of 迴圈來確保非同步操作按順序完成 ---
+        console.log('步驟 1: 正在掃描並上傳新圖片...');
         for (const product of productsToSync) {
             if (!product.imageUrls || product.imageUrls.length === 0) continue;
 
             for (let i = 0; i < product.imageUrls.length; i++) {
                 const url = product.imageUrls[i];
                 
-                // 只處理新的、尚未上傳的圖片 (以 'data:image' 開頭)
                 if (url.startsWith('data:image')) {
+                    newImagesCount++;
                     const blob = dataURLtoBlob(url);
-                    const fileExtension = blob.type.split('/')[1]; // 'jpeg' or 'png'
-                    const fileName = `product-${product.id}-${Date.now()}.${fileExtension}`;
+                    const fileExtension = blob.type.split('/')[1] || 'jpg';
+                    const fileName = `product-${product.id}-${Date.now()}-${i}.${fileExtension}`;
                     const filePath = `${imagesPath}/${fileName}`;
 
-                    // 建立一個上傳任務
-                    const uploadPromise = updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob)
-                        .then(response => {
-                            // 上傳成功後，用 GitHub 提供的下載 URL 替換掉原本的 Base64 字串
-                            // 注意：response.content.download_url 對公開儲存庫是最好的選擇
-                            product.imageUrls[i] = response.content.download_url;
-                            showToast(`圖片 ${fileName} 上傳成功!`, 'info');
-                        })
-                        .catch(err => {
-                             showToast(`圖片 ${fileName} 上傳失敗: ${err.message}`, 'error');
-                             // 即使單張圖片失敗，也先不中斷整個流程，可以後續處理
-                        });
+                    showToast(`正在上傳圖片 ${fileName}...`, 'info');
+                    console.log(`發現新圖片，準備上傳至: ${filePath}`);
 
-                    uploadPromises.push(uploadPromise);
+                    // 使用 await，強制 JavaScript 等待這個上傳完成
+                    try {
+                        const response = await updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob);
+                        const newUrl = response.content.download_url;
+                        console.log(`圖片 ${fileName} 上傳成功，新 URL: ${newUrl}`);
+                        // 直接在複本上替換掉 Base64 字串
+                        product.imageUrls[i] = newUrl;
+                    } catch (err) {
+                        console.error(`圖片 ${fileName} 上傳失敗:`, err);
+                        showToast(`圖片 ${fileName} 上傳失敗: ${err.message}`, 'error');
+                        // 即使失敗，也繼續下一個，避免卡住整個流程
+                    }
                 }
             }
         }
+        console.log(`步驟 2: 總共處理了 ${newImagesCount} 張新圖片。`);
+        
+        // --- 步驟 3: 推送處理過的 JSON 資料 ---
+        console.log('步驟 3: 圖片處理完成，正在推送 JSON 資料...');
+        console.log('即將推送到 products.json 的最終資料:', productsToSync);
 
-        // 步驟 2: 等待所有圖片上傳任務完成
-        if (uploadPromises.length > 0) {
-            showToast(`正在上傳 ${uploadPromises.length} 張新圖片...`, 'info');
-            await Promise.all(uploadPromises);
-        }
-
-        // 步驟 3: 所有 Base64 都被替換成 URL 後，上傳乾淨的 JSON 檔案
-        showToast('圖片處理完成，正在推送 JSON 資料...', 'info');
         await updateGithubFile(token, repo, 'products.json', '更新產品資料', JSON.stringify(productsToSync, null, 2));
         showToast('products.json 推送成功!', 'info');
         
         await updateGithubFile(token, repo, 'categories.json', '更新分類資料', JSON.stringify(allCategories, null, 2));
         showToast('categories.json 推送成功!', 'info');
 
-        // 【重要】用處理過的新資料同步回本地的 allProducts，這樣本地狀態才正確
+        // --- 步驟 4: 用推送成功的資料，徹底更新本地狀態 ---
+        console.log('步驟 4: 正在使用推送成功的遠端資料來更新本地狀態...');
         allProducts = productsToSync;
-        await writeData('products', allProducts);
-
+        await updateAndSave('products', allProducts, false);
+        console.log('本地狀態 (記憶體與 IndexedDB) 已同步更新完畢。');
+        
         showToast('所有資料已成功同步至 GitHub!', 'success');
+        console.log('--- GitHub 同步成功 ---');
 
     } catch (error) {
-        console.error('GitHub 同步失敗:', error);
+        console.error('GitHub 同步過程中發生嚴重錯誤:', error);
         showToast(`推送失敗: ${error.message}`, 'error');
     } finally {
         requestAnimationFrame(() => {
