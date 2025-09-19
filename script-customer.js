@@ -218,21 +218,18 @@ document.addEventListener('DOMContentLoaded', () => {
         
         async function loadData() {
     try {
-        // 【重要修正】不再從相對路徑讀取，而是直接從 GitHub 的 raw 連結讀取最新檔案。
-        // 這將完全繞過 GitHub Pages 的 CDN 快取。
+        // 【最終優化】使用 jsDelivr CDN。它既快又會自動清除快取，是最佳方案。
         const repoUser = 'howiewe';
         const repoName = 'howiewe.github.io';
         const branchName = 'main'; // 如果你的主要分支是 master，請改成 'master'
 
-        const prodURL = `https://raw.githubusercontent.com/${repoUser}/${repoName}/${branchName}/products.json`;
-        const catURL = `https://raw.githubusercontent.com/${repoUser}/${repoName}/${branchName}/categories.json`;
+        const prodURL = `https://cdn.jsdelivr.net/gh/${repoUser}/${repoName}@${branchName}/products.json`;
+        const catURL = `https://cdn.jsdelivr.net/gh/${repoUser}/${repoName}@${branchName}/categories.json`;
 
-        // 為了確保萬無一失，我們甚至給這個 raw 連結也加上時間戳
-        const cacheBuster = `?t=${new Date().getTime()}`;
-
+        // jsDelivr 會自動處理快取，所以我們不再需要手動加上 cacheBuster 或 no-store
         const [prodRes, catRes] = await Promise.all([
-            fetch(`${prodURL}${cacheBuster}`),
-            fetch(`${catURL}${cacheBuster}`)
+            fetch(prodURL),
+            fetch(catURL)
         ]);
 
         if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
@@ -240,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadedProducts = await prodRes.json();
         allCategories = await catRes.json();
         
-        // 這段處理舊資料格式的程式碼仍然保留，以確保相容性
         allProducts = loadedProducts.map(p => {
             if (p.imageDataUrl && !p.imageUrls) { p.imageUrls = [p.imageDataUrl]; delete p.imageDataUrl; } 
             else if (!p.imageUrls) { p.imageUrls = []; }

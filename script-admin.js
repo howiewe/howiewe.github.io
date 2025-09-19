@@ -181,7 +181,8 @@ async function syncToGithub() {
                         const newUrl = response.content.download_url;
                         console.log(`圖片 ${fileName} 上傳成功，新 URL: ${newUrl}`);
                         // 直接在複本上替換掉 Base64 字串
-                        product.imageUrls[i] = newUrl;
+                        product.imageUrls[i] = `/${filePath}`;
+                        showToast(`圖片 ${fileName} 上傳成功!`, 'success');
                     } catch (err) {
                         console.error(`圖片 ${fileName} 上傳失敗:`, err);
                         showToast(`圖片 ${fileName} 上傳失敗: ${err.message}`, 'error');
