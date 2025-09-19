@@ -217,28 +217,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         
         async function loadData() {
-            try {
-        // 使用 cache buster 字串，這是比較傳統但仍然有效的方法
-                const cacheBuster = `?t=${new Date().getTime()}`;
-                const [prodRes, catRes] = await Promise.all([
-                    fetch(`products.json${cacheBuster}`),
-                    fetch(`categories.json${cacheBuster}`)
-            ]);
-                if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
-                const loadedProducts = await prodRes.json();
-                allCategories = await catRes.json();
-                allProducts = loadedProducts.map(p => {
-                    if (p.imageDataUrl && !p.imageUrls) { p.imageUrls = [p.imageDataUrl]; delete p.imageDataUrl; } 
-                    else if (!p.imageUrls) { p.imageUrls = []; }
-                    return p;
-                });
-                buildCategoryTree();
-                renderProducts();
-            } catch (err) {
-                console.error("無法載入資料:", err);
-                productList.innerHTML = '<p class="empty-message">無法載入產品資料，請稍後再試。</p>';
-            }
-        }
+    try {
+        // 【重要修正】不再從相對路徑讀取，而是直接從 GitHub 的 raw 連結讀取最新檔案。
+        // 這將完全繞過 GitHub Pages 的 CDN 快取。
+        const repoUser = 'howiewe';
+        const repoName = 'howiewe.github.io';
+        const branchName = 'main'; // 如果你的主要分支是 master，請改成 'master'
+
+        const prodURL = `https://raw.githubusercontent.com/${repoUser}/${repoName}/${branchName}/products.json`;
+        const catURL = `https://raw.githubusercontent.com/${repoUser}/${repoName}/${branchName}/categories.json`;
+
+        // 為了確保萬無一失，我們甚至給這個 raw 連結也加上時間戳
+        const cacheBuster = `?t=${new Date().getTime()}`;
+
+        const [prodRes, catRes] = await Promise.all([
+            fetch(`${prodURL}${cacheBuster}`),
+            fetch(`${catURL}${cacheBuster}`)
+        ]);
+
+        if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
+        
+        const loadedProducts = await prodRes.json();
+        allCategories = await catRes.json();
+        
+        // 這段處理舊資料格式的程式碼仍然保留，以確保相容性
+        allProducts = loadedProducts.map(p => {
+            if (p.imageDataUrl && !p.imageUrls) { p.imageUrls = [p.imageDataUrl]; delete p.imageDataUrl; } 
+            else if (!p.imageUrls) { p.imageUrls = []; }
+            return p;
+        });
+
+        buildCategoryTree();
+        renderProducts();
+    } catch (err) {
+        console.error("無法載入資料:", err);
+        productList.innerHTML = '<p class="empty-message">無法載入產品資料，請檢查網路連線或 GitHub 儲存庫設定。</p>';
+    }
+}
         loadData();
     }
     
