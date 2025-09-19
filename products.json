@@ -6,7 +6,9 @@
     "ean13": "4719512078683",
     "price": 1890,
     "description": "頂級人體工學設計，2.4GHz 無線連接，靜音按鍵。",
-    "imageUrls": [],
+    "imageUrls": [
+      "/images/product-17001-1758299164890-0.jpeg"
+    ],
     "imageSize": 90,
     "categoryId": 3
   },
