@@ -25,6 +25,7 @@ body.dark-mode {
 /* --- 2. 基本樣式與布局 --- */
 *, *::before, *::after { box-sizing: border-box; }
 body { font-family: var(--font-family); line-height: 1.6; margin: 0; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s ease, color 0.3s ease; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+body.modal-open { overflow: hidden; }
 .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
 h1, h2, h3 { color: var(--heading-color); }
 .empty-message { text-align: center; font-size: 1.2rem; color: var(--secondary-color); padding: 3rem 0; }
@@ -74,7 +75,7 @@ body.dark-mode .icon-moon { display: block; } body.dark-mode .icon-sun { display
 .modal-container:not(.hidden) { opacity: 1; pointer-events: auto; }
 .modal-content { background-color: var(--card-bg); padding: 2rem; border-radius: 12px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; transform: scale(0.95); transition: transform 0.3s ease; }
 .modal-container:not(.hidden) .modal-content { transform: scale(1); }
-.close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 2rem; line-height: 1; color: var(--secondary-color); cursor: pointer; transition: color 0.2s ease; }
+.close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 2rem; line-height: 1; color: var(--secondary-color); cursor: pointer; transition: color 0.2s ease; z-index: 10; }
 .close-btn:hover { color: var(--text-color); }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
 .form-group { display: flex; flex-direction: column; margin-bottom: 1rem; }
@@ -84,10 +85,7 @@ form input:focus, form textarea:focus, form select:focus { outline: none; border
 .barcode-preview-container { background-color: #fff; padding: 10px; margin-top: 10px; border-radius: 4px; min-height: 80px; display: flex; align-items: center; justify-content: center; }
 .barcode-preview-container svg { width: 100%; max-width: 200px; height: auto; display: none; }
 
-/* --- 8. 圖片裁切 & 唯讀 Modal --- */
-.cropper-modal-content { max-width: 600px; }
-.cropper-image-container { margin-bottom: 1.5rem; height: 40vh; background-color: var(--input-bg); }
-.cropper-image-container img { max-width: 100%; }
+/* --- 8. 唯讀 Modal --- */
 #product-detail-info .price { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); }
 #product-detail-info .details-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; align-items: center; }
 #product-detail-info .details-grid > dt { font-weight: 700; color: var(--secondary-color); }
@@ -120,7 +118,7 @@ form input:focus, form textarea:focus, form select:focus { outline: none; border
 .main-image-wrapper img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.2s ease; }
 #main-image-preview { display: none; }
 .thumbnail-list { display: flex; flex-wrap: wrap; gap: 10px; }
-.thumbnail-item { position: relative; width: 80px; height: 80px; border: 2px solid var(--border-color); border-radius: 6px; overflow: hidden; cursor: grab; transition: border-color 0.2s ease; }
+.thumbnail-item { position: relative; width: 80px; height: 80px; border: 2px solid var(--border-color); border-radius: 6px; overflow: hidden; cursor: grab; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
 .thumbnail-item:hover { border-color: var(--primary-color); }
 .thumbnail-item:active { cursor: grabbing; }
 .thumbnail-item.sortable-ghost { opacity: 0.4; background: var(--primary-color); }
@@ -135,10 +133,27 @@ form input:focus, form textarea:focus, form select:focus { outline: none; border
 #category-management-tree { margin: 2rem 0; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; }
 #category-management-tree ul { list-style: none; padding-left: 20px; }
 #category-management-tree > ul { padding-left: 0; }
-#category-management-tree li { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: 6px; transition: background-color 0.2s ease; flex-wrap: wrap; }
+#category-management-tree li { padding: 0 10px; border-radius: 6px; transition: background-color 0.2s ease; }
+#category-management-tree .category-item-content { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
 #category-management-tree li:hover { background-color: rgba(128, 128, 128, 0.05); }
 #category-management-tree .category-name { font-weight: 500; }
 #category-management-tree .category-actions { display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s ease; }
 #category-management-tree li:hover .category-actions { opacity: 1; }
 .category-actions button { background: none; border: none; cursor: pointer; color: var(--secondary-color); padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
 .category-actions button:hover { background-color: rgba(128, 128, 128, 0.1); color: var(--text-color); }
+
+/* --- 13. Customer Image Slider --- */
+.slider-container { position: relative; width: 100%; overflow: hidden; border-radius: 8px; background-color: var(--input-bg); }
+.slider-wrapper { display: flex; transition: transform 0.4s ease-in-out; height: 300px; cursor: grab; user-select: none; }
+.slider-wrapper:active { cursor: grabbing; }
+.slide { flex: 0 0 100%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0.5rem; }
+.slide img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
+.slider-nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 0, 0, 0.4); color: white; border: none; padding: 10px; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; z-index: 10; opacity: 0; transition: opacity 0.2s ease, background-color 0.2s; }
+.slider-container:hover .slider-nav-btn { opacity: 1; }
+@media (hover: none) { .slider-nav-btn { opacity: 0.7; } }
+.slider-nav-btn.prev { left: 10px; }
+.slider-nav-btn.next { right: 10px; }
+.slider-nav-btn:hover { background-color: rgba(0, 0, 0, 0.7); }
+.slider-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.5); cursor: pointer; transition: background-color 0.2s ease; }
+.dot.active { background-color: white; }

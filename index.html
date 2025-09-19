@@ -44,8 +44,15 @@
             <button id="modal-close-btn" class="close-btn" title="關閉">&times;</button>
             <div id="product-detail-layout">
                 <div class="image-gallery-customer">
-                    <div class="main-image-wrapper">
-                        <img id="detail-main-image" src="" alt="產品主圖">
+                    <div class="slider-container">
+                        <div class="slider-wrapper" id="slider-wrapper">
+                            <!-- 主要大圖由 JS 生成 -->
+                        </div>
+                        <button id="prev-slide-btn" class="slider-nav-btn prev" title="上一張">&#10094;</button>
+                        <button id="next-slide-btn" class="slider-nav-btn next" title="下一張">&#10095;</button>
+                        <div class="slider-dots" id="slider-dots">
+                            <!-- 指示點由 JS 生成 -->
+                        </div>
                     </div>
                     <div id="detail-thumbnail-list" class="thumbnail-list">
                         <!-- 縮圖由 JS 生成 -->
