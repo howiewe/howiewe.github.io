@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggle = document.getElementById('theme-toggle');
     const pageOverlay = document.getElementById('page-overlay');
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
-    // Slider 元素
     const sliderWrapper = document.getElementById('slider-wrapper');
     const detailThumbnailList = document.getElementById('detail-thumbnail-list');
     const detailInfo = document.getElementById('product-detail-info');
@@ -19,13 +18,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 全域變數 ---
     let allProducts = [], allCategories = [];
     let currentCategoryId = 'all';
-    // Slider 變數
     let currentSlideIndex = 0;
     let totalSlides = 0;
     let isDragging = false;
     let startPosX = 0;
     let currentTranslate = 0;
     let prevTranslate = 0;
+
+    // --- 【Cloudflare Pages 最終版】資料載入函式 ---
+    async function loadData() {
+        try {
+            const [prodRes, catRes] = await Promise.all([
+                fetch('products.json'),
+                fetch('categories.json')
+            ]);
+    
+            if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
+            
+            const loadedProducts = await prodRes.json();
+            allCategories = await catRes.json();
+            
+            allProducts = loadedProducts.map(p => {
+                if (!p.imageUrls) { p.imageUrls = []; }
+                return p;
+            });
+    
+            buildCategoryTree();
+            renderProducts();
+        } catch (err) {
+            console.error("無法載入資料:", err);
+            productList.innerHTML = '<p class="empty-message">無法載入產品資料，請稍後再試。</p>';
+        }
+    }
 
     // --- 響應式側邊欄 & 分類樹 & 產品渲染 ---
     function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
@@ -106,10 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Slider 邏輯 ---
     function showSlide(index) {
-        if (totalSlides <= 1) return; // 如果只有一張或沒有圖，不執行滑動
+        if (totalSlides <= 1) return;
         if (index >= totalSlides) index = 0;
         if (index < 0) index = totalSlides - 1;
-
         const sliderWidth = sliderWrapper.clientWidth;
         sliderWrapper.style.transform = `translateX(-${index * sliderWidth}px)`;
         currentSlideIndex = index;
@@ -132,8 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isDragging = true;
         startPosX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
         sliderWrapper.style.transition = 'none';
-        const sliderWidth = sliderWrapper.clientWidth;
-        prevTranslate = -currentSlideIndex * sliderWidth;
+        prevTranslate = -currentSlideIndex * sliderWrapper.clientWidth;
     }
 
     function dragMove(e) {
@@ -143,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sliderWrapper.style.transform = `translateX(${currentTranslate}px)`;
     }
 
-    function dragEnd(e) {
+    function dragEnd() {
         if (!isDragging || totalSlides <= 1) return;
         isDragging = false;
         const movedBy = currentTranslate - prevTranslate;
@@ -156,8 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 詳情彈窗 (Modal) ---
     function openDetailModal(id) {
         const product = allProducts.find(p => p.id === id);
-        const category = allCategories.find(c => c.id === product.categoryId);
         if (!product) return;
+        const category = allCategories.find(c => c.id === product.categoryId);
         
         detailInfo.innerHTML = ` <h2>${product.name}</h2> <p class="price">$${product.price}</p> <p>${product.description}</p> <dl class="details-grid"> <dt>分類</dt><dd>${category ? category.name : '未分類'}</dd> <dt>編號</dt><dd>${product.sku}</dd> <dt>EAN-13</dt><dd>${product.ean13 || 'N/A'}</dd> </dl> ${product.ean13 ? `<div class="barcode-display"><svg id="detail-barcode"></svg></div>` : ''} `;
         
@@ -165,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         detailThumbnailList.innerHTML = '';
         sliderDots.innerHTML = '';
         
-        const imageUrls = product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : [];
+        const imageUrls = product.imageUrls || [];
         totalSlides = imageUrls.length;
         currentSlideIndex = 0;
 
@@ -185,7 +207,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         detailModal.classList.remove('hidden');
         document.body.classList.add('modal-open');
-        setTimeout(() => { if (product.ean13) { const barcodeElement = document.getElementById('detail-barcode'); if (barcodeElement) { try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) {} } } }, 0);
+        if (product.ean13) {
+            setTimeout(() => { 
+                const barcodeElement = document.getElementById('detail-barcode'); 
+                if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) {} 
+            }, 0);
+        }
     }
     
     function closeModal() {
@@ -207,8 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sliderWrapper.addEventListener('mouseleave', dragEnd);
         sliderWrapper.addEventListener('mousemove', dragMove);
         sliderWrapper.addEventListener('touchmove', dragMove, { passive: true });
-        detailThumbnailList.addEventListener('click', e => { if (e.target.dataset.index) { showSlide(parseInt(e.target.dataset.index)); } });
-        sliderDots.addEventListener('click', e => { if (e.target.dataset.index) { showSlide(parseInt(e.target.dataset.index)); } });
+        detailThumbnailList.addEventListener('click', e => { if (e.target.dataset.index) showSlide(parseInt(e.target.dataset.index)); });
+        sliderDots.addEventListener('click', e => { if (e.target.dataset.index) showSlide(parseInt(e.target.dataset.index)); });
         document.addEventListener('keydown', e => { if (!detailModal.classList.contains('hidden')) { if (e.key === 'ArrowLeft') prevSlide(); if (e.key === 'ArrowRight') nextSlide(); } });
         modalCloseBtn.addEventListener('click', closeModal);
         detailModal.addEventListener('click', e => { if (e.target === detailModal) closeModal(); });
@@ -216,31 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         
-        //【Cloudflare Pages 最終版】
-async function loadData() {
-    try {
-        const [prodRes, catRes] = await Promise.all([
-            fetch('products.json'),
-            fetch('categories.json')
-        ]);
-
-        if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
-        
-        const loadedProducts = await prodRes.json();
-        allCategories = await catRes.json();
-        
-        allProducts = loadedProducts.map(p => {
-            if (!p.imageUrls) { p.imageUrls = []; }
-            return p;
-        });
-
-        buildCategoryTree();
-        renderProducts();
-    } catch (err) {
-        console.error("無法載入資料:", err);
-        productList.innerHTML = '<p class="empty-message">無法載入產品資料，請稍後再試。</p>';
-    }
-}
         loadData();
     }
     
