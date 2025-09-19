@@ -51,8 +51,8 @@
             </div>
 
             <div class="container file-ops-container">
-                <h2>GitHub 線上同步</h2>
-                <p>使用 Pull 按鈕可將 GitHub 的最新資料拉回本地編輯。完成編輯後，使用 Push 按鈕將本地變更同步回 GitHub。</p>
+                <h2>GitHub 線上同步 (全自動模式)</h2>
+                <p>請輸入您的 GitHub Personal Access Token 和儲存庫位置並儲存。設定完成後，任何產品的「新增、修改、刪除」都將在儲存後自動推送到 GitHub。</p>
                 <div id="github-settings-form">
                     <div class="form-grid">
                         <div class="form-group">
@@ -68,11 +68,11 @@
                         <button type="button" id="save-github-settings-btn" class="btn btn-secondary">儲存設定</button>
                         <button type="button" id="pull-from-github-btn" class="btn btn-success">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
-                            Pull (拉取線上資料)
+                            Pull (手動拉取線上資料)
                         </button>
                         <button type="button" id="sync-to-github-btn" class="btn btn-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
-                            Push (推送本地變更)
+                            Push (手動推送本地變更)
                         </button>
                     </div>
                 </div>
