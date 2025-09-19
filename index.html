@@ -65,6 +65,9 @@
         </div>
     </div>
     
-    <script src="script-customer.js"></script>
+    <script>
+    // 透過動態寫入 script 標籤並加上時間戳，強制瀏覽器每次都下載最新的 JS 檔案
+    document.write('<script src="script-customer.js?v=' + new Date().getTime() + '"><\/script>');
+</script>
 </body>
 </html>

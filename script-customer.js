@@ -218,10 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         async function loadData() {
             try {
+        // 使用 cache buster 字串，這是比較傳統但仍然有效的方法
+                const cacheBuster = `?t=${new Date().getTime()}`;
                 const [prodRes, catRes] = await Promise.all([
-                    fetch('products.json', { cache: 'no-store' }),
-                    fetch('categories.json', { cache: 'no-store' })
-                ]);
+                    fetch(`products.json${cacheBuster}`),
+                    fetch(`categories.json${cacheBuster}`)
+            ]);
                 if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
                 const loadedProducts = await prodRes.json();
                 allCategories = await catRes.json();
