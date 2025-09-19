@@ -6,7 +6,9 @@
     "ean13": "4719512078683",
     "price": 1890,
     "description": "頂級人體工學設計，2.4GHz 無線連接，靜音按鍵。",
-    "imageUrls": [],
+    "imageUrls": [
+      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17001-1758290358623-0.png"
+    ],
     "imageSize": 90,
     "categoryId": 3
   },
@@ -20,10 +22,11 @@
     "imageUrls": [
       "https://via.placeholder.com/600x600.png?text=Backpack+Front",
       "https://via.placeholder.com/600x600.png?text=Backpack+Side",
-      "https://via.placeholder.com/600x600.png?text=Backpack+Inside"
+      "https://via.placeholder.com/600x600.png?text=Backpack+Inside",
+      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17002-1758290361549-3.png"
     ],
-    "categoryId": 5,
-    "imageSize": 100
+    "imageSize": 100,
+    "categoryId": 5
   },
   {
     "id": 17003,
