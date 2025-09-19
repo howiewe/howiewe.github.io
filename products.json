@@ -62,9 +62,10 @@
     "price": 1280,
     "description": "耐磨帆布材質，搭配皮革點綴，多口袋設計方便收納隨身物品。",
     "imageUrls": [
+      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17005-1758291010753-0.png",
       "https://via.placeholder.com/500x700.png?text=Side+Bag"
     ],
-    "categoryId": 5,
-    "imageSize": 95
+    "imageSize": 95,
+    "categoryId": 5
   }
 ]
