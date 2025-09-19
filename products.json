@@ -36,10 +36,11 @@
     "price": 599,
     "description": "採用高溫白瓷製成，手感溫潤，容量適中。",
     "imageUrls": [
+      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17003-1758293012395-0.png",
       "https://via.placeholder.com/600x600.png?text=Mug"
     ],
-    "categoryId": 6,
-    "imageSize": 85
+    "imageSize": 85,
+    "categoryId": 6
   },
   {
     "id": 17004,
