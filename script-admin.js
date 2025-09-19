@@ -221,7 +221,7 @@ async function syncToGithub() {
         });
     }
 }
-// 【升級】此函式現在可以處理文字 (JSON) 和檔案 (Blob) 兩種內容的上傳
+// 【最終修正版 v3】精簡化，移除不必要的 SHA 檢查來避免衝突
 async function updateGithubFile(token, repo, path, message, content) {
     const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
     const headers = {
@@ -230,6 +230,7 @@ async function updateGithubFile(token, repo, path, message, content) {
     };
     let sha;
 
+    // 步驟 1: 獲取目前檔案的 SHA。這對於更新 JSON 檔案仍然是必要的。
     try {
         const getFileResponse = await fetch(apiUrl, { headers });
         if (getFileResponse.ok) {
@@ -238,20 +239,20 @@ async function updateGithubFile(token, repo, path, message, content) {
         } else if (getFileResponse.status !== 404) {
             throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`);
         }
+        // 如果是 404 Not Found，代表是新檔案，sha 會是 undefined
     } catch (e) {
         throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`);
     }
 
-    // 將內容轉換為 Base64
+    // 步驟 2: 將內容轉換為 Base64 (這部分保持不變)
     const getBase64 = (fileOrString) => new Promise((resolve, reject) => {
-        // 如果是 Blob (圖片檔案)
         if (fileOrString instanceof Blob) {
             const reader = new FileReader();
             reader.readAsDataURL(fileOrString);
             reader.onload = () => resolve(reader.result.split(',')[1]);
             reader.onerror = (error) => reject(error);
-        } else { // 如果是字串 (JSON)
-            const blob = new Blob([fileOrString], {type: 'text/plain;charset=utf-8'});
+        } else {
+            const blob = new Blob([fileOrString], { type: 'text/plain;charset=utf-8' });
             const reader = new FileReader();
             reader.readAsDataURL(blob);
             reader.onload = () => resolve(reader.result.split(',')[1]);
@@ -261,12 +262,16 @@ async function updateGithubFile(token, repo, path, message, content) {
 
     const encodedContent = await getBase64(content);
 
+    // 步驟 3: 【重要修正】只有在更新現有檔案時 (sha 存在) 才包含 sha 欄位
     const body = {
         message: message,
         content: encodedContent,
-        sha: sha
     };
+    if (sha) {
+        body.sha = sha; // 如果 sha 存在，就加入到請求中
+    }
 
+    // 步驟 4: 發送請求 (保持不變)
     const updateResponse = await fetch(apiUrl, {
         method: 'PUT',
         headers,
@@ -275,6 +280,8 @@ async function updateGithubFile(token, repo, path, message, content) {
 
     if (!updateResponse.ok) {
         const errorData = await updateResponse.json();
+        // 加上更詳細的錯誤日誌
+        console.error(`更新 ${path} 失敗的詳細資訊:`, errorData);
         throw new Error(`更新 ${path} 失敗: ${errorData.message}`);
     }
     
