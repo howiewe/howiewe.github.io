@@ -42,7 +42,9 @@
     "ean13": "4718873459123",
     "price": 3250,
     "description": "採用高品質青軸，提供清脆的打擊手感。支援全鍵無衝突與可自訂 RGB 燈效。",
-    "imageUrls": [],
+    "imageUrls": [
+      "/images/product-17004-1758299133370-0.jpeg"
+    ],
     "imageSize": 100,
     "categoryId": 3
   },
