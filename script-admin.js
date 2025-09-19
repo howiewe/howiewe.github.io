@@ -1,61 +1,83 @@
-// 【最終正確版本】
+// 【最終版本】整合 Blob/Object URL 優化與正確的非同步上傳邏輯
 document.addEventListener('DOMContentLoaded', () => {
+    // --- IndexedDB 幫手函式 ---
+    const dbName = 'ProductCatalogDB';
+    const dbVersion = 1;
+    function openDB() { return new Promise((resolve, reject) => { const request = indexedDB.open(dbName, dbVersion); request.onerror = event => reject(`無法開啟 IndexedDB 資料庫: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); request.onupgradeneeded = event => { const db = event.target.result; if (!db.objectStoreNames.contains('products')) db.createObjectStore('products', { keyPath: 'id' }); if (!db.objectStoreNames.contains('categories')) db.createObjectStore('categories', { keyPath: 'id' }); }; }); }
+    function readData(storeName) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readonly'); const store = transaction.objectStore(storeName); const request = store.getAll(); request.onerror = event => reject(`無法從 ${storeName} 讀取資料: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); }); }
+    function writeData(storeName, data) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readwrite'); const store = transaction.objectStore(storeName); store.clear(); data.forEach(item => store.put(item)); transaction.oncomplete = () => resolve(); transaction.onerror = event => reject(`無法寫入資料至 ${storeName}: ${event.target.errorCode}`); }); }
+    
     // --- DOM 元素宣告 ---
     const productList = document.getElementById('product-list');
-    const categoryTreeContainer = document.getElementById('category-tree');
+    const form = document.getElementById('product-form');
+    const formTitle = document.getElementById('form-title');
+    const productIdInput = document.getElementById('product-id');
     const searchBox = document.getElementById('search-box');
-    const detailModal = document.getElementById('detail-modal-container');
-    const modalCloseBtn = document.getElementById('modal-close-btn');
     const themeToggle = document.getElementById('theme-toggle');
+    const categoryTreeContainer = document.getElementById('category-tree');
+    const categorySelect = document.getElementById('product-category-select');
+    const editModal = document.getElementById('edit-modal-container');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+    const addNewBtn = document.getElementById('add-new-btn');
+    const deleteBtn = document.getElementById('delete-btn');
+    const cropperModal = document.getElementById('cropper-modal-container');
+    const cropperImage = document.getElementById('cropper-image');
+    const cropConfirmBtn = document.getElementById('crop-confirm-btn');
+    const cropCancelBtn = document.getElementById('crop-cancel-btn');
+    const cropRotateBtn = document.getElementById('crop-rotate-btn');
+    const uploadImageBtn = document.getElementById('upload-image-btn');
+    const imageUploadInput = document.getElementById('product-image-upload');
+    const mainImagePreview = document.getElementById('main-image-preview');
+    const thumbnailListAdmin = document.getElementById('thumbnail-list-admin');
+    const imageSizeSlider = document.getElementById('image-size');
+    const imageSizeValue = document.getElementById('image-size-value');
+    const ean13Input = document.getElementById('product-ean13');
     const pageOverlay = document.getElementById('page-overlay');
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
-    const sliderWrapper = document.getElementById('slider-wrapper');
-    const detailThumbnailList = document.getElementById('detail-thumbnail-list');
-    const detailInfo = document.getElementById('product-detail-info');
-    const prevSlideBtn = document.getElementById('prev-slide-btn');
-    const nextSlideBtn = document.getElementById('next-slide-btn');
-    const sliderDots = document.getElementById('slider-dots');
-    
+    const importBtn = document.getElementById('import-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const githubTokenInput = document.getElementById('github-token');
+    const githubRepoInput = document.getElementById('github-repo');
+    const saveGithubSettingsBtn = document.getElementById('save-github-settings-btn');
+    const syncToGithubBtn = document.getElementById('sync-to-github-btn');
+    const pullFromGithubBtn = document.getElementById('pull-from-github-btn');
+    const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+    const categoryModal = document.getElementById('category-modal-container');
+    const categoryModalCloseBtn = document.getElementById('category-modal-close-btn');
+    const categoryManagementTree = document.getElementById('category-management-tree');
+    const addTopLevelCategoryBtn = document.getElementById('add-toplevel-category-btn');
+
     // --- 全域變數 ---
     let allProducts = [], allCategories = [];
+    let cropper;
     let currentCategoryId = 'all';
-    let currentSlideIndex = 0;
-    let totalSlides = 0;
-    let isDragging = false;
-    let startPosX = 0;
-    let currentTranslate = 0;
-    let prevTranslate = 0;
+    let currentImageItems = []; 
+    let sortableInstance = null;
+    
+    // --- 核心邏輯：檢查 GitHub 是否已設定 ---
+    function isGithubConfigured() {
+        return localStorage.getItem('githubToken') && localStorage.getItem('githubRepo');
+    }
 
-    // --- 【Cloudflare Pages 最終版】資料載入函式 (已加入快取破解) ---
-    async function loadData() {
-        try {
-            // 在檔名後加上時間戳，強制每次都抓取最新檔案，避免快取問題
-            const cacheBuster = '?v=' + new Date().getTime();
-            const [prodRes, catRes] = await Promise.all([
-                fetch('products.json' + cacheBuster),
-                fetch('categories.json' + cacheBuster)
-            ]);
-    
-            if (!prodRes.ok || !catRes.ok) {
-                // 如果抓不到檔案 (404)，就在主控台給出更明確的提示
-                if(!prodRes.ok) console.error(`讀取 products.json 失敗! 狀態: ${prodRes.status}. 請確認檔案已部署至網站根目錄。`);
-                if(!catRes.ok) console.error(`讀取 categories.json 失敗! 狀態: ${catRes.status}. 請確認檔案已部署至網站根目錄。`);
-                throw new Error('網路回應不正常');
-            }
-            
-            const loadedProducts = await prodRes.json();
-            allCategories = await catRes.json();
-            
-            allProducts = loadedProducts.map(p => {
-                if (!p.imageUrls) { p.imageUrls = []; }
-                return p;
-            });
-    
-            buildCategoryTree();
-            renderProducts();
-        } catch (err) {
-            console.error("無法載入資料:", err);
-            productList.innerHTML = '<p class="empty-message">無法載入產品資料，請檢查主控台 (F12) 的錯誤訊息。</p>';
+    // --- UI 狀態管理 ---
+    function setUIState(isReady) {
+        manageCategoriesBtn.disabled = !isReady;
+        if (isReady) {
+            addNewBtn.disabled = false;
+            syncToGithubBtn.disabled = false;
+            importBtn.disabled = false;
+            exportBtn.disabled = false;
+            searchBox.disabled = false;
+        } else {
+            addNewBtn.disabled = true;
+            syncToGithubBtn.disabled = true;
+            importBtn.disabled = true;
+            exportBtn.disabled = true;
+            searchBox.disabled = true;
+            productList.innerHTML = '<p class="empty-message">請先設定 GitHub Token/Repo 並拉取 (Pull) 資料以開始編輯。</p>';
+            categoryTreeContainer.innerHTML = '';
+            allProducts = [];
+            allCategories = [];
         }
     }
 
@@ -63,196 +85,291 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
     menuToggleBtn.addEventListener('click', toggleSidebar);
     pageOverlay.addEventListener('click', toggleSidebar);
-
-    function buildCategoryTree() {
-        const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}]));
-        const tree = [];
-        for (const category of categoryMap.values()) {
-            if (category.parentId === null) tree.push(category);
-            else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
-        }
-        let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`;
-        function createTreeHTML(nodes) {
-            let subHtml = '<ul>';
-            for (const node of nodes) {
-                subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`;
-                if (node.children.length > 0) subHtml += createTreeHTML(node.children);
-                subHtml += '</li>';
-            }
-            return subHtml + '</ul>';
-        }
-        categoryTreeContainer.innerHTML = html + createTreeHTML(tree) + '</ul>';
+    function buildCategoryTree() { const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`; function createTreeHTML(nodes) { let subHtml = '<ul>'; for (const node of nodes) { subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`; if (node.children.length > 0) subHtml += createTreeHTML(node.children); subHtml += '</li>'; } return subHtml + '</ul>'; } categoryTreeContainer.innerHTML = html + createTreeHTML(tree) + '</ul>'; let selectOptions = '<option value="" disabled>請選擇分類</option>'; function createSelectOptions(nodes, depth = 0) { for (const node of nodes) { selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; if (node.children.length > 0) createSelectOptions(node.children, depth + 1); } } createSelectOptions(tree); categorySelect.innerHTML = selectOptions; }
+    categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const targetLink = e.target.closest('a'); if (targetLink) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); targetLink.classList.add('active'); currentCategoryId = targetLink.dataset.id === 'all' ? 'all' : parseInt(targetLink.dataset.id); renderProducts(); if (window.innerWidth <= 992) toggleSidebar(); } });
+    function getCategoryIdsWithChildren(startId) { if (startId === 'all') return null; const ids = new Set([startId]); const queue = [startId]; while (queue.length > 0) { const children = allCategories.filter(c => c.parentId === queue.shift()); for (const child of children) { ids.add(child.id); queue.push(child.id); } } return ids; }
+    function renderProducts() { const searchTerm = searchBox.value.toLowerCase(); const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId); const filteredProducts = allProducts.filter(p => { const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId)); const matchesSearch = p.name.toLowerCase().includes(searchTerm); return matchesCategory && matchesSearch; }); productList.innerHTML = ''; if (filteredProducts.length === 0 && addNewBtn.disabled === false) { productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>'; return; } filteredProducts.forEach(product => { const card = document.createElement('div'); card.className = 'product-card'; card.onclick = () => openEditModal(product.id); const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : ''; card.innerHTML = ` <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 100}%;"></div> <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div> `; productList.appendChild(card); }); }
+    
+    // --- 核心儲存邏輯 ---
+    async function updateAndSave(storeName, data, showSuccessToast = true) { 
+        if (storeName === 'products') { 
+            allProducts = data; 
+        } else if (storeName === 'categories') { 
+            allCategories = data; 
+        } 
+        await writeData(storeName, data); 
+        if (showSuccessToast) showToast('變更已儲存至本地', 'success'); 
+        if (storeName === 'categories') { 
+            buildCategoryTree(); 
+        } 
+        renderProducts(); 
     }
+    
+    // --- 分類管理 (與自動 Push 相關) ---
+    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } categoryManagementTree.innerHTML = createTreeHTML(tree); }
+    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } else if (name !== null) { alert('分類名稱不能為空！'); } }
+    async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } else if (newName !== null) { alert('分類名稱不能為空！'); } }
+    async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } }
 
-    categoryTreeContainer.addEventListener('click', e => {
+    // --- Modal & 表單邏輯 ---
+    function openModal(modal) { modal.classList.remove('hidden'); }
+    function closeModal(modal) { modal.classList.add('hidden'); }
+    
+    // ===== 核心：全自動 Push 儲存邏輯 =====
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const targetLink = e.target.closest('a');
-        if (targetLink) {
-            document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
-            targetLink.classList.add('active');
-            currentCategoryId = targetLink.dataset.id === 'all' ? 'all' : parseInt(targetLink.dataset.id);
-            renderProducts();
-            if (window.innerWidth <= 992) toggleSidebar();
+        
+        const id = productIdInput.value;
+        const finalImageUrls = currentImageItems.map(item => item.url);
+        const newProductData = { id: id ? parseInt(id) : Date.now(), name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value, ean13: document.getElementById('product-ean13').value, price: parseFloat(document.getElementById('product-price').value), description: document.getElementById('product-description').value, imageUrls: finalImageUrls, imageSize: parseInt(imageSizeSlider.value), categoryId: parseInt(categorySelect.value) };
+        if(!newProductData.categoryId) { alert("請選擇一個產品分類！"); return; }
+        
+        let updatedProducts;
+        if (id) {
+            updatedProducts = allProducts.map(p => p.id == id ? newProductData : p);
+        } else {
+            updatedProducts = [...allProducts, newProductData];
+        }
+        await updateAndSave('products', updatedProducts);
+        
+        closeModal(editModal);
+        
+        if (isGithubConfigured()) {
+            setTimeout(syncToGithub, 100);
         }
     });
 
-    function getCategoryIdsWithChildren(startId) {
-        if (startId === 'all') return null;
-        const ids = new Set([startId]);
-        const queue = [startId];
-        while (queue.length > 0) {
-            const children = allCategories.filter(c => c.parentId === queue.shift());
-            for (const child of children) {
-                ids.add(child.id);
-                queue.push(child.id);
-            }
-        }
-        return ids;
-    }
-
-    function renderProducts() {
-        const searchTerm = searchBox.value.toLowerCase();
-        const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId);
-        const filteredProducts = allProducts.filter(p => {
-            const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId));
-            const matchesSearch = p.name.toLowerCase().includes(searchTerm);
-            return matchesCategory && matchesSearch;
-        });
-        productList.innerHTML = '';
-        if (filteredProducts.length === 0) {
-            productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>';
-            return;
-        }
-        filteredProducts.forEach(product => {
-            const card = document.createElement('div');
-            card.className = 'product-card';
-            card.onclick = () => openDetailModal(product.id);
-            const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : '';
-            card.innerHTML = `
-                <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 100}%;"></div>
-                <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>
-            `;
-            productList.appendChild(card);
-        });
-    }
-
-    // --- Slider 邏輯 ---
-    function showSlide(index) {
-        if (totalSlides <= 1) return;
-        if (index >= totalSlides) index = 0;
-        if (index < 0) index = totalSlides - 1;
-        const sliderWidth = sliderWrapper.clientWidth;
-        sliderWrapper.style.transform = `translateX(-${index * sliderWidth}px)`;
-        currentSlideIndex = index;
-        updateUI();
-    }
-
-    function updateUI() {
-        document.querySelectorAll('.dot').forEach((dot, i) => dot.classList.toggle('active', i === currentSlideIndex));
-        document.querySelectorAll('#detail-thumbnail-list .thumbnail-item').forEach((item, i) => item.classList.toggle('active', i === currentSlideIndex));
-        prevSlideBtn.style.display = totalSlides > 1 ? 'flex' : 'none';
-        nextSlideBtn.style.display = totalSlides > 1 ? 'flex' : 'none';
-        sliderDots.style.display = totalSlides > 1 ? 'flex' : 'none';
-    }
-
-    function nextSlide() { showSlide(currentSlideIndex + 1); }
-    function prevSlide() { showSlide(currentSlideIndex - 1); }
-
-    function dragStart(e) {
-        if (totalSlides <= 1) return;
-        isDragging = true;
-        startPosX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-        sliderWrapper.style.transition = 'none';
-        prevTranslate = -currentSlideIndex * sliderWrapper.clientWidth;
-    }
-
-    function dragMove(e) {
-        if (!isDragging) return;
-        const currentPosition = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-        currentTranslate = prevTranslate + currentPosition - startPosX;
-        sliderWrapper.style.transform = `translateX(${currentTranslate}px)`;
-    }
-
-    function dragEnd() {
-        if (!isDragging || totalSlides <= 1) return;
-        isDragging = false;
-        const movedBy = currentTranslate - prevTranslate;
-        sliderWrapper.style.transition = 'transform 0.4s ease-in-out';
-        if (movedBy < -50 && currentSlideIndex < totalSlides - 1) currentSlideIndex++;
-        if (movedBy > 50 && currentSlideIndex > 0) currentSlideIndex--;
-        showSlide(currentSlideIndex);
-    }
-
-    // --- 詳情彈窗 (Modal) ---
-    function openDetailModal(id) {
-        const product = allProducts.find(p => p.id === id);
-        if (!product) return;
-        const category = allCategories.find(c => c.id === product.categoryId);
-        
-        detailInfo.innerHTML = ` <h2>${product.name}</h2> <p class="price">$${product.price}</p> <p>${product.description}</p> <dl class="details-grid"> <dt>分類</dt><dd>${category ? category.name : '未分類'}</dd> <dt>編號</dt><dd>${product.sku}</dd> <dt>EAN-13</dt><dd>${product.ean13 || 'N/A'}</dd> </dl> ${product.ean13 ? `<div class="barcode-display"><svg id="detail-barcode"></svg></div>` : ''} `;
-        
-        sliderWrapper.innerHTML = '';
-        detailThumbnailList.innerHTML = '';
-        sliderDots.innerHTML = '';
-        
-        const imageUrls = product.imageUrls || [];
-        totalSlides = imageUrls.length;
-        currentSlideIndex = 0;
-
-        if (totalSlides > 0) {
-            imageUrls.forEach((url, index) => {
-                sliderWrapper.innerHTML += `<div class="slide"><img src="${url}" alt="${product.name} - 圖片 ${index + 1}"></div>`;
-                detailThumbnailList.innerHTML += `<div class="thumbnail-item"><img src="${url}" data-index="${index}" alt="產品縮圖 ${index + 1}"></div>`;
-                sliderDots.innerHTML += `<div class="dot" data-index="${index}"></div>`;
-            });
-        } else {
-            sliderWrapper.innerHTML = `<div class="slide"><img src="" alt="無圖片"></div>`;
-            totalSlides = 1;
-        }
-
-        sliderWrapper.style.transform = 'translateX(0px)';
-        updateUI();
-        
-        detailModal.classList.remove('hidden');
-        document.body.classList.add('modal-open');
-        if (product.ean13) {
-            setTimeout(() => { 
-                const barcodeElement = document.getElementById('detail-barcode'); 
-                if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) {} 
-            }, 0);
+    function openEditModal(id) {
+        resetForm();
+        const product = allProducts.find(p => p.id == id);
+        if (product) {
+            formTitle.textContent = '編輯產品';
+            productIdInput.value = product.id;
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-sku').value = product.sku;
+            ean13Input.value = product.ean13;
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-description').value = product.description;
+            categorySelect.value = product.categoryId;
+            currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url: url, isNew: false, blob: null })) : [];
+            renderAdminImagePreview();
+            imageSizeSlider.value = product.imageSize || 100;
+            imageSizeValue.textContent = imageSizeSlider.value;
+            const initialScale = (product.imageSize || 100) / 100;
+            mainImagePreview.style.transform = `scale(${initialScale})`;
+            deleteBtn.classList.remove('hidden');
+            deleteBtn.onclick = () => deleteProduct(product.id);
+            updateBarcodePreview();
+            openModal(editModal);
+            initSortable();
         }
     }
     
-    function closeModal() {
-        detailModal.classList.add('hidden');
-        document.body.classList.remove('modal-open');
+    async function deleteProduct(id) {
+        if (confirm('您確定要刪除這個產品嗎？此操作無法復原。')) {
+            const updatedProducts = allProducts.filter(p => p.id != id);
+            await updateAndSave('products', updatedProducts, false);
+            showToast('產品已從本地刪除', 'info');
+            closeModal(editModal);
+
+            if (isGithubConfigured()) {
+                setTimeout(syncToGithub, 100);
+            }
+        }
     }
 
-    // --- 初始化與事件監聽 ---
-    function init() {
-        themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
-        searchBox.addEventListener('input', renderProducts);
-        
-        prevSlideBtn.addEventListener('click', prevSlide);
-        nextSlideBtn.addEventListener('click', nextSlide);
-        sliderWrapper.addEventListener('mousedown', dragStart);
-        sliderWrapper.addEventListener('touchstart', dragStart, { passive: true });
-        sliderWrapper.addEventListener('mouseup', dragEnd);
-        sliderWrapper.addEventListener('touchend', dragEnd);
-        sliderWrapper.addEventListener('mouseleave', dragEnd);
-        sliderWrapper.addEventListener('mousemove', dragMove);
-        sliderWrapper.addEventListener('touchmove', dragMove, { passive: true });
-        detailThumbnailList.addEventListener('click', e => { if (e.target.dataset.index) showSlide(parseInt(e.target.dataset.index)); });
-        sliderDots.addEventListener('click', e => { if (e.target.dataset.index) showSlide(parseInt(e.target.dataset.index)); });
-        document.addEventListener('keydown', e => { if (!detailModal.classList.contains('hidden')) { if (e.key === 'ArrowLeft') prevSlide(); if (e.key === 'ArrowRight') nextSlide(); } });
-        modalCloseBtn.addEventListener('click', closeModal);
-        detailModal.addEventListener('click', e => { if (e.target === detailModal) closeModal(); });
+    function resetForm() { form.reset(); productIdInput.value = ''; currentImageItems.forEach(item => { if (item.url.startsWith('blob:')) URL.revokeObjectURL(item.url) }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 100; imageSizeValue.textContent = 100; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); }
+    function initSortable() { if (sortableInstance) { sortableInstance.destroy(); } try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const movedItem = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, movedItem); renderAdminImagePreview(); }, }); } catch(e) { console.error("SortableJS 初始化失敗! 請檢查函式庫是否成功載入。", e); showToast('拖曳排序功能載入失敗', 'error'); } }
+    function renderAdminImagePreview() { thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; currentImageItems.forEach((item, index) => { const thumbItem = document.createElement('div'); thumbItem.className = 'thumbnail-item'; if (index === 0) thumbItem.classList.add('active'); thumbItem.innerHTML = ` <img src="${item.url}" data-index="${index}" alt="縮圖 ${index + 1}"> <button type="button" class="delete-thumb-btn" data-index="${index}" title="刪除此圖">&times;</button> `; thumbnailListAdmin.appendChild(thumbItem); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; } }
+    thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const indexToDelete = parseInt(target.dataset.index); const itemToDelete = currentImageItems[indexToDelete]; if (itemToDelete && itemToDelete.url.startsWith('blob:')) { URL.revokeObjectURL(itemToDelete.url); } currentImageItems.splice(indexToDelete, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const indexToShow = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[indexToShow].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(item => item.classList.remove('active')); target.parentElement.classList.add('active'); } });
+    
+    // --- 圖片裁切邏輯 ---
+    uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
+    imageUploadInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const objectUrl = URL.createObjectURL(file);
+        cropperImage.src = objectUrl;
+        openModal(cropperModal);
+        if(cropper) cropper.destroy();
+        cropper = new Cropper(cropperImage, {
+            aspectRatio: NaN, viewMode: 1, background: false, autoCropArea: 1,
+            ready: function () { this.cropper.setCropBoxData({ left: 0, top: 0, width: this.cropper.getImageData().naturalWidth, height: this.cropper.getImageData().naturalHeight }); },
+            destroy: () => { URL.revokeObjectURL(objectUrl); }
+        });
+        e.target.value = '';
+    });
+    cropConfirmBtn.addEventListener('click', () => {
+        const canvas = cropper.getCroppedCanvas({ maxWidth: 1024, maxHeight: 1024, imageSmoothingQuality: 'high' });
+        canvas.toBlob((blob) => {
+            const previewUrl = URL.createObjectURL(blob);
+            currentImageItems.push({ url: previewUrl, blob: blob, isNew: true });
+            renderAdminImagePreview();
+        }, 'image/jpeg', 0.8);
+        closeModal(cropperModal);
+    });
+    cropCancelBtn.addEventListener('click', () => closeModal(cropperModal));
+    if (cropRotateBtn) { cropRotateBtn.addEventListener('click', () => { if (cropper) { cropper.rotate(90); } }); }
+    
+    // --- EAN13 預覽 & 圖片大小滑桿 ---
+    function updateBarcodePreview() { const value = ean13Input.value; const previewSvg = document.getElementById('barcode-preview'); if (value.length >= 12 && value.length <= 13) { try { JsBarcode(previewSvg, value, { format: "EAN13", lineColor: "#000", width: 2, height: 50, displayValue: true }); previewSvg.style.display = 'block'; } catch (e) { previewSvg.style.display = 'none'; } } else { previewSvg.style.display = 'none'; } }
+    ean13Input.addEventListener('input', updateBarcodePreview);
+    imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if(mainImagePreview) { const scaleValue = newSize / 100; mainImagePreview.style.transform = `scale(${scaleValue})`; } });
 
+    // --- GitHub API 相關邏輯 ---
+    function saveGithubSettings() {
+        const token = githubTokenInput.value;
+        const repo = githubRepoInput.value;
+        if (token && repo) {
+            localStorage.setItem('githubToken', token);
+            localStorage.setItem('githubRepo', repo);
+            showToast('GitHub 設定已儲存!', 'success');
+            pullFromGithubBtn.disabled = false;
+        } else {
+            localStorage.removeItem('githubToken');
+            localStorage.removeItem('githubRepo');
+            showToast('Token 和儲存庫不能為空', 'error');
+        }
+    }
+
+    function loadGithubSettings() {
+        const token = localStorage.getItem('githubToken') || '';
+        const repo = localStorage.getItem('githubRepo') || '';
+        githubTokenInput.value = token;
+        githubRepoInput.value = repo;
+        if (!token || !repo) {
+            pullFromGithubBtn.disabled = true;
+        }
+    }
+    
+    async function syncToGithub() {
+        if (!isGithubConfigured()) { return; }
+        if (syncToGithubBtn.disabled) { showToast('正在同步中，請稍候...', 'info'); return; }
+
+        syncToGithubBtn.disabled = true;
+        const originalBtnHTML = syncToGithubBtn.innerHTML;
+        syncToGithubBtn.innerHTML = '推送中...';
+        showToast('開始同步至 GitHub...', 'info');
+
+        try {
+            const token = localStorage.getItem('githubToken');
+            const repo = localStorage.getItem('githubRepo');
+            const imagesPath = 'images';
+            let productsToSync = JSON.parse(JSON.stringify(allProducts));
+            
+            const allNewImageBlobs = new Map();
+            for (const product of productsToSync) {
+                if (product.imageUrls) {
+                    for (const url of product.imageUrls) {
+                        if (url.startsWith('blob:')) {
+                            const item = currentImageItems.find(i => i.url === url);
+                            if (item && item.blob) {
+                                allNewImageBlobs.set(url, item.blob);
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (const product of productsToSync) {
+                if (!product.imageUrls || product.imageUrls.length === 0) continue;
+                const uploadedImageUrls = [];
+                for (let i = 0; i < product.imageUrls.length; i++) {
+                    const url = product.imageUrls[i];
+                    if (url.startsWith('blob:')) {
+                        const blob = allNewImageBlobs.get(url);
+                        if (!blob) {
+                            console.warn(`找不到 URL 對應的 Blob: ${url}，此圖片將被跳過。`);
+                            continue; 
+                        }
+                        const fileExtension = blob.type.split('/')[1] || 'jpg';
+                        const fileName = `product-${product.id}-${Date.now()}-${i}.${fileExtension}`;
+                        const filePath = `${imagesPath}/${fileName}`;
+                        await updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob);
+                        uploadedImageUrls.push(`/${filePath}`);
+                    } else {
+                        uploadedImageUrls.push(url);
+                    }
+                }
+                product.imageUrls = uploadedImageUrls;
+            }
+
+            await updateGithubFile(token, repo, 'products.json', '更新產品資料', JSON.stringify(productsToSync, null, 2));
+            await updateGithubFile(token, repo, 'categories.json', '更新分類資料', JSON.stringify(allCategories, null, 2));
+            
+            allProducts = productsToSync;
+            await updateAndSave('products', allProducts, false);
+
+            showToast('所有資料已成功同步至 GitHub!', 'success');
+
+        } catch (error) {
+            console.error('GitHub 同步失敗:', error);
+            showToast(`推送失敗: ${error.message}`, 'error');
+        } finally {
+            requestAnimationFrame(() => {
+                syncToGithubBtn.innerHTML = originalBtnHTML;
+                syncToGithubBtn.disabled = false;
+            });
+        }
+    }
+
+    async function updateGithubFile(token, repo, path, message, content) {
+        const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+        const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' };
+        let sha;
+        try {
+            const getFileResponse = await fetch(apiUrl, { headers, cache: 'no-store' });
+            if (getFileResponse.ok) sha = (await getFileResponse.json()).sha;
+            else if (getFileResponse.status !== 404) throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`);
+        } catch (e) { throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`); }
+
+        const getBase64 = (content) => new Promise((resolve, reject) => {
+            let blobToRead;
+            if (content instanceof Blob) { blobToRead = content; } 
+            else if (typeof content === 'string') { blobToRead = new Blob([content], { type: 'text/plain' }); } 
+            else { return reject(new Error(`無效的內容類型: ${typeof content}。`)); }
+            const reader = new FileReader();
+            reader.readAsDataURL(blobToRead);
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = (error) => reject(error);
+        });
+        
+        const encodedContent = await getBase64(content);
+        const body = { message, content: encodedContent, sha };
+        const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
+        if (!updateResponse.ok) throw new Error(`更新 ${path} 失敗: ${(await updateResponse.json()).message}`);
+        return await updateResponse.json();
+    }
+
+    async function pullFromGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要從 GitHub 拉取最新資料嗎？這將會覆蓋您目前未同步的本地變更。')) return; pullFromGithubBtn.disabled = true; pullFromGithubBtn.querySelector('svg').style.display = 'none'; pullFromGithubBtn.append(' 拉取中...'); try { const categoriesContent = await readGithubFile(token, repo, 'categories.json'); const newCategories = JSON.parse(categoriesContent); const productsContent = await readGithubFile(token, repo, 'products.json'); const newProducts = JSON.parse(productsContent); await updateAndSave('categories', newCategories, false); await updateAndSave('products', newProducts, false); setUIState(true); showToast('資料拉取並同步至本地成功！', 'success'); } catch (error) { console.error('從 GitHub 拉取失敗:', error); showToast(`拉取失敗: ${error.message}`); } finally { requestAnimationFrame(() => { pullFromGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg> Pull (拉取線上資料)'; pullFromGithubBtn.disabled = false; }); } }
+    async function readGithubFile(token, repo, path) { const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`; const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }; const response = await fetch(apiUrl, { headers, cache: 'no-store' }); if (response.status === 404) return '[]'; if (!response.ok) throw new Error(`讀取 ${path} 失敗: ${response.statusText}`); const data = await response.json(); return data.content ? decodeURIComponent(escape(atob(data.content))) : '[]'; }
+    importBtn.addEventListener('click', async () => { if (!confirm('匯入將會覆蓋您目前的所有本地資料，確定要繼續嗎？')) return; try { showToast('請先選擇您的 products.json 檔案', 'info'); const [prodHandle] = await window.showOpenFilePicker({ types: [{ description: '產品 JSON', accept: { 'application/json': ['.json'] } }] }); showToast('接著請選擇您的 categories.json 檔案', 'info'); const [catHandle] = await window.showOpenFilePicker({ types: [{ description: '分類 JSON', accept: { 'application/json': ['.json'] } }] }); const prodFile = await prodHandle.getFile(); const catFile = await catHandle.getFile(); const newProducts = JSON.parse(await prodFile.text()); const newCategories = JSON.parse(await catFile.text()); await updateAndSave('products', newProducts, false); await updateAndSave('categories', newCategories, false); showToast('資料匯入並覆蓋成功！', 'success'); setUIState(true); } catch (err) { if (err.name !== 'AbortError') showToast('讀取檔案失敗', 'error'); } });
+    exportBtn.addEventListener('click', async () => { try { const prodBlob = new Blob([JSON.stringify(allProducts, null, 2)], { type: 'application/json' }); const catBlob = new Blob([JSON.stringify(allCategories, null, 2)], { type: 'application/json' }); const download = (blob, filename) => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }; download(prodBlob, 'products.json'); download(catBlob, 'categories.json'); showToast('資料已匯出成 JSON 檔案！', 'success'); } catch (err) { showToast('匯出失敗！', 'error'); } });
+    function showToast(message, type = 'info', duration = 3000) { const toastContainer = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
+    
+    // --- 最終的初始化函式 ---
+    async function init() {
+        // 綁定所有事件監聽
+        themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
+        saveGithubSettingsBtn.addEventListener('click', saveGithubSettings);
+        syncToGithubBtn.addEventListener('click', syncToGithub);
+        pullFromGithubBtn.addEventListener('click', pullFromGithub);
+        addNewBtn.addEventListener('click', () => { resetForm(); formTitle.textContent = '新增產品'; openModal(editModal); });
+        modalCloseBtn.addEventListener('click', () => closeModal(editModal));
+        editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(editModal); });
+        searchBox.addEventListener('input', renderProducts);
+        manageCategoriesBtn.addEventListener('click', () => { buildCategoryManagementTree(); openModal(categoryModal); });
+        categoryModalCloseBtn.addEventListener('click', () => closeModal(categoryModal));
+        addTopLevelCategoryBtn.addEventListener('click', () => addCategory(null));
+        categoryManagementTree.addEventListener('click', (e) => { const target = e.target.closest('.action-btn'); if (!target) return; const id = parseInt(target.dataset.id); if (target.classList.contains('add-child-btn')) addCategory(id); else if (target.classList.contains('edit-cat-btn')) editCategory(id); else if (target.classList.contains('delete-cat-btn')) deleteCategory(id); });
+
+        // 頁面啟動時的初始設定
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         
-        loadData();
+        loadGithubSettings();
+        setUIState(false);
     }
-    
+
     init();
 });
