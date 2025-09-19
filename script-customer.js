@@ -216,10 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         
-        async function loadData() {
+        //【Cloudflare Pages 最終版】
+async function loadData() {
     try {
-        // 【Cloudflare Pages 優化】直接使用相對路徑。
-        // Cloudflare 會自動處理快取和加速，我們不再需要任何 cache buster 或外部 CDN。
         const [prodRes, catRes] = await Promise.all([
             fetch('products.json'),
             fetch('categories.json')
@@ -231,8 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         allCategories = await catRes.json();
         
         allProducts = loadedProducts.map(p => {
-            if (p.imageDataUrl && !p.imageUrls) { p.imageUrls = [p.imageDataUrl]; delete p.imageDataUrl; } 
-            else if (!p.imageUrls) { p.imageUrls = []; }
+            if (!p.imageUrls) { p.imageUrls = []; }
             return p;
         });
 
