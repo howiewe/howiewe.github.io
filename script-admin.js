@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryModalCloseBtn = document.getElementById('category-modal-close-btn');
     const categoryManagementTree = document.getElementById('category-management-tree');
     const addTopLevelCategoryBtn = document.getElementById('add-toplevel-category-btn');
-    const formSubmitBtn = form.querySelector('button[type="submit"]');
 
     // --- 全域變數 ---
     let allProducts = [], allCategories = [];
@@ -58,15 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 核心邏輯：檢查 GitHub 是否已設定 ---
     function isGithubConfigured() {
         return localStorage.getItem('githubToken') && localStorage.getItem('githubRepo');
-    }
-
-    // --- 核心邏輯：更新表單提交按鈕的狀態與文字 ---
-    function updateFormSubmitButton() {
-        if (isGithubConfigured()) {
-            formSubmitBtn.textContent = '儲存並 Push 至 GitHub';
-        } else {
-            formSubmitBtn.textContent = '儲存產品 (至本地)';
-        }
     }
 
     // --- UI 狀態管理 ---
@@ -100,20 +90,32 @@ document.addEventListener('DOMContentLoaded', () => {
     function getCategoryIdsWithChildren(startId) { if (startId === 'all') return null; const ids = new Set([startId]); const queue = [startId]; while (queue.length > 0) { const children = allCategories.filter(c => c.parentId === queue.shift()); for (const child of children) { ids.add(child.id); queue.push(child.id); } } return ids; }
     function renderProducts() { const searchTerm = searchBox.value.toLowerCase(); const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId); const filteredProducts = allProducts.filter(p => { const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId)); const matchesSearch = p.name.toLowerCase().includes(searchTerm); return matchesCategory && matchesSearch; }); productList.innerHTML = ''; if (filteredProducts.length === 0 && addNewBtn.disabled === false) { productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>'; return; } filteredProducts.forEach(product => { const card = document.createElement('div'); card.className = 'product-card'; card.onclick = () => openEditModal(product.id); const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : ''; card.innerHTML = ` <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 100}%;"></div> <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div> `; productList.appendChild(card); }); }
     
-    // --- 自動儲存 (至 IndexedDB) ---
-    async function updateAndSave(storeName, data, showSuccessToast = true) { if (storeName === 'products') { allProducts = data; } else if (storeName === 'categories') { allCategories = data; } await writeData(storeName, data); if (showSuccessToast) showToast('變更已自動儲存至本地', 'success'); if (storeName === 'categories') { buildCategoryTree(); } renderProducts(); }
+    // --- 核心儲存邏輯 ---
+    async function updateAndSave(storeName, data, showSuccessToast = true) { 
+        if (storeName === 'products') { 
+            allProducts = data; 
+        } else if (storeName === 'categories') { 
+            allCategories = data; 
+        } 
+        await writeData(storeName, data); 
+        if (showSuccessToast) showToast('變更已儲存至本地', 'success'); 
+        if (storeName === 'categories') { 
+            buildCategoryTree(); 
+        } 
+        renderProducts(); 
+    }
     
-    // --- 分類管理 ---
+    // --- 分類管理 (與自動 Push 無關) ---
     function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } categoryManagementTree.innerHTML = createTreeHTML(tree); }
-    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (name !== null) { alert('分類名稱不能為空！'); } }
-    async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
-    async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); } }
+    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } else if (name !== null) { alert('分類名稱不能為空！'); } }
+    async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } else if (newName !== null) { alert('分類名稱不能為空！'); } }
+    async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } }
 
     // --- Modal & 表單邏輯 ---
     function openModal(modal) { modal.classList.remove('hidden'); }
     function closeModal(modal) { modal.classList.add('hidden'); }
     
-    // ===== NEW: 全自動 Push 核心邏輯 =====
+    // ===== 核心：全自動 Push 儲存邏輯 =====
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -132,19 +134,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         await updateAndSave('products', updatedProducts);
         
-        // 3. 關閉編輯視窗，提供即時反饋
+        // 3. 關閉編輯視窗
         closeModal(editModal);
         
         // 4. 如果 GitHub 已設定，則在背景觸發 Push
         if (isGithubConfigured()) {
-            // 使用 setTimeout 確保 UI (modal關閉) 先更新，再執行耗時操作
             setTimeout(syncToGithub, 100);
         }
     });
 
     function openEditModal(id) {
         resetForm();
-        updateFormSubmitButton(); // 開啟時就決定按鈕的樣式
         const product = allProducts.find(p => p.id == id);
         if (product) {
             formTitle.textContent = '編輯產品';
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // ===== NEW: 刪除也觸發自動 Push =====
+    // ===== 核心：刪除也觸發自動 Push =====
     async function deleteProduct(id) {
         if (confirm('您確定要刪除這個產品嗎？此操作無法復原。')) {
             const updatedProducts = allProducts.filter(p => p.id != id);
@@ -235,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('githubRepo');
             showToast('Token 和儲存庫不能為空', 'error');
         }
-        updateFormSubmitButton(); // 儲存設定後，立即更新按鈕狀態
     }
 
     function loadGithubSettings() {
@@ -246,25 +245,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!token || !repo) {
             pullFromGithubBtn.disabled = true;
         }
-        updateFormSubmitButton(); // 頁面載入時，就決定按鈕狀態
     }
     
     async function syncToGithub() {
-        if (!isGithubConfigured()) {
-            showToast('請先儲存您的 GitHub 設定', 'error');
-            return;
-        }
-        
-        // 防止重複觸發
-        if (syncToGithubBtn.disabled) {
-            showToast('正在同步中，請稍候...', 'info');
-            return;
-        }
+        if (!isGithubConfigured()) { return; }
+        if (syncToGithubBtn.disabled) { showToast('正在同步中，請稍候...', 'info'); return; }
 
         syncToGithubBtn.disabled = true;
-        syncToGithubBtn.querySelector('svg').style.display = 'none';
-        const originalBtnText = syncToGithubBtn.textContent.trim();
-        syncToGithubBtn.textContent = '推送中...';
+        const originalBtnHTML = syncToGithubBtn.innerHTML;
+        syncToGithubBtn.innerHTML = '推送中...';
+        showToast('開始同步至 GitHub...', 'info');
 
         try {
             const token = localStorage.getItem('githubToken');
@@ -272,32 +262,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const imagesPath = 'images';
             let productsToSync = JSON.parse(JSON.stringify(allProducts));
             
-            // 這次我們從所有產品中收集所有新的 blob 圖片，而不是只看當前編輯的
-            const allNewImageItems = [];
-            productsToSync.forEach(p => {
-                if(p.imageUrls) {
-                    p.imageUrls.forEach(url => {
-                        if(url.startsWith('blob:')) {
-                           const item = currentImageItems.find(i => i.url === url);
-                           if(item && item.blob) {
-                               allNewImageItems.push(item);
-                           }
+            // 修正：從所有產品中收集所有新的 blob 圖片
+            const allNewImageBlobs = new Map();
+            for (const product of productsToSync) {
+                if (product.imageUrls) {
+                    for (const url of product.imageUrls) {
+                        if (url.startsWith('blob:')) {
+                            // 檢查 currentImageItems (通常是當前或最後編輯的)
+                            const item = currentImageItems.find(i => i.url === url);
+                            if (item && item.blob) {
+                                allNewImageBlobs.set(url, item.blob);
+                            }
                         }
-                    })
+                    }
                 }
-            });
-            const tempImageMap = new Map(allNewImageItems.map(item => [item.url, item.blob]));
+            }
 
-            console.log('步驟 1: 掃描並上傳新圖片...');
             for (const product of productsToSync) {
                 if (!product.imageUrls || product.imageUrls.length === 0) continue;
-
                 const uploadedImageUrls = [];
                 for (let i = 0; i < product.imageUrls.length; i++) {
                     const url = product.imageUrls[i];
-                    
                     if (url.startsWith('blob:')) {
-                        const blob = tempImageMap.get(url);
+                        const blob = allNewImageBlobs.get(url);
                         if (!blob) {
                             console.warn(`找不到 URL 對應的 Blob: ${url}，此圖片將被跳過。`);
                             continue; 
@@ -305,11 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const fileExtension = blob.type.split('/')[1] || 'jpg';
                         const fileName = `product-${product.id}-${Date.now()}-${i}.${fileExtension}`;
                         const filePath = `${imagesPath}/${fileName}`;
-
-                        showToast(`正在上傳圖片 ${fileName}...`, 'info');
                         await updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob);
                         uploadedImageUrls.push(`/${filePath}`);
-                        showToast(`圖片 ${fileName} 上傳成功!`, 'success');
                     } else {
                         uploadedImageUrls.push(url);
                     }
@@ -317,15 +301,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 product.imageUrls = uploadedImageUrls;
             }
 
-            console.log('步驟 2: 圖片處理完成，正在推送 JSON 資料...');
             await updateGithubFile(token, repo, 'products.json', '更新產品資料', JSON.stringify(productsToSync, null, 2));
-            showToast('products.json 推送成功!', 'info');
-            
             await updateGithubFile(token, repo, 'categories.json', '更新分類資料', JSON.stringify(allCategories, null, 2));
-            showToast('categories.json 推送成功!', 'info');
             
             allProducts = productsToSync;
-            await updateAndSave('products', allProducts, false);
+            await updateAndSave('products', allProducts, false); // 只更新本地，不再顯示提示
 
             showToast('所有資料已成功同步至 GitHub!', 'success');
 
@@ -334,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(`推送失敗: ${error.message}`, 'error');
         } finally {
             requestAnimationFrame(() => {
-                syncToGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="display: inline-block;"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg> Push (推送本地變更)';
+                syncToGithubBtn.innerHTML = originalBtnHTML;
                 syncToGithubBtn.disabled = false;
             });
         }
@@ -352,33 +332,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const getBase64 = (content) => new Promise((resolve, reject) => {
             let blobToRead;
-            if (content instanceof Blob) {
-                blobToRead = content;
-            } else if (typeof content === 'string') {
-                blobToRead = new Blob([content], { type: 'text/plain' });
-            } else {
-                return reject(new Error(`無效的內容類型: ${typeof content}。無法轉換為 Base64。`));
-            }
+            if (content instanceof Blob) { blobToRead = content; } 
+            else if (typeof content === 'string') { blobToRead = new Blob([content], { type: 'text/plain' }); } 
+            else { return reject(new Error(`無效的內容類型: ${typeof content}。`)); }
             const reader = new FileReader();
             reader.readAsDataURL(blobToRead);
             reader.onload = () => resolve(reader.result.split(',')[1]);
             reader.onerror = (error) => reject(error);
         });
         
-        try {
-            const encodedContent = await getBase64(content);
-            const body = { message, content: encodedContent };
-            if (sha) body.sha = sha;
-
-            const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
-            if (!updateResponse.ok) throw new Error(`更新 ${path} 失敗: ${(await updateResponse.json()).message}`);
-            return await updateResponse.json();
-        } catch(error) {
-            throw error;
-        }
+        const encodedContent = await getBase64(content);
+        const body = { message, content: encodedContent, sha };
+        const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
+        if (!updateResponse.ok) throw new Error(`更新 ${path} 失敗: ${(await updateResponse.json()).message}`);
+        return await updateResponse.json();
     }
 
-    async function pullFromGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要從 GitHub 拉取最新資料嗎？這將會覆蓋您目前未同步的本地變更。')) return; pullFromGithubBtn.disabled = true; pullFromGithubBtn.querySelector('svg').style.display = 'none'; pullFromGithubBtn.append(' 拉取中...'); try { const categoriesContent = await readGithubFile(token, repo, 'categories.json'); const newCategories = JSON.parse(categoriesContent); showToast('已成功拉取 categories.json', 'info'); const productsContent = await readGithubFile(token, repo, 'products.json'); const newProducts = JSON.parse(productsContent); showToast('已成功拉取 products.json', 'info'); await updateAndSave('categories', newCategories, false); await updateAndSave('products', newProducts, false); setUIState(true); showToast('資料拉取並同步至本地成功！', 'success'); } catch (error) { console.error('從 GitHub 拉取失敗:', error); showToast(`拉取失敗: ${error.message}`); } finally { requestAnimationFrame(() => { pullFromGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg> Pull (拉取線上資料)'; pullFromGithubBtn.disabled = false; }); } }
+    async function pullFromGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要從 GitHub 拉取最新資料嗎？這將會覆蓋您目前未同步的本地變更。')) return; pullFromGithubBtn.disabled = true; pullFromGithubBtn.querySelector('svg').style.display = 'none'; pullFromGithubBtn.append(' 拉取中...'); try { const categoriesContent = await readGithubFile(token, repo, 'categories.json'); const newCategories = JSON.parse(categoriesContent); const productsContent = await readGithubFile(token, repo, 'products.json'); const newProducts = JSON.parse(productsContent); await updateAndSave('categories', newCategories, false); await updateAndSave('products', newProducts, false); setUIState(true); showToast('資料拉取並同步至本地成功！', 'success'); } catch (error) { console.error('從 GitHub 拉取失敗:', error); showToast(`拉取失敗: ${error.message}`); } finally { requestAnimationFrame(() => { pullFromGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg> Pull (拉取線上資料)'; pullFromGithubBtn.disabled = false; }); } }
     async function readGithubFile(token, repo, path) { const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`; const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }; const response = await fetch(apiUrl, { headers, cache: 'no-store' }); if (response.status === 404) return '[]'; if (!response.ok) throw new Error(`讀取 ${path} 失敗: ${response.statusText}`); const data = await response.json(); return data.content ? decodeURIComponent(escape(atob(data.content))) : '[]'; }
     importBtn.addEventListener('click', async () => { if (!confirm('匯入將會覆蓋您目前的所有本地資料，確定要繼續嗎？')) return; try { showToast('請先選擇您的 products.json 檔案', 'info'); const [prodHandle] = await window.showOpenFilePicker({ types: [{ description: '產品 JSON', accept: { 'application/json': ['.json'] } }] }); showToast('接著請選擇您的 categories.json 檔案', 'info'); const [catHandle] = await window.showOpenFilePicker({ types: [{ description: '分類 JSON', accept: { 'application/json': ['.json'] } }] }); const prodFile = await prodHandle.getFile(); const catFile = await catHandle.getFile(); const newProducts = JSON.parse(await prodFile.text()); const newCategories = JSON.parse(await catFile.text()); await updateAndSave('products', newProducts, false); await updateAndSave('categories', newCategories, false); showToast('資料匯入並覆蓋成功！', 'success'); setUIState(true); } catch (err) { if (err.name !== 'AbortError') showToast('讀取檔案失敗', 'error'); } });
     exportBtn.addEventListener('click', async () => { try { const prodBlob = new Blob([JSON.stringify(allProducts, null, 2)], { type: 'application/json' }); const catBlob = new Blob([JSON.stringify(allCategories, null, 2)], { type: 'application/json' }); const download = (blob, filename) => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }; download(prodBlob, 'products.json'); download(catBlob, 'categories.json'); showToast('資料已匯出成 JSON 檔案！', 'success'); } catch (err) { showToast('匯出失敗！', 'error'); } });
@@ -389,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveGithubSettingsBtn.addEventListener('click', saveGithubSettings);
         syncToGithubBtn.addEventListener('click', syncToGithub);
         pullFromGithubBtn.addEventListener('click', pullFromGithub);
-        addNewBtn.addEventListener('click', () => { resetForm(); formTitle.textContent = '新增產品'; openModal(editModal); updateFormSubmitButton(); });
+        addNewBtn.addEventListener('click', () => { resetForm(); formTitle.textContent = '新增產品'; openModal(editModal); });
         modalCloseBtn.addEventListener('click', () => closeModal(editModal));
         editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(editModal); });
         searchBox.addEventListener('input', renderProducts);
