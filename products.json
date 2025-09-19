@@ -49,11 +49,10 @@
     "price": 3250,
     "description": "採用高品質青軸，提供清脆的打擊手感。支援全鍵無衝突與可自訂 RGB 燈效。",
     "imageUrls": [
-      "https://via.placeholder.com/800x600.png?text=Keyboard+Top",
-      "https://via.placeholder.com/800x600.png?text=Keyboard+Angle"
+      "https://raw.githubusercontent.com/howiewe/howiewe.github.io/main/images/product-17004-1758290941551-0.png"
     ],
-    "categoryId": 3,
-    "imageSize": 100
+    "imageSize": 100,
+    "categoryId": 3
   },
   {
     "id": 17005,
