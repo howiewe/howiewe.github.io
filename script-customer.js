@@ -218,18 +218,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         async function loadData() {
     try {
-        // 【最終優化】使用 jsDelivr CDN。它既快又會自動清除快取，是最佳方案。
-        const repoUser = 'howiewe';
-        const repoName = 'howiewe.github.io';
-        const branchName = 'main'; // 如果你的主要分支是 master，請改成 'master'
-
-        const prodURL = `https://cdn.jsdelivr.net/gh/${repoUser}/${repoName}@${branchName}/products.json`;
-        const catURL = `https://cdn.jsdelivr.net/gh/${repoUser}/${repoName}@${branchName}/categories.json`;
-
-        // jsDelivr 會自動處理快取，所以我們不再需要手動加上 cacheBuster 或 no-store
+        // 【Cloudflare Pages 優化】直接使用相對路徑。
+        // Cloudflare 會自動處理快取和加速，我們不再需要任何 cache buster 或外部 CDN。
         const [prodRes, catRes] = await Promise.all([
-            fetch(prodURL),
-            fetch(catURL)
+            fetch('products.json'),
+            fetch('categories.json')
         ]);
 
         if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
@@ -247,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProducts();
     } catch (err) {
         console.error("無法載入資料:", err);
-        productList.innerHTML = '<p class="empty-message">無法載入產品資料，請檢查網路連線或 GitHub 儲存庫設定。</p>';
+        productList.innerHTML = '<p class="empty-message">無法載入產品資料，請稍後再試。</p>';
     }
 }
         loadData();
