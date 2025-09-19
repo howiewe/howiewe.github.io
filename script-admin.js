@@ -124,7 +124,61 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveGithubSettings() { const token = githubTokenInput.value; const repo = githubRepoInput.value; if (token && repo) { localStorage.setItem('githubToken', token); localStorage.setItem('githubRepo', repo); showToast('GitHub 設定已儲存!', 'success'); pullFromGithubBtn.disabled = false; } else { showToast('Token 和儲存庫不能為空', 'error'); } }
     function loadGithubSettings() { const token = localStorage.getItem('githubToken') || ''; const repo = localStorage.getItem('githubRepo') || ''; githubTokenInput.value = token; githubRepoInput.value = repo; if (!token || !repo) { pullFromGithubBtn.disabled = true; } }
     async function syncToGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); const productsPath = 'products.json'; const categoriesPath = 'categories.json'; if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要將目前的本地資料覆蓋到 GitHub 儲存庫嗎？此操作無法復原。')) return; syncToGithubBtn.disabled = true; syncToGithubBtn.querySelector('svg').style.display = 'none'; syncToGithubBtn.append(' 推送中...'); try { await updateGithubFile(token, repo, productsPath, '更新產品資料', JSON.stringify(allProducts, null, 2)); showToast('products.json 推送成功!', 'info'); await updateGithubFile(token, repo, categoriesPath, '更新分類資料', JSON.stringify(allCategories, null, 2)); showToast('categories.json 推送成功!', 'info'); showToast('所有資料已成功同步至 GitHub!', 'success'); } catch (error) { console.error('GitHub 同步失敗:', error); showToast(`推送失敗: ${error.message}`, 'error'); } finally { requestAnimationFrame(() => { syncToGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="display: inline-block;"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg> Push (推送本地變更)'; syncToGithubBtn.disabled = false; }); } }
-    async function updateGithubFile(token, repo, path, message, content) { const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`; const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', }; let sha; try { const getFileResponse = await fetch(apiUrl, { headers }); if (getFileResponse.ok) { const fileData = await getFileResponse.json(); sha = fileData.sha; } else if (getFileResponse.status !== 404) { throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`); } } catch (e) { throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`); } const encodedContent = btoa(unescape(encodeURIComponent(content))); const body = { message: message, content: encodedContent, sha: sha }; const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body), }); if (!updateResponse.ok) { const errorData = await updateResponse.json(); throw new Error(`更新 ${path} 失敗: ${errorData.message}`); } return await updateResponse.json(); }
+async function updateGithubFile(token, repo, path, message, content) {
+    const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+    const headers = {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+    };
+    let sha;
+
+    // 步驟 1: 獲取目前檔案的 SHA，以便更新
+    try {
+        const getFileResponse = await fetch(apiUrl, { headers });
+        if (getFileResponse.ok) {
+            const fileData = await getFileResponse.json();
+            sha = fileData.sha;
+        } else if (getFileResponse.status !== 404) {
+            // 如果不是 "找不到檔案" 錯誤，就拋出異常
+            throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`);
+        }
+        // 如果是 404，sha 會是 undefined，這代表是新檔案，GitHub API 會自動處理
+    } catch (e) {
+        throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`);
+    }
+
+    // 步驟 2: 【重要修正】使用更可靠的方式將包含中文的 JSON 字串編碼成 Base64
+    // 舊方法: btoa(unescape(encodeURIComponent(content))) <-- 已被取代
+    // 新方法: 使用 Blob 和 FileReader，這是現代瀏覽器中最穩定的作法。
+    const getBase64 = (str) => new Promise(resolve => {
+        const blob = new Blob([str], {type: 'application/json;charset=utf-8'});
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(blob);
+    });
+
+    const encodedContent = await getBase64(content);
+
+    // 步驟 3: 準備請求內容並發送 PUT 請求來更新檔案
+    const body = {
+        message: message,
+        content: encodedContent,
+        sha: sha // 如果是新檔案，sha 為 undefined，JSON.stringify 會自動忽略此欄位
+    };
+
+    const updateResponse = await fetch(apiUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(body),
+    });
+
+    if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        throw new Error(`更新 ${path} 失敗: ${errorData.message}`);
+    }
+    
+    return await updateResponse.json();
+    }
     async function pullFromGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要從 GitHub 拉取最新資料嗎？這將會覆蓋您目前未同步的本地變更。')) return; pullFromGithubBtn.disabled = true; pullFromGithubBtn.querySelector('svg').style.display = 'none'; pullFromGithubBtn.append(' 拉取中...'); try { const categoriesContent = await readGithubFile(token, repo, 'categories.json'); const newCategories = JSON.parse(categoriesContent); showToast('已成功拉取 categories.json', 'info'); const productsContent = await readGithubFile(token, repo, 'products.json'); const newProducts = JSON.parse(productsContent); showToast('已成功拉取 products.json', 'info'); await updateAndSave('categories', newCategories, false); await updateAndSave('products', newProducts, false); setUIState(true); showToast('資料拉取並同步至本地成功！', 'success'); } catch (error) { console.error('從 GitHub 拉取失敗:', error); showToast(`拉取失敗: ${error.message}`, 'error'); } finally { requestAnimationFrame(() => { pullFromGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg> Pull (拉取線上資料)'; pullFromGithubBtn.disabled = false; }); } }
     async function readGithubFile(token, repo, path) { const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`; const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', }; const response = await fetch(apiUrl, { headers, cache: 'no-cache' }); if (!response.ok) { if (response.status === 404) { throw new Error(`檔案 ${path} 在儲存庫中不存在。`); } throw new Error(`讀取 ${path} 失敗: ${response.statusText}`); } const data = await response.json(); const content = decodeURIComponent(escape(atob(data.content))); return content; }
 
