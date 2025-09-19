@@ -1,3 +1,4 @@
+// 【最終正確版本】
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 元素宣告 ---
     const productList = document.getElementById('product-list');
@@ -25,15 +26,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTranslate = 0;
     let prevTranslate = 0;
 
-    // --- 【Cloudflare Pages 最終版】資料載入函式 ---
+    // --- 【Cloudflare Pages 最終版】資料載入函式 (已加入快取破解) ---
     async function loadData() {
         try {
+            // 在檔名後加上時間戳，強制每次都抓取最新檔案，避免快取問題
+            const cacheBuster = '?v=' + new Date().getTime();
             const [prodRes, catRes] = await Promise.all([
-                fetch('products.json'),
-                fetch('categories.json')
+                fetch('products.json' + cacheBuster),
+                fetch('categories.json' + cacheBuster)
             ]);
     
-            if (!prodRes.ok || !catRes.ok) throw new Error('網路回應不正常');
+            if (!prodRes.ok || !catRes.ok) {
+                // 如果抓不到檔案 (404)，就在主控台給出更明確的提示
+                if(!prodRes.ok) console.error(`讀取 products.json 失敗! 狀態: ${prodRes.status}. 請確認檔案已部署至網站根目錄。`);
+                if(!catRes.ok) console.error(`讀取 categories.json 失敗! 狀態: ${catRes.status}. 請確認檔案已部署至網站根目錄。`);
+                throw new Error('網路回應不正常');
+            }
             
             const loadedProducts = await prodRes.json();
             allCategories = await catRes.json();
@@ -47,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderProducts();
         } catch (err) {
             console.error("無法載入資料:", err);
-            productList.innerHTML = '<p class="empty-message">無法載入產品資料，請稍後再試。</p>';
+            productList.innerHTML = '<p class="empty-message">無法載入產品資料，請檢查主控台 (F12) 的錯誤訊息。</p>';
         }
     }
 
