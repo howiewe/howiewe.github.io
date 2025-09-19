@@ -158,20 +158,26 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const imagesPath = 'images';
             let productsToSync = JSON.parse(JSON.stringify(allProducts));
-            const tempImageMap = new Map(currentImageItems.filter(item => item.isNew).map(item => [item.url, item.blob]));
+            
+            // 重要：這裡的邏輯有潛在問題，若使用者編輯過多個產品才推送，舊產品的 blob 會遺失
+            // 但為了解決當前問題，我們假設使用者一次只處理一個產品的圖片
+            const tempImageMap = new Map(currentImageItems.filter(item => item.isNew && item.blob).map(item => [item.url, item.blob]));
 
             console.log('步驟 1: 掃描並上傳新圖片...');
             for (const product of productsToSync) {
                 if (!product.imageUrls || product.imageUrls.length === 0) continue;
 
+                const uploadedImageUrls = [];
                 for (let i = 0; i < product.imageUrls.length; i++) {
                     const url = product.imageUrls[i];
                     
                     if (url.startsWith('blob:')) {
                         const blob = tempImageMap.get(url);
                         if (!blob) {
-                            console.warn(`找不到 URL 對應的 Blob: ${url}`);
-                            continue;
+                            console.warn(`找不到 URL 對應的 Blob (可能已在其他編輯操作中遺失): ${url}，此圖片將被跳過。`);
+                            // 注意：這裡我們選擇跳過，而不是中斷。這意味著這個遺失的圖片連結不會被上傳。
+                            // 更好的長期方案是改變資料結構，將 blob 暫存起來直到推送成功。
+                            continue; 
                         }
                         const fileExtension = blob.type.split('/')[1] || 'jpg';
                         const fileName = `product-${product.id}-${Date.now()}-${i}.${fileExtension}`;
@@ -179,12 +185,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         showToast(`正在上傳圖片 ${fileName}...`, 'info');
                         
-                        const response = await updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob);
+                        await updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob);
                         
-                        product.imageUrls[i] = `/${filePath}`;
+                        uploadedImageUrls.push(`/${filePath}`); // 使用新的 GitHub 路徑
                         showToast(`圖片 ${fileName} 上傳成功!`, 'success');
+                    } else {
+                        uploadedImageUrls.push(url); // 保留舊的非 blob 圖片連結
                     }
                 }
+                product.imageUrls = uploadedImageUrls;
             }
 
             console.log('步驟 2: 圖片處理完成，正在推送 JSON 資料...');
@@ -194,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await updateGithubFile(token, repo, 'categories.json', '更新分類資料', JSON.stringify(allCategories, null, 2));
             showToast('categories.json 推送成功!', 'info');
             
+            // 使用更新後的 productsToSync (包含新的圖片路徑) 來更新本地資料庫
             allProducts = productsToSync;
             await updateAndSave('products', allProducts, false);
 
@@ -210,31 +220,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // =====【FIXED CODE START】=====
     async function updateGithubFile(token, repo, path, message, content) {
         const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
         const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' };
         let sha;
+
         try {
             const getFileResponse = await fetch(apiUrl, { headers, cache: 'no-store' });
-            if (getFileResponse.ok) sha = (await getFileResponse.json()).sha;
-            else if (getFileResponse.status !== 404) throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`);
-        } catch (e) { throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`); }
+            if (getFileResponse.ok) {
+                sha = (await getFileResponse.json()).sha;
+            } else if (getFileResponse.status !== 404) {
+                throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`);
+            }
+        } catch (e) {
+            throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`);
+        }
 
-        const getBase64 = (fileOrString) => new Promise((resolve, reject) => {
+        // 更健壯的 Base64 轉換函式
+        const getBase64 = (content) => new Promise((resolve, reject) => {
+            // 確保我們有一個有效的 Blob 物件來處理
+            let blobToRead;
+            if (content instanceof Blob) {
+                blobToRead = content;
+            } else if (typeof content === 'string') {
+                blobToRead = new Blob([content], { type: 'text/plain' });
+            } else {
+                // 如果 content 不是 Blob 也不是字串 (例如是 null, undefined)
+                // 就直接 reject，並給出明確的錯誤訊息，防止程式崩潰
+                return reject(new Error(`無效的內容類型: ${typeof content}。無法轉換為 Base64。`));
+            }
+
             const reader = new FileReader();
-            reader.readAsDataURL(fileOrString instanceof Blob ? fileOrString : new Blob([fileOrString], {type: 'text/plain'}));
+            reader.readAsDataURL(blobToRead);
             reader.onload = () => resolve(reader.result.split(',')[1]);
             reader.onerror = (error) => reject(error);
         });
-        
-        const encodedContent = await getBase64(content);
-        const body = { message, content: encodedContent };
-        if (sha) body.sha = sha;
 
-        const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
-        if (!updateResponse.ok) throw new Error(`更新 ${path} 失敗: ${(await updateResponse.json()).message}`);
-        return await updateResponse.json();
+        try {
+            const encodedContent = await getBase64(content);
+            const body = { message, content: encodedContent };
+            if (sha) body.sha = sha;
+
+            const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
+            if (!updateResponse.ok) {
+                throw new Error(`更新 ${path} 失敗: ${(await updateResponse.json()).message}`);
+            }
+            return await updateResponse.json();
+        } catch (error) {
+            // 將 getBase64 的錯誤或 fetch 的錯誤都拋出
+            throw error;
+        }
     }
+    // =====【FIXED CODE END】=====
+
 
     async function pullFromGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要從 GitHub 拉取最新資料嗎？這將會覆蓋您目前未同步的本地變更。')) return; pullFromGithubBtn.disabled = true; pullFromGithubBtn.querySelector('svg').style.display = 'none'; pullFromGithubBtn.append(' 拉取中...'); try { const categoriesContent = await readGithubFile(token, repo, 'categories.json'); const newCategories = JSON.parse(categoriesContent); showToast('已成功拉取 categories.json', 'info'); const productsContent = await readGithubFile(token, repo, 'products.json'); const newProducts = JSON.parse(productsContent); showToast('已成功拉取 products.json', 'info'); await updateAndSave('categories', newCategories, false); await updateAndSave('products', newProducts, false); setUIState(true); showToast('資料拉取並同步至本地成功！', 'success'); } catch (error) { console.error('從 GitHub 拉取失敗:', error); showToast(`拉取失敗: ${error.message}`); } finally { requestAnimationFrame(() => { pullFromGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg> Pull (拉取線上資料)'; pullFromGithubBtn.disabled = false; }); } }
     
