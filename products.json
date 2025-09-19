@@ -20,8 +20,8 @@
     "price": 2499,
     "description": "25L 大容量，防潑水牛津布材質，內含 15.6 吋筆電夾層。",
     "imageUrls": [
-      "/images/product-17002-1758297404672-0.png",
-      "/images/product-17002-1758297406155-1.png"
+      "/images/product-17002-1758297406155-1.png",
+      "/images/product-17002-1758297404672-0.png"
     ],
     "imageSize": 100,
     "categoryId": 5
@@ -33,7 +33,9 @@
     "ean13": "4710904567894",
     "price": 599,
     "description": "採用高溫白瓷製成，手感溫潤，容量適中。",
-    "imageUrls": [],
+    "imageUrls": [
+      "/images/product-17003-1758300024579-0.jpeg"
+    ],
     "imageSize": 85,
     "categoryId": 6
   },
