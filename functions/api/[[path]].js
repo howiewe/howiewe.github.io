@@ -1,12 +1,10 @@
-// functions/api/[[path]].js
+// functions/api/[[path]].js (正確的最終版本)
 
-// 統一的 API 響應格式
 const response = (data, status = 200) => new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' }
 });
 
-// 處理 GET 請求，用於獲取所有資料
 async function handleGet(context) {
     const { DB } = context.env;
     try {
@@ -19,7 +17,6 @@ async function handleGet(context) {
     }
 }
 
-// 處理 POST 請求，用於儲存所有資料
 async function handlePost(context) {
     const { DB } = context.env;
     try {
@@ -36,58 +33,54 @@ async function handlePost(context) {
     }
 }
 
-// 處理 PUT 請求，用於上傳圖片
 async function handlePut(context) {
-    const { IMAGE_BUCKET } = context.env;
+    const { IMAGE_BUCKET, R2_PUBLIC_URL } = context.env;
     const { request } = context;
 
-    // 從 URL 取得檔名，例如 /api/upload/my-image.jpg
     const url = new URL(request.url);
     const objectName = url.pathname.split('/').pop();
 
     if (!objectName) {
         return response({ error: '缺少檔名' }, 400);
     }
+    if (!R2_PUBLIC_URL) {
+         return response({ error: 'R2_PUBLIC_URL 环境变数未设定' }, 500);
+    }
+    if (!IMAGE_BUCKET) {
+         return response({ error: 'IMAGE_BUCKET 绑定未设定' }, 500);
+    }
 
     try {
-        const { readable, writable } = new TransformStream();
-        request.body.pipeTo(writable);
-
-        const object = await IMAGE_BUCKET.put(objectName, readable, {
+        // 【兼容性修正】将 TransformStream 的写法改回直接使用 request.body
+        // 老版本 Worker 可能对 TransformStream 支持不佳
+        const object = await IMAGE_BUCKET.put(objectName, request.body, {
             httpMetadata: { contentType: request.headers.get('content-type') },
         });
 
-        // 重要的！R2 的 public URL 是 r2.dev 的網址，不是 object.key
-        const publicUrl = `${context.env.IMAGE_BUCKET}/${object.key}`;
+        const publicUrl = `${R2_PUBLIC_URL}/${object.key}`;
 
         return response({
             message: '上傳成功',
-            url: publicUrl, // 回傳公開可訪問的 URL
+            url: publicUrl,
             key: object.key
         });
     } catch (e) {
-        console.error("PUT Error:", e);
+        console.error("PUT Error Details:", JSON.stringify(e, null, 2)); 
         return response({ error: `上傳圖片失敗: ${e.message}` }, 500);
     }
 }
 
-// 主處理函式，根據請求方法和路徑分發任務
 export async function onRequest(context) {
+    // ... (此函数保持不变) ...
     const { request } = context;
     const url = new URL(request.url);
     const path = url.pathname;
 
     if (path.startsWith('/api/data')) {
-        if (request.method === 'GET') {
-            return handleGet(context);
-        }
-        if (request.method === 'POST') {
-            return handlePost(context);
-        }
+        if (request.method === 'GET') return handleGet(context);
+        if (request.method === 'POST') return handlePost(context);
     } else if (path.startsWith('/api/upload')) {
-        if (request.method === 'PUT') {
-            return handlePut(context);
-        }
+        if (request.method === 'PUT') return handlePut(context);
     }
 
     return response({ error: '無效的 API 路徑或方法' }, 404);
