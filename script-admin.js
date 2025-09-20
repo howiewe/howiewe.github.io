@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 aspectRatio: 1 / 1,
                 viewMode: 1,
                 background: false,
-                autoCropArea: 0.8, // 將 1 改為 0.8，讓預設裁切框小一點，使用者更容易看到並調整
+                autoCropArea: 1, // 將 1 改為 0.8，讓預設裁切框小一點，使用者更容易看到並調整
                 responsive: true,
                 checkOrientation: false, // 避免某些手機照片自動旋轉問題
                 // 'ready' 事件不是必須的，Cropper 會自動適應
