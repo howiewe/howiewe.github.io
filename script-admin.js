@@ -20,11 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const addNewBtn = document.getElementById('add-new-btn');
     const deleteBtn = document.getElementById('delete-btn');
-    const cropperModal = document.getElementById('cropper-modal-container');
-    const cropperImage = document.getElementById('cropper-image');
-    const cropConfirmBtn = document.getElementById('crop-confirm-btn');
-    const cropCancelBtn = document.getElementById('crop-cancel-btn');
-    const cropRotateBtn = document.getElementById('crop-rotate-btn');
+    const inlineCropperWorkspace = document.getElementById('inline-cropper-workspace');
+    const inlineCropperImage = document.getElementById('inline-cropper-image');
+    const inlineCropConfirmBtn = document.getElementById('inline-crop-confirm-btn');
+    const inlineCropRotateBtn = document.getElementById('inline-crop-rotate-btn');
+    const inlineCropCancelBtn = document.getElementById('inline-crop-cancel-btn');
+    const imagePreviewArea = document.getElementById('image-preview-area');
     const uploadImageBtn = document.getElementById('upload-image-btn');
     const imageUploadInput = document.getElementById('product-image-upload');
     const mainImagePreview = document.getElementById('main-image-preview');
@@ -230,9 +231,9 @@ document.addEventListener('DOMContentLoaded', () => {
             categorySelect.value = product.categoryId;
             currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url: url, isNew: false, blob: null })) : [];
             renderAdminImagePreview();
-            imageSizeSlider.value = product.imageSize || 100;
+            imageSizeSlider.value = product.imageSize || 90;
             imageSizeValue.textContent = imageSizeSlider.value;
-            const initialScale = (product.imageSize || 100) / 100;
+            const initialScale = (product.imageSize || 90) / 100;
             mainImagePreview.style.transform = `scale(${initialScale})`;
             deleteBtn.classList.remove('hidden');
             deleteBtn.onclick = () => deleteProduct(product.id);
@@ -251,113 +252,79 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function resetForm() { form.reset(); productIdInput.value = ''; currentImageItems.forEach(item => { if (item.url.startsWith('blob:')) URL.revokeObjectURL(item.url) }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 100; imageSizeValue.textContent = 100; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); }
+    function resetForm() { form.reset(); productIdInput.value = ''; currentImageItems.forEach(item => { if (item.url.startsWith('blob:')) URL.revokeObjectURL(item.url) }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(0.9)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropper(); }
     function initSortable() { if (sortableInstance) { sortableInstance.destroy(); } try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const movedItem = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, movedItem); renderAdminImagePreview(); }, }); } catch (e) { console.error("SortableJS 初始化失敗! 請檢查函式庫是否成功載入。", e); showToast('拖曳排序功能載入失敗', 'error'); } }
     function renderAdminImagePreview() { thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; currentImageItems.forEach((item, index) => { const thumbItem = document.createElement('div'); thumbItem.className = 'thumbnail-item'; if (index === 0) thumbItem.classList.add('active'); thumbItem.innerHTML = ` <img src="${item.url}" data-index="${index}" alt="縮圖 ${index + 1}"> <button type="button" class="delete-thumb-btn" data-index="${index}" title="刪除此圖">&times;</button> `; thumbnailListAdmin.appendChild(thumbItem); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; } }
     thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const indexToDelete = parseInt(target.dataset.index); const itemToDelete = currentImageItems[indexToDelete]; if (itemToDelete && itemToDelete.url.startsWith('blob:')) { URL.revokeObjectURL(itemToDelete.url); } currentImageItems.splice(indexToDelete, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const indexToShow = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[indexToShow].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(item => item.classList.remove('active')); target.parentElement.classList.add('active'); } });
 
-    // --- 圖片裁切邏輯 (優化版) ---
+    // --- 圖片裁切邏輯 (內聯版本) ---
+
+    function showCropper(file) {
+        if (!file || !file.type.startsWith('image/')) {
+            showToast('請選擇有效的圖片檔案', 'error');
+            return;
+        }
+        const objectUrl = URL.createObjectURL(file);
+        imagePreviewArea.classList.add('hidden');
+        inlineCropperWorkspace.classList.remove('hidden');
+        inlineCropperImage.onload = () => {
+            if (cropper) cropper.destroy();
+            cropper = new Cropper(inlineCropperImage, {
+                aspectRatio: 1 / 1,
+                viewMode: 1,
+                autoCropArea: 0.9,
+                background: false,
+            });
+        };
+        inlineCropperImage.src = objectUrl;
+    }
+
+    function hideCropper() {
+        if (cropper) {
+            const objectUrl = inlineCropperImage.src;
+            cropper.destroy();
+            cropper = null; // 确保销毁
+            inlineCropperImage.src = '';
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        }
+        inlineCropperWorkspace.classList.add('hidden');
+        imagePreviewArea.classList.remove('hidden');
+    }
+
     uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
 
     imageUploadInput.addEventListener('change', (e) => {
-        // 優化 1：使用 `e.target.files` 陣列，即使只選一個檔案，這樣寫更標準
-        const files = e.target.files;
-        if (!files || files.length === 0) {
-            return;
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+            showCropper(file);
         }
-        const file = files[0];
-
-        // 優化 2：增加檔案類型檢查，防止使用者上傳非圖片檔
-        if (!file.type.startsWith('image/')) {
-            showToast('請選擇有效的圖片檔案 (jpg, png, webp 等)', 'error');
-            e.target.value = ''; // 清空選擇，以便下次能選同一個檔案
-            return;
-        }
-
-        const objectUrl = URL.createObjectURL(file);
-
-        // 優化 3：將 cropper 的初始化邏輯移到 openModal 之後，確保 DOM 元素可見
-        openModal(cropperModal);
-
-        // 確保圖片載入完成後再初始化 Cropper，避免尺寸計算錯誤
-        cropperImage.onload = () => {
-            if (cropper) {
-                cropper.destroy();
-            }
-            cropper = new Cropper(cropperImage, {
-                aspectRatio: 1 / 1,
-                viewMode: 1,
-                background: false,
-                autoCropArea: 1, // 將 1 改為 0.8，讓預設裁切框小一點，使用者更容易看到並調整
-                responsive: true,
-                checkOrientation: false, // 避免某些手機照片自動旋轉問題
-                // 'ready' 事件不是必須的，Cropper 會自動適應
-            });
-        };
-
-        // cropperImage.src 的設定移到 .onload 事件綁定之後
-        cropperImage.src = objectUrl;
-
-        // 優化 4：在 cropperImage 的 error 事件中處理圖片載入失敗
-        cropperImage.onerror = () => {
-            showToast('無法載入圖片，可能檔案已損壞', 'error');
-            closeModal(cropperModal);
-            URL.revokeObjectURL(objectUrl);
-        };
-
         e.target.value = '';
     });
 
-    cropConfirmBtn.addEventListener('click', () => {
-        if (!cropper) return; // 增加保護
+    inlineCropConfirmBtn.addEventListener('click', () => {
+        if (!cropper) return;
 
-        // 優化 5：在按下按鈕時，短暫禁用它，防止使用者連續點擊
-        cropConfirmBtn.disabled = true;
-
+        inlineCropConfirmBtn.disabled = true;
         cropper.getCroppedCanvas({
-            width: 1024, // 建議使用 width/height 而不是 maxWidth/maxHeight，確保輸出尺寸一致
-            height: 1024,
-            imageSmoothingQuality: 'high',
+            width: 1024, height: 1024, imageSmoothingQuality: 'high',
         }).toBlob((blob) => {
-            if (!blob) {
+            if (blob) {
+                const previewUrl = URL.createObjectURL(blob);
+                currentImageItems.push({ url: previewUrl, blob: blob, isNew: true });
+                renderAdminImagePreview();
+            } else {
                 showToast('裁切失敗，請重試', 'error');
-                cropConfirmBtn.disabled = false;
-                return;
             }
-
-            const previewUrl = URL.createObjectURL(blob);
-            currentImageItems.push({ url: previewUrl, blob: blob, isNew: true });
-            renderAdminImagePreview();
-
-            closeModal(cropperModal);
-            // 優化 6：在 Modal 關閉後再銷毀 Cropper，並重置按鈕狀態
-            cropper.destroy();
-            cropperImage.src = ''; // 清空圖片源，釋放記憶體
-            cropperImage.onload = null; // 移除事件監聽器
-            cropperImage.onerror = null;
-            cropConfirmBtn.disabled = false;
-
-        }, 'image/webp', 0.85); // 稍微提高品質到 0.85，對於 WebP 來說是個很好的平衡點
+            hideCropper();
+            inlineCropConfirmBtn.disabled = false;
+        }, 'image/webp', 0.85);
     });
 
-    // cropCancelBtn 的邏輯也可以更完整地清理資源
-    cropCancelBtn.addEventListener('click', () => {
-        closeModal(cropperModal);
-        if (cropper) {
-            cropper.destroy();
-            cropperImage.src = '';
-            cropperImage.onload = null;
-            cropperImage.onerror = null;
-        }
+    inlineCropRotateBtn.addEventListener('click', () => {
+        if (cropper) cropper.rotate(90);
     });
 
-    if (cropRotateBtn) {
-        cropRotateBtn.addEventListener('click', () => {
-            if (cropper) {
-                cropper.rotate(90);
-            }
-        });
-    }
+    inlineCropCancelBtn.addEventListener('click', hideCropper);
     // --- EAN13 預覽 & 圖片大小滑桿 ---
     function updateBarcodePreview() { const value = ean13Input.value; const previewSvg = document.getElementById('barcode-preview'); if (value.length >= 12 && value.length <= 13) { try { JsBarcode(previewSvg, value, { format: "EAN13", lineColor: "#000", width: 2, height: 50, displayValue: true }); previewSvg.style.display = 'block'; } catch (e) { previewSvg.style.display = 'none'; } } else { previewSvg.style.display = 'none'; } }
     ean13Input.addEventListener('input', updateBarcodePreview);
@@ -378,9 +345,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (success) setUIState(true);
             }
         });
-        addNewBtn.addEventListener('click', () => { resetForm(); formTitle.textContent = '新增產品'; openModal(editModal); });
-        modalCloseBtn.addEventListener('click', () => closeModal(editModal));
-        editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(editModal); });
+        // 替换成这样
+        const closeAndCleanupEditModal = () => {
+            closeModal(editModal);
+            hideCropper(); // 确保关闭时清理裁切器
+        };
+        modalCloseBtn.addEventListener('click', closeAndCleanupEditModal);
+        editModal.addEventListener('click', (e) => { if (e.target === editModal) closeAndCleanupEditModal(); });
         searchBox.addEventListener('input', renderProducts);
         manageCategoriesBtn.addEventListener('click', () => { buildCategoryManagementTree(); openModal(categoryModal); });
         categoryModalCloseBtn.addEventListener('click', () => closeModal(categoryModal));
