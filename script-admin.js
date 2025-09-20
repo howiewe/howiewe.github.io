@@ -218,10 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function openEditModal(id) {
-        resetForm();
+        resetForm(); // 先重置表单，这会把滑杆设为 90
+
         const product = allProducts.find(p => p.id == id);
         if (product) {
-            formTitle.textContent = '編輯產品';
+            // 如果是编辑现有产品，就用产品资料覆盖掉预设值
+            formTitle.textContent = '编辑产品';
             productIdInput.value = product.id;
             document.getElementById('product-name').value = product.name;
             document.getElementById('product-sku').value = product.sku;
@@ -229,14 +231,26 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('product-price').value = product.price;
             document.getElementById('product-description').value = product.description;
             categorySelect.value = product.categoryId;
+
             currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url: url, isNew: false, blob: null })) : [];
-            renderAdminImagePreview();
-            imageSizeSlider.value = product.imageSize || 90;
-            imageSizeValue.textContent = imageSizeSlider.value;
-            const initialScale = (product.imageSize || 90) / 100;
+            renderAdminImagePreview(); // 这会显示图片
+
+            // --- 核心修正逻辑在这里 ---
+            // 1. 决定要使用的 imageSize 值 (优先用产品自己的，如果没有，就用 90)
+            const imageSize = product.imageSize || 90;
+
+            // 2. 根据这个值，更新滑杆和文字
+            imageSizeSlider.value = imageSize;
+            imageSizeValue.textContent = imageSize;
+
+            // 3. 只声明一次 initialScale，并用它来设定图片缩放
+            const initialScale = imageSize / 100;
             mainImagePreview.style.transform = `scale(${initialScale})`;
+            // --- 修正结束 ---
+
             deleteBtn.classList.remove('hidden');
             deleteBtn.onclick = () => deleteProduct(product.id);
+
             updateBarcodePreview();
             openModal(editModal);
             initSortable();
