@@ -1,7 +1,7 @@
-// 【最終版本】整合 Blob/Object URL 優化與正確的非同步上傳邏輯
+// script-admin.js
 document.addEventListener('DOMContentLoaded', () => {
-    // --- IndexedDB 幫手函式 ---
-    const dbName = 'ProductCatalogDB';
+    // --- IndexedDB 幫手函式 (本地快取) ---
+    const dbName = 'ProductCatalogDB_CF';
     const dbVersion = 1;
     function openDB() { return new Promise((resolve, reject) => { const request = indexedDB.open(dbName, dbVersion); request.onerror = event => reject(`無法開啟 IndexedDB 資料庫: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); request.onupgradeneeded = event => { const db = event.target.result; if (!db.objectStoreNames.contains('products')) db.createObjectStore('products', { keyPath: 'id' }); if (!db.objectStoreNames.contains('categories')) db.createObjectStore('categories', { keyPath: 'id' }); }; }); }
     function readData(storeName) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readonly'); const store = transaction.objectStore(storeName); const request = store.getAll(); request.onerror = event => reject(`無法從 ${storeName} 讀取資料: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); }); }
@@ -36,11 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const importBtn = document.getElementById('import-btn');
     const exportBtn = document.getElementById('export-btn');
-    const githubTokenInput = document.getElementById('github-token');
-    const githubRepoInput = document.getElementById('github-repo');
-    const saveGithubSettingsBtn = document.getElementById('save-github-settings-btn');
-    const syncToGithubBtn = document.getElementById('sync-to-github-btn');
-    const pullFromGithubBtn = document.getElementById('pull-from-github-btn');
+    const syncStatus = document.getElementById('sync-status');
+    const pullFromCloudBtn = document.getElementById('pull-from-cloud-btn');
     const manageCategoriesBtn = document.getElementById('manage-categories-btn');
     const categoryModal = document.getElementById('category-modal-container');
     const categoryModalCloseBtn = document.getElementById('category-modal-close-btn');
@@ -53,10 +50,78 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCategoryId = 'all';
     let currentImageItems = []; 
     let sortableInstance = null;
+    let isSaving = false;
     
-    // --- 核心邏輯：檢查 GitHub 是否已設定 ---
-    function isGithubConfigured() {
-        return localStorage.getItem('githubToken') && localStorage.getItem('githubRepo');
+    // --- 核心 API 邏輯 (Cloudflare) ---
+    async function fetchDataFromCloud() {
+        try {
+            updateSyncStatus('正在從雲端拉取資料...', 'syncing');
+            const response = await fetch('/api/data');
+            if (!response.ok) throw new Error(`伺服器錯誤: ${response.statusText}`);
+            const data = await response.json();
+            allProducts = data.products || [];
+            allCategories = data.categories || [];
+            await writeData('products', allProducts);
+            await writeData('categories', allCategories);
+            updateSyncStatus('已與雲端同步', 'synced');
+            showToast('已成功從雲端同步最新資料', 'success');
+            return true;
+        } catch (error) {
+            console.error('從 Cloudflare 拉取資料失敗:', error);
+            updateSyncStatus('雲端同步失敗', 'error');
+            showToast(`拉取雲端資料失敗: ${error.message}`, 'error');
+            return false;
+        }
+    }
+
+    async function saveDataToCloud(showToastMsg = true) {
+        if (isSaving) {
+            showToast('正在儲存中，請稍候...', 'info');
+            return;
+        }
+        isSaving = true;
+        updateSyncStatus('正在儲存至雲端...', 'syncing');
+        try {
+            const response = await fetch('/api/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ products: allProducts, categories: allCategories })
+            });
+            if (!response.ok) throw new Error(`伺服器錯誤: ${response.statusText}`);
+            await response.json();
+            updateSyncStatus('已儲存至雲端', 'synced');
+            if (showToastMsg) showToast('變更已成功儲存至雲端', 'success');
+        } catch (error) {
+            console.error('儲存至 Cloudflare 失敗:', error);
+            updateSyncStatus('儲存至雲端失敗', 'error');
+            showToast(`儲存至雲端失敗: ${error.message}`, 'error');
+        } finally {
+            isSaving = false;
+        }
+    }
+
+    async function uploadImage(blob, fileName) {
+        try {
+            const response = await fetch(`/api/upload/${fileName}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': blob.type },
+                body: blob
+            });
+            if (!response.ok) throw new Error(`圖片上傳失敗: ${response.statusText}`);
+            const result = await response.json();
+            showToast('圖片上傳成功', 'success');
+            return result.url;
+        } catch (error) {
+            console.error('上傳圖片失敗:', error);
+            showToast(`圖片上傳失敗: ${error.message}`, 'error');
+            return null;
+        }
+    }
+    
+    function updateSyncStatus(message, status) {
+        if (!syncStatus) return;
+        syncStatus.textContent = message;
+        syncStatus.className = `sync-status ${status}`;
     }
 
     // --- UI 狀態管理 ---
@@ -64,17 +129,17 @@ document.addEventListener('DOMContentLoaded', () => {
         manageCategoriesBtn.disabled = !isReady;
         if (isReady) {
             addNewBtn.disabled = false;
-            syncToGithubBtn.disabled = false;
             importBtn.disabled = false;
             exportBtn.disabled = false;
             searchBox.disabled = false;
+            buildCategoryTree();
+            renderProducts();
         } else {
             addNewBtn.disabled = true;
-            syncToGithubBtn.disabled = true;
             importBtn.disabled = true;
             exportBtn.disabled = true;
             searchBox.disabled = true;
-            productList.innerHTML = '<p class="empty-message">請先設定 GitHub Token/Repo 並拉取 (Pull) 資料以開始編輯。</p>';
+            productList.innerHTML = '<p class="empty-message">正在從雲端載入資料，請稍候...</p>';
             categoryTreeContainer.innerHTML = '';
             allProducts = [];
             allCategories = [];
@@ -90,53 +155,65 @@ document.addEventListener('DOMContentLoaded', () => {
     function getCategoryIdsWithChildren(startId) { if (startId === 'all') return null; const ids = new Set([startId]); const queue = [startId]; while (queue.length > 0) { const children = allCategories.filter(c => c.parentId === queue.shift()); for (const child of children) { ids.add(child.id); queue.push(child.id); } } return ids; }
     function renderProducts() { const searchTerm = searchBox.value.toLowerCase(); const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId); const filteredProducts = allProducts.filter(p => { const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId)); const matchesSearch = p.name.toLowerCase().includes(searchTerm); return matchesCategory && matchesSearch; }); productList.innerHTML = ''; if (filteredProducts.length === 0 && addNewBtn.disabled === false) { productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>'; return; } filteredProducts.forEach(product => { const card = document.createElement('div'); card.className = 'product-card'; card.onclick = () => openEditModal(product.id); const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : ''; card.innerHTML = ` <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 100}%;"></div> <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div> `; productList.appendChild(card); }); }
     
-    // --- 核心儲存邏輯 ---
-    async function updateAndSave(storeName, data, showSuccessToast = true) { 
-        if (storeName === 'products') { 
-            allProducts = data; 
-        } else if (storeName === 'categories') { 
-            allCategories = data; 
-        } 
+    // --- 本地與遠端儲存邏輯 ---
+    async function updateAndSave(storeName, data, triggerRemoteSave = true) { 
+        if (storeName === 'products') allProducts = data; 
+        else if (storeName === 'categories') allCategories = data; 
+        
         await writeData(storeName, data); 
-        if (showSuccessToast) showToast('變更已儲存至本地', 'success'); 
-        if (storeName === 'categories') { 
-            buildCategoryTree(); 
-        } 
-        renderProducts(); 
+        showToast('變更已儲存至本地', 'info'); 
+        
+        if (storeName === 'categories') buildCategoryTree(); 
+        renderProducts();
+        
+        if (triggerRemoteSave) {
+            saveDataToCloud();
+        }
     }
     
-    // --- 分類管理 (與自動 Push 相關) ---
+    // --- 分類管理 ---
     function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } categoryManagementTree.innerHTML = createTreeHTML(tree); }
-    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } else if (name !== null) { alert('分類名稱不能為空！'); } }
-    async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } else if (newName !== null) { alert('分類名稱不能為空！'); } }
-    async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); if (isGithubConfigured()) { setTimeout(syncToGithub, 100); } } }
+    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (name !== null) { alert('分類名稱不能為空！'); } }
+    async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
+    async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); } }
 
     // --- Modal & 表單邏輯 ---
     function openModal(modal) { modal.classList.remove('hidden'); }
     function closeModal(modal) { modal.classList.add('hidden'); }
     
-    // ===== 核心：全自動 Push 儲存邏輯 =====
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
+        // 步驟 1: 上傳所有新圖片
+        showToast('開始上傳圖片...', 'info');
+        const uploadPromises = currentImageItems.map(async (item, index) => {
+            if (item.isNew && item.blob) {
+                const fileExtension = item.blob.type.split('/')[1] || 'jpg';
+                const tempId = productIdInput.value || `new_${Date.now()}`;
+                const fileName = `product-${tempId}-${Date.now()}-${index}.${fileExtension}`;
+                const uploadedUrl = await uploadImage(item.blob, fileName);
+                return uploadedUrl || item.url; // 如果上傳失敗，保留 blob URL (雖然這不理想)
+            }
+            return item.url; // 返回舊的 URL
+        });
+        const finalImageUrls = await Promise.all(uploadPromises);
+        showToast('圖片處理完成，正在儲存產品資料...', 'info');
+
+        // 步驟 2: 整理產品資料
         const id = productIdInput.value;
-        const finalImageUrls = currentImageItems.map(item => item.url);
         const newProductData = { id: id ? parseInt(id) : Date.now(), name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value, ean13: document.getElementById('product-ean13').value, price: parseFloat(document.getElementById('product-price').value), description: document.getElementById('product-description').value, imageUrls: finalImageUrls, imageSize: parseInt(imageSizeSlider.value), categoryId: parseInt(categorySelect.value) };
         if(!newProductData.categoryId) { alert("請選擇一個產品分類！"); return; }
         
+        // 步驟 3: 更新本地產品列表並觸發雲端儲存
         let updatedProducts;
         if (id) {
             updatedProducts = allProducts.map(p => p.id == id ? newProductData : p);
         } else {
             updatedProducts = [...allProducts, newProductData];
         }
-        await updateAndSave('products', updatedProducts);
+        await updateAndSave('products', updatedProducts, true); // true 會觸發 saveDataToCloud
         
         closeModal(editModal);
-        
-        if (isGithubConfigured()) {
-            setTimeout(syncToGithub, 100);
-        }
     });
 
     function openEditModal(id) {
@@ -168,13 +245,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteProduct(id) {
         if (confirm('您確定要刪除這個產品嗎？此操作無法復原。')) {
             const updatedProducts = allProducts.filter(p => p.id != id);
-            await updateAndSave('products', updatedProducts, false);
-            showToast('產品已從本地刪除', 'info');
+            await updateAndSave('products', updatedProducts, true);
+            showToast('產品已刪除', 'info');
             closeModal(editModal);
-
-            if (isGithubConfigured()) {
-                setTimeout(syncToGithub, 100);
-            }
         }
     }
 
@@ -216,144 +289,21 @@ document.addEventListener('DOMContentLoaded', () => {
     ean13Input.addEventListener('input', updateBarcodePreview);
     imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if(mainImagePreview) { const scaleValue = newSize / 100; mainImagePreview.style.transform = `scale(${scaleValue})`; } });
 
-    // --- GitHub API 相關邏輯 ---
-    function saveGithubSettings() {
-        const token = githubTokenInput.value;
-        const repo = githubRepoInput.value;
-        if (token && repo) {
-            localStorage.setItem('githubToken', token);
-            localStorage.setItem('githubRepo', repo);
-            showToast('GitHub 設定已儲存!', 'success');
-            pullFromGithubBtn.disabled = false;
-        } else {
-            localStorage.removeItem('githubToken');
-            localStorage.removeItem('githubRepo');
-            showToast('Token 和儲存庫不能為空', 'error');
-        }
-    }
-
-    function loadGithubSettings() {
-        const token = localStorage.getItem('githubToken') || '';
-        const repo = localStorage.getItem('githubRepo') || '';
-        githubTokenInput.value = token;
-        githubRepoInput.value = repo;
-        if (!token || !repo) {
-            pullFromGithubBtn.disabled = true;
-        }
-    }
-    
-    async function syncToGithub() {
-        if (!isGithubConfigured()) { return; }
-        if (syncToGithubBtn.disabled) { showToast('正在同步中，請稍候...', 'info'); return; }
-
-        syncToGithubBtn.disabled = true;
-        const originalBtnHTML = syncToGithubBtn.innerHTML;
-        syncToGithubBtn.innerHTML = '推送中...';
-        showToast('開始同步至 GitHub...', 'info');
-
-        try {
-            const token = localStorage.getItem('githubToken');
-            const repo = localStorage.getItem('githubRepo');
-            const imagesPath = 'images';
-            let productsToSync = JSON.parse(JSON.stringify(allProducts));
-            
-            const allNewImageBlobs = new Map();
-            for (const product of productsToSync) {
-                if (product.imageUrls) {
-                    for (const url of product.imageUrls) {
-                        if (url.startsWith('blob:')) {
-                            const item = currentImageItems.find(i => i.url === url);
-                            if (item && item.blob) {
-                                allNewImageBlobs.set(url, item.blob);
-                            }
-                        }
-                    }
-                }
-            }
-
-            for (const product of productsToSync) {
-                if (!product.imageUrls || product.imageUrls.length === 0) continue;
-                const uploadedImageUrls = [];
-                for (let i = 0; i < product.imageUrls.length; i++) {
-                    const url = product.imageUrls[i];
-                    if (url.startsWith('blob:')) {
-                        const blob = allNewImageBlobs.get(url);
-                        if (!blob) {
-                            console.warn(`找不到 URL 對應的 Blob: ${url}，此圖片將被跳過。`);
-                            continue; 
-                        }
-                        const fileExtension = blob.type.split('/')[1] || 'jpg';
-                        const fileName = `product-${product.id}-${Date.now()}-${i}.${fileExtension}`;
-                        const filePath = `${imagesPath}/${fileName}`;
-                        await updateGithubFile(token, repo, filePath, `Upload image ${fileName}`, blob);
-                        uploadedImageUrls.push(`/${filePath}`);
-                    } else {
-                        uploadedImageUrls.push(url);
-                    }
-                }
-                product.imageUrls = uploadedImageUrls;
-            }
-
-            await updateGithubFile(token, repo, 'products.json', '更新產品資料', JSON.stringify(productsToSync, null, 2));
-            await updateGithubFile(token, repo, 'categories.json', '更新分類資料', JSON.stringify(allCategories, null, 2));
-            
-            allProducts = productsToSync;
-            await updateAndSave('products', allProducts, false);
-
-            showToast('所有資料已成功同步至 GitHub!', 'success');
-
-        } catch (error) {
-            console.error('GitHub 同步失敗:', error);
-            showToast(`推送失敗: ${error.message}`, 'error');
-        } finally {
-            requestAnimationFrame(() => {
-                syncToGithubBtn.innerHTML = originalBtnHTML;
-                syncToGithubBtn.disabled = false;
-            });
-        }
-    }
-
-    async function updateGithubFile(token, repo, path, message, content) {
-        const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
-        const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' };
-        let sha;
-        try {
-            const getFileResponse = await fetch(apiUrl, { headers, cache: 'no-store' });
-            if (getFileResponse.ok) sha = (await getFileResponse.json()).sha;
-            else if (getFileResponse.status !== 404) throw new Error(`獲取檔案 SHA 失敗: ${getFileResponse.statusText}`);
-        } catch (e) { throw new Error(`網路錯誤或無法獲取檔案 SHA: ${e.message}`); }
-
-        const getBase64 = (content) => new Promise((resolve, reject) => {
-            let blobToRead;
-            if (content instanceof Blob) { blobToRead = content; } 
-            else if (typeof content === 'string') { blobToRead = new Blob([content], { type: 'text/plain' }); } 
-            else { return reject(new Error(`無效的內容類型: ${typeof content}。`)); }
-            const reader = new FileReader();
-            reader.readAsDataURL(blobToRead);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = (error) => reject(error);
-        });
-        
-        const encodedContent = await getBase64(content);
-        const body = { message, content: encodedContent, sha };
-        const updateResponse = await fetch(apiUrl, { method: 'PUT', headers, body: JSON.stringify(body) });
-        if (!updateResponse.ok) throw new Error(`更新 ${path} 失敗: ${(await updateResponse.json()).message}`);
-        return await updateResponse.json();
-    }
-
-    async function pullFromGithub() { const token = localStorage.getItem('githubToken'); const repo = localStorage.getItem('githubRepo'); if (!token || !repo) { showToast('請先儲存您的 GitHub 設定', 'error'); return; } if (!confirm('確定要從 GitHub 拉取最新資料嗎？這將會覆蓋您目前未同步的本地變更。')) return; pullFromGithubBtn.disabled = true; pullFromGithubBtn.querySelector('svg').style.display = 'none'; pullFromGithubBtn.append(' 拉取中...'); try { const categoriesContent = await readGithubFile(token, repo, 'categories.json'); const newCategories = JSON.parse(categoriesContent); const productsContent = await readGithubFile(token, repo, 'products.json'); const newProducts = JSON.parse(productsContent); await updateAndSave('categories', newCategories, false); await updateAndSave('products', newProducts, false); setUIState(true); showToast('資料拉取並同步至本地成功！', 'success'); } catch (error) { console.error('從 GitHub 拉取失敗:', error); showToast(`拉取失敗: ${error.message}`); } finally { requestAnimationFrame(() => { pullFromGithubBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg> Pull (拉取線上資料)'; pullFromGithubBtn.disabled = false; }); } }
-    async function readGithubFile(token, repo, path) { const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`; const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }; const response = await fetch(apiUrl, { headers, cache: 'no-store' }); if (response.status === 404) return '[]'; if (!response.ok) throw new Error(`讀取 ${path} 失敗: ${response.statusText}`); const data = await response.json(); return data.content ? decodeURIComponent(escape(atob(data.content))) : '[]'; }
-    importBtn.addEventListener('click', async () => { if (!confirm('匯入將會覆蓋您目前的所有本地資料，確定要繼續嗎？')) return; try { showToast('請先選擇您的 products.json 檔案', 'info'); const [prodHandle] = await window.showOpenFilePicker({ types: [{ description: '產品 JSON', accept: { 'application/json': ['.json'] } }] }); showToast('接著請選擇您的 categories.json 檔案', 'info'); const [catHandle] = await window.showOpenFilePicker({ types: [{ description: '分類 JSON', accept: { 'application/json': ['.json'] } }] }); const prodFile = await prodHandle.getFile(); const catFile = await catHandle.getFile(); const newProducts = JSON.parse(await prodFile.text()); const newCategories = JSON.parse(await catFile.text()); await updateAndSave('products', newProducts, false); await updateAndSave('categories', newCategories, false); showToast('資料匯入並覆蓋成功！', 'success'); setUIState(true); } catch (err) { if (err.name !== 'AbortError') showToast('讀取檔案失敗', 'error'); } });
+    // --- 導入導出 ---
+    importBtn.addEventListener('click', async () => { if (!confirm('匯入將會覆蓋您目前的所有本地資料，並將在下次儲存時同步到雲端，確定要繼續嗎？')) return; try { showToast('請先選擇您的 products.json 檔案', 'info'); const [prodHandle] = await window.showOpenFilePicker({ types: [{ description: '產品 JSON', accept: { 'application/json': ['.json'] } }] }); showToast('接著請選擇您的 categories.json 檔案', 'info'); const [catHandle] = await window.showOpenFilePicker({ types: [{ description: '分類 JSON', accept: { 'application/json': ['.json'] } }] }); const prodFile = await prodHandle.getFile(); const catFile = await catHandle.getFile(); const newProducts = JSON.parse(await prodFile.text()); const newCategories = JSON.parse(await catFile.text()); await updateAndSave('products', newProducts, false); await updateAndSave('categories', newCategories, true); showToast('資料匯入成功！變更已儲存至雲端。', 'success'); setUIState(true); } catch (err) { if (err.name !== 'AbortError') showToast('讀取檔案失敗', 'error'); } });
     exportBtn.addEventListener('click', async () => { try { const prodBlob = new Blob([JSON.stringify(allProducts, null, 2)], { type: 'application/json' }); const catBlob = new Blob([JSON.stringify(allCategories, null, 2)], { type: 'application/json' }); const download = (blob, filename) => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }; download(prodBlob, 'products.json'); download(catBlob, 'categories.json'); showToast('資料已匯出成 JSON 檔案！', 'success'); } catch (err) { showToast('匯出失敗！', 'error'); } });
     function showToast(message, type = 'info', duration = 3000) { const toastContainer = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
     
-    // --- 最終的初始化函式 ---
+    // --- 初始化函式 ---
     async function init() {
-        // 綁定所有事件監聽
+        // 綁定事件監聽
         themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
-        saveGithubSettingsBtn.addEventListener('click', saveGithubSettings);
-        syncToGithubBtn.addEventListener('click', syncToGithub);
-        pullFromGithubBtn.addEventListener('click', pullFromGithub);
+        pullFromCloudBtn.addEventListener('click', async () => {
+            if (confirm('確定要從雲端拉取最新資料嗎？這將會覆蓋您目前未儲存的本地變更。')){
+                const success = await fetchDataFromCloud();
+                if(success) setUIState(true);
+            }
+        });
         addNewBtn.addEventListener('click', () => { resetForm(); formTitle.textContent = '新增產品'; openModal(editModal); });
         modalCloseBtn.addEventListener('click', () => closeModal(editModal));
         editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(editModal); });
@@ -367,8 +317,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         
-        loadGithubSettings();
         setUIState(false);
+        const success = await fetchDataFromCloud();
+        if (success) {
+            setUIState(true);
+        } else {
+             // 嘗試從本地 IndexedDB 載入
+             try {
+                const localProducts = await readData('products');
+                const localCategories = await readData('categories');
+                if (localProducts.length > 0) {
+                    allProducts = localProducts;
+                    allCategories = localCategories;
+                    setUIState(true);
+                    updateSyncStatus('雲端連接失敗，已載入本地快取', 'error');
+                    showToast('雲端連接失敗，已從本地快取載入資料', 'info');
+                } else {
+                     updateSyncStatus('雲端連接失敗，且無本地快取', 'error');
+                }
+            } catch (e) {
+                console.error('無法從 IndexedDB 讀取:', e);
+                 updateSyncStatus('雲端及本地均載入失敗', 'error');
+            }
+        }
     }
 
     init();

@@ -1,4 +1,5 @@
-// 【最終正確版本】
+// script-customer.js
+// 【Cloudflare 版本】
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 元素宣告 ---
     const productList = document.getElementById('product-list');
@@ -26,27 +27,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTranslate = 0;
     let prevTranslate = 0;
 
-    // --- 【Cloudflare Pages 最終版】資料載入函式 (已加入快取破解) ---
+    // --- 資料載入函式 ---
     async function loadData() {
         try {
-            // 在檔名後加上時間戳，強制每次都抓取最新檔案，避免快取問題
-            const cacheBuster = '?v=' + new Date().getTime();
-            const [prodRes, catRes] = await Promise.all([
-                fetch('products.json' + cacheBuster),
-                fetch('categories.json' + cacheBuster)
-            ]);
-    
-            if (!prodRes.ok || !catRes.ok) {
-                // 如果抓不到檔案 (404)，就在主控台給出更明確的提示
-                if(!prodRes.ok) console.error(`讀取 products.json 失敗! 狀態: ${prodRes.status}. 請確認檔案已部署至網站根目錄。`);
-                if(!catRes.ok) console.error(`讀取 categories.json 失敗! 狀態: ${catRes.status}. 請確認檔案已部署至網站根目錄。`);
-                throw new Error('網路回應不正常');
+            // 從我們在 Cloudflare Worker 建立的 API 端點獲取資料
+            const response = await fetch('/api/data?t=' + new Date().getTime()); // 加上時間戳防止快取
+            if (!response.ok) {
+                throw new Error(`網路回應不正常: ${response.status}`);
             }
             
-            const loadedProducts = await prodRes.json();
-            allCategories = await catRes.json();
-            
-            allProducts = loadedProducts.map(p => {
+            const data = await response.json();
+            allCategories = data.categories || [];
+            allProducts = (data.products || []).map(p => {
                 if (!p.imageUrls) { p.imageUrls = []; }
                 return p;
             });
@@ -59,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ... (此處省略和您原始檔案中完全相同的程式碼) ...
     // --- 響應式側邊欄 & 分類樹 & 產品渲染 ---
     function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
     menuToggleBtn.addEventListener('click', toggleSidebar);

@@ -1,0 +1,68 @@
+[
+  {
+    "id": 17001,
+    "name": "無線光學滑鼠 Pro",
+    "sku": "MO-PRO-BLK-01",
+    "ean13": "4719512078683",
+    "price": 1890,
+    "description": "頂級人體工學設計，2.4GHz 無線連接，靜音按鍵。",
+    "imageUrls": [
+      "/images/product-17001-1758299164890-0.jpeg"
+    ],
+    "imageSize": 90,
+    "categoryId": 3
+  },
+  {
+    "id": 17002,
+    "name": "都會行者防水後背包",
+    "sku": "BP-URBAN-GRY-25L",
+    "ean13": "4712345678907",
+    "price": 2499,
+    "description": "25L 大容量，防潑水牛津布材質，內含 15.6 吋筆電夾層。",
+    "imageUrls": [
+      "/images/product-17002-1758297404672-0.png",
+      "/images/product-17002-1758297406155-1.png"
+    ],
+    "imageSize": 100,
+    "categoryId": 5
+  },
+  {
+    "id": 17003,
+    "name": "陶瓷簡約馬克杯",
+    "sku": "MUG-WHT-CLASSIC",
+    "ean13": "4710904567894",
+    "price": 599,
+    "description": "採用高溫白瓷製成，手感溫潤，容量適中。",
+    "imageUrls": [
+      "/images/product-17003-1758300024579-0.jpeg"
+    ],
+    "imageSize": 85,
+    "categoryId": 6
+  },
+  {
+    "id": 17004,
+    "name": "機械式電競鍵盤 RGB",
+    "sku": "KB-MECH-RGB-01",
+    "ean13": "4718873459123",
+    "price": 3250,
+    "description": "採用高品質青軸，提供清脆的打擊手感。支援全鍵無衝突與可自訂 RGB 燈效。",
+    "imageUrls": [
+      "/images/product-17004-1758299133370-0.jpeg"
+    ],
+    "imageSize": 100,
+    "categoryId": 3
+  },
+  {
+    "id": 17005,
+    "name": "輕旅帆布側",
+    "sku": "BG-CANVAS-SIDE-KHA",
+    "ean13": "4715432109875",
+    "price": 1280,
+    "description": "耐磨帆布材質，搭配皮革點綴，多口袋設計方便收納隨身物品。",
+    "imageUrls": [
+      "/images/product-17005-1758299230975-0.jpeg"
+    ],
+    "imageSize": 95,
+    "categoryId": 5
+  }
+]

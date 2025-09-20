@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "電子產品",
+    "parentId": null
+  },
+  {
+    "id": 2,
+    "name": "電腦周邊",
+    "parentId": 1
+  },
+  {
+    "id": 3,
+    "name": "滑鼠與鍵盤",
+    "parentId": 2
+  },
+  {
+    "id": 4,
+    "name": "生活配件",
+    "parentId": null
+  },
+  {
+    "id": 5,
+    "name": "包款",
+    "parentId": 4
+  },
+  {
+    "id": 6,
+    "name": "居家用品",
+    "parentId": null
+  }
+]
