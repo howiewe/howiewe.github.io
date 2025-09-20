@@ -58,7 +58,7 @@ async function handlePut(context) {
         });
 
         // 重要的！R2 的 public URL 是 r2.dev 的網址，不是 object.key
-        const publicUrl = `${context.env.R2_PUBLIC_URL}/${object.key}`;
+        const publicUrl = `${context.env.IMAGE_BUCKET}/${object.key}`;
 
         return response({
             message: '上傳成功',
