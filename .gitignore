@@ -1,0 +1,16 @@
+# Node.js dependencies
+# 忽略所有開發時安裝的套件
+node_modules/
+
+# Cloudflare Wrangler temporary files
+# 忽略 wrangler 產生的暫存檔和設定
+.wrangler/
+
+# VS Code editor settings
+# 忽略你個人的編輯器設定，這樣團隊協作時不會互相影響
+.vscode/
+
+# Environment variables
+# 如果未來有 .env 檔案，也必須忽略，避免洩漏密碼
+.env
+*.dev.vars
