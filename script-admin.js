@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const previewUrl = URL.createObjectURL(blob);
             currentImageItems.push({ url: previewUrl, blob: blob, isNew: true });
             renderAdminImagePreview();
-        }, 'image/jpeg', 0.8);
+        }, 'image/webp', 0.8);
         closeModal(cropperModal);
     });
     cropCancelBtn.addEventListener('click', () => closeModal(cropperModal));
