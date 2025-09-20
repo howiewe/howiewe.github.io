@@ -1,4 +1,3 @@
-// script-admin.js
 document.addEventListener('DOMContentLoaded', () => {
     // --- IndexedDB 幫手函式 (本地快取) ---
     const dbName = 'ProductCatalogDB_CF';
@@ -6,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openDB() { return new Promise((resolve, reject) => { const request = indexedDB.open(dbName, dbVersion); request.onerror = event => reject(`無法開啟 IndexedDB 資料庫: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); request.onupgradeneeded = event => { const db = event.target.result; if (!db.objectStoreNames.contains('products')) db.createObjectStore('products', { keyPath: 'id' }); if (!db.objectStoreNames.contains('categories')) db.createObjectStore('categories', { keyPath: 'id' }); }; }); }
     function readData(storeName) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readonly'); const store = transaction.objectStore(storeName); const request = store.getAll(); request.onerror = event => reject(`無法從 ${storeName} 讀取資料: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); }); }
     function writeData(storeName, data) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readwrite'); const store = transaction.objectStore(storeName); store.clear(); data.forEach(item => store.put(item)); transaction.oncomplete = () => resolve(); transaction.onerror = event => reject(`無法寫入資料至 ${storeName}: ${event.target.errorCode}`); }); }
-
+    
     // --- DOM 元素宣告 ---
     const productList = document.getElementById('product-list');
     const form = document.getElementById('product-form');
@@ -20,12 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const addNewBtn = document.getElementById('add-new-btn');
     const deleteBtn = document.getElementById('delete-btn');
-    const inlineCropperWorkspace = document.getElementById('inline-cropper-workspace');
-    const inlineCropperImage = document.getElementById('inline-cropper-image');
-    const inlineCropConfirmBtn = document.getElementById('inline-crop-confirm-btn');
-    const inlineCropRotateBtn = document.getElementById('inline-crop-rotate-btn');
-    const inlineCropCancelBtn = document.getElementById('inline-crop-cancel-btn');
-    const imagePreviewArea = document.getElementById('image-preview-area');
     const uploadImageBtn = document.getElementById('upload-image-btn');
     const imageUploadInput = document.getElementById('product-image-upload');
     const mainImagePreview = document.getElementById('main-image-preview');
@@ -44,15 +37,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryModalCloseBtn = document.getElementById('category-modal-close-btn');
     const categoryManagementTree = document.getElementById('category-management-tree');
     const addTopLevelCategoryBtn = document.getElementById('add-toplevel-category-btn');
+    // 內聯裁切 DOM 元素
+    const inlineCropperWorkspace = document.getElementById('inline-cropper-workspace');
+    const inlineCropperImage = document.getElementById('inline-cropper-image');
+    const inlineCropConfirmBtn = document.getElementById('inline-crop-confirm-btn');
+    const inlineCropRotateBtn = document.getElementById('inline-crop-rotate-btn');
+    const inlineCropCancelBtn = document.getElementById('inline-crop-cancel-btn');
+    const imagePreviewArea = document.getElementById('image-preview-area');
 
     // --- 全域變數 ---
     let allProducts = [], allCategories = [];
     let cropper;
     let currentCategoryId = 'all';
-    let currentImageItems = [];
+    let currentImageItems = []; 
     let sortableInstance = null;
     let isSaving = false;
-
+    
     // --- 核心 API 邏輯 (Cloudflare) ---
     async function fetchDataFromCloud() {
         try {
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
-
+    
     function updateSyncStatus(message, status) {
         if (!syncStatus) return;
         syncStatus.textContent = message;
@@ -151,29 +151,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
     menuToggleBtn.addEventListener('click', toggleSidebar);
     pageOverlay.addEventListener('click', toggleSidebar);
-    function buildCategoryTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`; function createTreeHTML(nodes) { let subHtml = '<ul>'; for (const node of nodes) { subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`; if (node.children.length > 0) subHtml += createTreeHTML(node.children); subHtml += '</li>'; } return subHtml + '</ul>'; } categoryTreeContainer.innerHTML = html + createTreeHTML(tree) + '</ul>'; let selectOptions = '<option value="" disabled>請選擇分類</option>'; function createSelectOptions(nodes, depth = 0) { for (const node of nodes) { selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; if (node.children.length > 0) createSelectOptions(node.children, depth + 1); } } createSelectOptions(tree); categorySelect.innerHTML = selectOptions; }
+    function buildCategoryTree() { const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`; function createTreeHTML(nodes) { let subHtml = '<ul>'; for (const node of nodes) { subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`; if (node.children.length > 0) subHtml += createTreeHTML(node.children); subHtml += '</li>'; } return subHtml + '</ul>'; } categoryTreeContainer.innerHTML = html + createTreeHTML(tree) + '</ul>'; let selectOptions = '<option value="" disabled selected>請選擇分類</option>'; function createSelectOptions(nodes, depth = 0) { for (const node of nodes) { selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; if (node.children.length > 0) createSelectOptions(node.children, depth + 1); } } createSelectOptions(tree); categorySelect.innerHTML = selectOptions; }
     categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const targetLink = e.target.closest('a'); if (targetLink) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); targetLink.classList.add('active'); currentCategoryId = targetLink.dataset.id === 'all' ? 'all' : parseInt(targetLink.dataset.id); renderProducts(); if (window.innerWidth <= 992) toggleSidebar(); } });
     function getCategoryIdsWithChildren(startId) { if (startId === 'all') return null; const ids = new Set([startId]); const queue = [startId]; while (queue.length > 0) { const children = allCategories.filter(c => c.parentId === queue.shift()); for (const child of children) { ids.add(child.id); queue.push(child.id); } } return ids; }
-    function renderProducts() { const searchTerm = searchBox.value.toLowerCase(); const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId); const filteredProducts = allProducts.filter(p => { const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId)); const matchesSearch = p.name.toLowerCase().includes(searchTerm); return matchesCategory && matchesSearch; }); productList.innerHTML = ''; if (filteredProducts.length === 0 && addNewBtn.disabled === false) { productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>'; return; } filteredProducts.forEach(product => { const card = document.createElement('div'); card.className = 'product-card'; card.onclick = () => openEditModal(product.id); const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : ''; card.innerHTML = ` <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 100}%;"></div> <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div> `; productList.appendChild(card); }); }
-
+    function renderProducts() { const searchTerm = searchBox.value.toLowerCase(); const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId); const filteredProducts = allProducts.filter(p => { const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId)); const matchesSearch = p.name.toLowerCase().includes(searchTerm); return matchesCategory && matchesSearch; }); productList.innerHTML = ''; if (filteredProducts.length === 0 && addNewBtn.disabled === false) { productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>'; return; } filteredProducts.forEach(product => { const card = document.createElement('div'); card.className = 'product-card'; card.onclick = () => { const productToEdit = allProducts.find(p => p.id === product.id); if (productToEdit) openProductModal(productToEdit); }; const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : ''; card.innerHTML = ` <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 90}%;"></div> <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div> `; productList.appendChild(card); }); }
+    
     // --- 本地與遠端儲存邏輯 ---
-    async function updateAndSave(storeName, data, triggerRemoteSave = true) {
-        if (storeName === 'products') allProducts = data;
-        else if (storeName === 'categories') allCategories = data;
-
-        await writeData(storeName, data);
-        showToast('變更已儲存至本地', 'info');
-
-        if (storeName === 'categories') buildCategoryTree();
+    async function updateAndSave(storeName, data, triggerRemoteSave = true) { 
+        if (storeName === 'products') allProducts = data; 
+        else if (storeName === 'categories') allCategories = data; 
+        
+        await writeData(storeName, data); 
+        showToast('變更已儲存至本地', 'info'); 
+        
+        if (storeName === 'categories') buildCategoryTree(); 
         renderProducts();
-
+        
         if (triggerRemoteSave) {
             saveDataToCloud();
         }
     }
-
+    
     // --- 分類管理 ---
-    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } categoryManagementTree.innerHTML = createTreeHTML(tree); }
+    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } categoryManagementTree.innerHTML = createTreeHTML(tree); }
     async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (name !== null) { alert('分類名稱不能為空！'); } }
     async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
     async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); } }
@@ -181,49 +181,42 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Modal & 表單邏輯 ---
     function openModal(modal) { modal.classList.remove('hidden'); }
     function closeModal(modal) { modal.classList.add('hidden'); }
-
+    
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        // 步驟 1: 上傳所有新圖片
         showToast('開始上傳圖片...', 'info');
         const uploadPromises = currentImageItems.map(async (item, index) => {
             if (item.isNew && item.blob) {
-                const fileExtension = item.blob.type.split('/')[1] || 'jpg';
+                const fileExtension = item.blob.type.split('/')[1] || 'webp';
                 const tempId = productIdInput.value || `new_${Date.now()}`;
                 const fileName = `product-${tempId}-${Date.now()}-${index}.${fileExtension}`;
-                const uploadedUrl = await uploadImage(item.blob, fileName);
-                return uploadedUrl || item.url; // 如果上傳失敗，保留 blob URL (雖然這不理想)
+                return await uploadImage(item.blob, fileName);
             }
-            return item.url; // 返回舊的 URL
+            return item.url;
         });
-        const finalImageUrls = await Promise.all(uploadPromises);
+        const finalImageUrls = (await Promise.all(uploadPromises)).filter(url => url);
         showToast('圖片處理完成，正在儲存產品資料...', 'info');
 
-        // 步驟 2: 整理產品資料
         const id = productIdInput.value;
         const newProductData = { id: id ? parseInt(id) : Date.now(), name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value, ean13: document.getElementById('product-ean13').value, price: parseFloat(document.getElementById('product-price').value), description: document.getElementById('product-description').value, imageUrls: finalImageUrls, imageSize: parseInt(imageSizeSlider.value), categoryId: parseInt(categorySelect.value) };
-        if (!newProductData.categoryId) { alert("請選擇一個產品分類！"); return; }
-
-        // 步驟 3: 更新本地產品列表並觸發雲端儲存
+        if(!newProductData.categoryId) { alert("請選擇一個產品分類！"); return; }
+        
         let updatedProducts;
         if (id) {
             updatedProducts = allProducts.map(p => p.id == id ? newProductData : p);
         } else {
             updatedProducts = [...allProducts, newProductData];
         }
-        await updateAndSave('products', updatedProducts, true); // true 會觸發 saveDataToCloud
-
+        await updateAndSave('products', updatedProducts, true);
+        
         closeModal(editModal);
+        hideCropper();
     });
 
-    function openEditModal(id) {
-        resetForm(); // 先重置表单，这会把滑杆设为 90
-
-        const product = allProducts.find(p => p.id == id);
+    function openProductModal(product = null) {
+        resetForm();
         if (product) {
-            // 如果是编辑现有产品，就用产品资料覆盖掉预设值
-            formTitle.textContent = '编辑产品';
+            formTitle.textContent = '編輯產品';
             productIdInput.value = product.id;
             document.getElementById('product-name').value = product.name;
             document.getElementById('product-sku').value = product.sku;
@@ -231,48 +224,90 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('product-price').value = product.price;
             document.getElementById('product-description').value = product.description;
             categorySelect.value = product.categoryId;
-
             currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url: url, isNew: false, blob: null })) : [];
-            renderAdminImagePreview(); // 这会显示图片
-
-            // --- 核心修正逻辑在这里 ---
-            // 1. 决定要使用的 imageSize 值 (优先用产品自己的，如果没有，就用 90)
             const imageSize = product.imageSize || 90;
-
-            // 2. 根据这个值，更新滑杆和文字
             imageSizeSlider.value = imageSize;
             imageSizeValue.textContent = imageSize;
-
-            // 3. 只声明一次 initialScale，并用它来设定图片缩放
             const initialScale = imageSize / 100;
             mainImagePreview.style.transform = `scale(${initialScale})`;
-            // --- 修正结束 ---
-
             deleteBtn.classList.remove('hidden');
             deleteBtn.onclick = () => deleteProduct(product.id);
-
-            updateBarcodePreview();
-            openModal(editModal);
-            initSortable();
+        } else {
+            formTitle.textContent = '新增產品';
         }
+        renderAdminImagePreview();
+        updateBarcodePreview();
+        openModal(editModal);
+        initSortable();
     }
-
+    
     async function deleteProduct(id) {
         if (confirm('您確定要刪除這個產品嗎？此操作無法復原。')) {
             const updatedProducts = allProducts.filter(p => p.id != id);
             await updateAndSave('products', updatedProducts, true);
             showToast('產品已刪除', 'info');
             closeModal(editModal);
+            hideCropper();
         }
     }
 
-    function resetForm() { form.reset(); productIdInput.value = ''; currentImageItems.forEach(item => { if (item.url.startsWith('blob:')) URL.revokeObjectURL(item.url) }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(0.9)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropper(); }
-    function initSortable() { if (sortableInstance) { sortableInstance.destroy(); } try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const movedItem = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, movedItem); renderAdminImagePreview(); }, }); } catch (e) { console.error("SortableJS 初始化失敗! 請檢查函式庫是否成功載入。", e); showToast('拖曳排序功能載入失敗', 'error'); } }
-    function renderAdminImagePreview() { thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; currentImageItems.forEach((item, index) => { const thumbItem = document.createElement('div'); thumbItem.className = 'thumbnail-item'; if (index === 0) thumbItem.classList.add('active'); thumbItem.innerHTML = ` <img src="${item.url}" data-index="${index}" alt="縮圖 ${index + 1}"> <button type="button" class="delete-thumb-btn" data-index="${index}" title="刪除此圖">&times;</button> `; thumbnailListAdmin.appendChild(thumbItem); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; } }
-    thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const indexToDelete = parseInt(target.dataset.index); const itemToDelete = currentImageItems[indexToDelete]; if (itemToDelete && itemToDelete.url.startsWith('blob:')) { URL.revokeObjectURL(itemToDelete.url); } currentImageItems.splice(indexToDelete, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const indexToShow = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[indexToShow].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(item => item.classList.remove('active')); target.parentElement.classList.add('active'); } });
+    function resetForm() {
+        form.reset();
+        productIdInput.value = '';
+        currentImageItems.forEach(item => { if (item.url.startsWith('blob:')) URL.revokeObjectURL(item.url) });
+        currentImageItems = [];
+        renderAdminImagePreview();
+        imageSizeSlider.value = 90;
+        imageSizeValue.textContent = 90;
+        mainImagePreview.style.transform = 'scale(1)';
+        deleteBtn.classList.add('hidden');
+        categorySelect.selectedIndex = 0;
+        updateBarcodePreview();
+        hideCropper();
+    }
+    
+    function initSortable() { if (sortableInstance) { sortableInstance.destroy(); } try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const movedItem = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, movedItem); renderAdminImagePreview(); }, }); } catch(e) { console.error("SortableJS 初始化失敗!", e); showToast('拖曳排序功能載入失敗', 'error'); } }
+    
+    function renderAdminImagePreview() {
+        thumbnailListAdmin.innerHTML = '';
+        if (currentImageItems.length > 0) {
+            mainImagePreview.src = currentImageItems[0].url;
+            mainImagePreview.style.display = 'block';
+            const currentScale = parseInt(imageSizeSlider.value) / 100;
+            mainImagePreview.style.transform = `scale(${currentScale})`;
+            currentImageItems.forEach((item, index) => {
+                const thumbItem = document.createElement('div');
+                thumbItem.className = 'thumbnail-item';
+                if (index === 0) thumbItem.classList.add('active');
+                thumbItem.innerHTML = ` <img src="${item.url}" data-index="${index}" alt="縮圖 ${index + 1}"> <button type="button" class="delete-thumb-btn" data-index="${index}" title="刪除此圖">&times;</button> `;
+                thumbnailListAdmin.appendChild(thumbItem);
+            });
+        } else {
+            mainImagePreview.src = '';
+            mainImagePreview.style.display = 'none';
+        }
+    }
 
+    thumbnailListAdmin.addEventListener('click', e => {
+        const target = e.target;
+        if (target.classList.contains('delete-thumb-btn')) {
+            const indexToDelete = parseInt(target.dataset.index);
+            const itemToDelete = currentImageItems[indexToDelete];
+            if (itemToDelete && itemToDelete.url.startsWith('blob:')) {
+                URL.revokeObjectURL(itemToDelete.url);
+            }
+            currentImageItems.splice(indexToDelete, 1);
+            renderAdminImagePreview();
+        }
+        if (target.tagName === 'IMG') {
+            const indexToShow = parseInt(target.dataset.index);
+            mainImagePreview.src = currentImageItems[indexToShow].url;
+            document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(item => item.classList.remove('active'));
+            target.parentElement.classList.add('active');
+        }
+    });
+    
     // --- 圖片裁切邏輯 (內聯版本) ---
-
     function showCropper(file) {
         if (!file || !file.type.startsWith('image/')) {
             showToast('請選擇有效的圖片檔案', 'error');
@@ -297,9 +332,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cropper) {
             const objectUrl = inlineCropperImage.src;
             cropper.destroy();
-            cropper = null; // 确保销毁
+            cropper = null;
             inlineCropperImage.src = '';
-            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            if (objectUrl && objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl);
         }
         inlineCropperWorkspace.classList.add('hidden');
         imagePreviewArea.classList.remove('hidden');
@@ -317,7 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     inlineCropConfirmBtn.addEventListener('click', () => {
         if (!cropper) return;
-
         inlineCropConfirmBtn.disabled = true;
         cropper.getCroppedCanvas({
             width: 1024, height: 1024, imageSmoothingQuality: 'high',
@@ -334,55 +368,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 'image/webp', 0.85);
     });
 
-    inlineCropRotateBtn.addEventListener('click', () => {
-        if (cropper) cropper.rotate(90);
-    });
-
+    inlineCropRotateBtn.addEventListener('click', () => { if(cropper) cropper.rotate(90); });
     inlineCropCancelBtn.addEventListener('click', hideCropper);
+    
     // --- EAN13 預覽 & 圖片大小滑桿 ---
     function updateBarcodePreview() { const value = ean13Input.value; const previewSvg = document.getElementById('barcode-preview'); if (value.length >= 12 && value.length <= 13) { try { JsBarcode(previewSvg, value, { format: "EAN13", lineColor: "#000", width: 2, height: 50, displayValue: true }); previewSvg.style.display = 'block'; } catch (e) { previewSvg.style.display = 'none'; } } else { previewSvg.style.display = 'none'; } }
     ean13Input.addEventListener('input', updateBarcodePreview);
-    imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if (mainImagePreview) { const scaleValue = newSize / 100; mainImagePreview.style.transform = `scale(${scaleValue})`; } });
+    imageSizeSlider.addEventListener('input', () => {
+        const newSize = imageSizeSlider.value;
+        imageSizeValue.textContent = newSize;
+        if(mainImagePreview) {
+            const scaleValue = newSize / 100;
+            mainImagePreview.style.transform = `scale(${scaleValue})`;
+        }
+    });
 
     // --- 導入導出 ---
     importBtn.addEventListener('click', async () => { if (!confirm('匯入將會覆蓋您目前的所有本地資料，並將在下次儲存時同步到雲端，確定要繼續嗎？')) return; try { showToast('請先選擇您的 products.json 檔案', 'info'); const [prodHandle] = await window.showOpenFilePicker({ types: [{ description: '產品 JSON', accept: { 'application/json': ['.json'] } }] }); showToast('接著請選擇您的 categories.json 檔案', 'info'); const [catHandle] = await window.showOpenFilePicker({ types: [{ description: '分類 JSON', accept: { 'application/json': ['.json'] } }] }); const prodFile = await prodHandle.getFile(); const catFile = await catHandle.getFile(); const newProducts = JSON.parse(await prodFile.text()); const newCategories = JSON.parse(await catFile.text()); await updateAndSave('products', newProducts, false); await updateAndSave('categories', newCategories, true); showToast('資料匯入成功！變更已儲存至雲端。', 'success'); setUIState(true); } catch (err) { if (err.name !== 'AbortError') showToast('讀取檔案失敗', 'error'); } });
     exportBtn.addEventListener('click', async () => { try { const prodBlob = new Blob([JSON.stringify(allProducts, null, 2)], { type: 'application/json' }); const catBlob = new Blob([JSON.stringify(allCategories, null, 2)], { type: 'application/json' }); const download = (blob, filename) => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }; download(prodBlob, 'products.json'); download(catBlob, 'categories.json'); showToast('資料已匯出成 JSON 檔案！', 'success'); } catch (err) { showToast('匯出失敗！', 'error'); } });
     function showToast(message, type = 'info', duration = 3000) { const toastContainer = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
-
+    
     // --- 初始化函式 ---
     async function init() {
-        // 綁定事件監聽
-        themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
-        pullFromCloudBtn.addEventListener('click', async () => {
-            if (confirm('確定要從雲端拉取最新資料嗎？這將會覆蓋您目前未儲存的本地變更。')) {
-                const success = await fetchDataFromCloud();
-                if (success) setUIState(true);
-            }
-        });
-        // 替换成这样
         const closeAndCleanupEditModal = () => {
             closeModal(editModal);
-            hideCropper(); // 确保关闭时清理裁切器
+            hideCropper();
         };
         modalCloseBtn.addEventListener('click', closeAndCleanupEditModal);
         editModal.addEventListener('click', (e) => { if (e.target === editModal) closeAndCleanupEditModal(); });
+        
+        themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
+        pullFromCloudBtn.addEventListener('click', async () => {
+            if (confirm('確定要從雲端拉取最新資料嗎？這將會覆蓋您目前未儲存的本地變更。')){
+                const success = await fetchDataFromCloud();
+                if(success) setUIState(true);
+            }
+        });
+        addNewBtn.addEventListener('click', () => openProductModal());
         searchBox.addEventListener('input', renderProducts);
         manageCategoriesBtn.addEventListener('click', () => { buildCategoryManagementTree(); openModal(categoryModal); });
         categoryModalCloseBtn.addEventListener('click', () => closeModal(categoryModal));
         addTopLevelCategoryBtn.addEventListener('click', () => addCategory(null));
         categoryManagementTree.addEventListener('click', (e) => { const target = e.target.closest('.action-btn'); if (!target) return; const id = parseInt(target.dataset.id); if (target.classList.contains('add-child-btn')) addCategory(id); else if (target.classList.contains('edit-cat-btn')) editCategory(id); else if (target.classList.contains('delete-cat-btn')) deleteCategory(id); });
 
-        // 頁面啟動時的初始設定
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
-
+        
         setUIState(false);
         const success = await fetchDataFromCloud();
         if (success) {
             setUIState(true);
         } else {
-            // 嘗試從本地 IndexedDB 載入
-            try {
+             try {
                 const localProducts = await readData('products');
                 const localCategories = await readData('categories');
                 if (localProducts.length > 0) {
@@ -392,11 +429,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateSyncStatus('雲端連接失敗，已載入本地快取', 'error');
                     showToast('雲端連接失敗，已從本地快取載入資料', 'info');
                 } else {
-                    updateSyncStatus('雲端連接失敗，且無本地快取', 'error');
+                     updateSyncStatus('雲端連接失敗，且無本地快取', 'error');
                 }
             } catch (e) {
                 console.error('無法從 IndexedDB 讀取:', e);
-                updateSyncStatus('雲端及本地均載入失敗', 'error');
+                 updateSyncStatus('雲端及本地均載入失敗', 'error');
             }
         }
     }
