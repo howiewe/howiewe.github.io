@@ -1,4 +1,4 @@
-// functions/api/[[path]].js (最终版 - 20250921)
+// functions/api/[[path]].js (最终纯净版 - 20250921-final)
 
 import Papa from 'papaparse';
 
@@ -8,7 +8,7 @@ const response = (data, status = 200) => new Response(JSON.stringify(data), {
     headers: { 'Content-Type': 'application/json' }
 });
 
-// --- API 处理函式 ---
+// --- API 业务逻辑处理函数 ---
 
 // GET /api/data - 获取所有产品和分类
 async function handleGet(context) {
@@ -19,11 +19,11 @@ async function handleGet(context) {
         return response({ products, categories });
     } catch (e) {
         console.error("GET /api/data Error:", e);
-        return response({ error: '无法读取资料库' }, 500);
+        return response({ error: '无法从资料库读取资料' }, 500);
     }
 }
 
-// POST /api/data - 储存所有产品和分类 (用于单笔编辑)
+// POST /api/data - (用于单笔编辑) 储存所有产品和分类
 async function handlePost(context) {
     const { request, env } = context;
     const { DB } = env;
@@ -45,7 +45,7 @@ async function handlePut(context) {
     const url = new URL(request.url);
     const objectName = url.pathname.split('/').pop();
 
-    if (!objectName) return response({ error: '缺少檔名' }, 400);
+    if (!objectName) return response({ error: '缺少档名' }, 400);
     if (!R2_PUBLIC_URL) return response({ error: 'R2_PUBLIC_URL 环境变数未设定' }, 500);
     if (!IMAGE_BUCKET) return response({ error: 'IMAGE_BUCKET 绑定未设定' }, 500);
 
@@ -56,12 +56,12 @@ async function handlePut(context) {
         const publicUrl = `${R2_PUBLIC_URL}/${object.key}`;
         return response({ message: '上傳成功', url: publicUrl, key: object.key });
     } catch (e) {
-        console.error("PUT /api/upload Error:", JSON.stringify(e, null, 2));
+        console.error("PUT /api/upload Error:", e);
         return response({ error: `上傳圖片失敗: ${e.message}` }, 500);
     }
 }
 
-// POST /api/batch-create - 接收匹配好的资料并批次建立产品
+// POST /api/batch-create - 批次建立产品
 async function handleBatchCreate(context) {
     const { request, env } = context;
     const { DB } = env;
@@ -69,7 +69,7 @@ async function handleBatchCreate(context) {
     try {
         const { products: newProducts } = await request.json();
         if (!newProducts || !Array.isArray(newProducts)) {
-            return response({ error: '无效的產品资料格式' }, 400);
+            return response({ error: '无效的产品资料格式' }, 400);
         }
 
         let allProducts = await DB.get('products', 'json') || [];
@@ -79,7 +79,6 @@ async function handleBatchCreate(context) {
         newProducts.forEach((productData, index) => {
             const categoryName = (productData.category || '未分類').trim();
             let categoryId;
-
             if (categoryNameMap.has(categoryName)) {
                 categoryId = categoryNameMap.get(categoryName).id;
             } else {
@@ -113,7 +112,7 @@ async function handleBatchCreate(context) {
     }
 }
 
-// --- 主处理函式 (统一路由) ---
+// --- 主路由函式 (The Router) ---
 export async function onRequest(context) {
     const { request } = context;
     const url = new URL(request.url);
@@ -123,13 +122,16 @@ export async function onRequest(context) {
     if (path.startsWith('/api/data')) {
         if (method === 'GET') return handleGet(context);
         if (method === 'POST') return handlePost(context);
-    }
+    } 
     else if (path.startsWith('/api/upload')) {
         if (method === 'PUT') return handlePut(context);
-    }
+    } 
     else if (path === '/api/batch-create' && method === 'POST') {
         return handleBatchCreate(context);
     }
+    // 我们暂时移除旧的 CSV 导入/导出 API，因为新流程更强大
+    // else if (path === '/api/import/csv' && method === 'POST') { ... }
+    // else if (path === '/api/export/csv' && method === 'GET') { ... }
 
     return response({ error: '無效的 API 路徑或方法' }, 404);
 }
