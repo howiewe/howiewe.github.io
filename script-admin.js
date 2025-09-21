@@ -235,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openProductModal(product = null) {
         resetForm();
         if (product) {
+            // --- 编辑模式 ---
             formTitle.textContent = '编辑产品';
             productIdInput.value = product.id;
             document.getElementById('product-name').value = product.name;
@@ -247,8 +248,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const imageSize = product.imageSize || 90;
             imageSizeSlider.value = imageSize;
             imageSizeValue.textContent = imageSize;
+
+            // 【关键修正】只有在编辑模式下，才显示删除按钮并绑定事件
+            deleteBtn.classList.remove('hidden');
+            deleteBtn.onclick = () => deleteProduct(product.id);
+
         } else {
+            // --- 新增模式 ---
             formTitle.textContent = '新增产品';
+            // 删除按钮在 resetForm() 中已经被隐藏了，这里无需操作
         }
         renderAdminImagePreview();
         updateBarcodePreview();
