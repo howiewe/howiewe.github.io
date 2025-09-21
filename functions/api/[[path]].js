@@ -241,3 +241,74 @@ async function handlePut(context) {
         return response({ error: `上傳圖片失敗: ${e.message}` }, 500);
     }
 }
+// functions/api/[[path]].js
+
+// ... (文件顶部的 import Papa from 'papaparse' 和 response 函数保持不变) ...
+
+// 【新增这个函数】
+async function handleBatchCreate(context) {
+    const { request, env } = context;
+    const { DB } = env;
+
+    try {
+        const { products: newProducts } = await request.json();
+        if (!newProducts || !Array.isArray(newProducts)) {
+            return response({ error: '无效的产品资料格式' }, 400);
+        }
+
+        let allProducts = await DB.get('products', 'json') || [];
+        let allCategories = await DB.get('categories', 'json') || [];
+        
+        // 使用 Map 可以提高查找效率，并避免重复
+        const productSkuMap = new Map(allProducts.map(p => [p.sku, p]));
+        const categoryNameMap = new Map(allCategories.map(c => [c.name, c]));
+
+        newProducts.forEach((productData, index) => {
+            // 【健壮性优化】确保 category 是一个有效的字串
+            const categoryName = (productData.category || '未分類').trim();
+
+            let categoryId;
+            if (categoryNameMap.has(categoryName)) {
+                categoryId = categoryNameMap.get(categoryName).id;
+            } else {
+                // 自动建立新分类
+                const newCategory = { id: Date.now() + index, name: categoryName, parentId: null };
+                allCategories.push(newCategory);
+                categoryNameMap.set(newCategory.name, newCategory); // 更新 map
+                categoryId = newCategory.id;
+            }
+
+            // 【健壮性优化】确保所有栏位都有预设值
+            const finalProduct = {
+                id: Date.now() + index, // 简化处理，总是新增
+                sku: productData.sku || `SKU-${Date.now() + index}`,
+                name: productData.name || '未命名产品',
+                price: parseFloat(productData.price) || 0,
+                description: productData.description || '',
+                categoryId: categoryId,
+                imageUrls: productData.imageUrls || [],
+                ean13: productData.ean13 || '',
+                imageSize: 90,
+            };
+
+            // 【逻辑修正】这里我们简化为只处理新增，避免复杂的更新逻辑
+            // 如果要支持更新，需要在这里检查 productSkuMap
+            allProducts.push(finalProduct);
+        });
+
+        // 将更新后的资料存回 KV
+        await DB.put('products', JSON.stringify(allProducts));
+        await DB.put('categories', JSON.stringify(allCategories));
+
+        return response({ success: true, message: `成功汇入 ${newProducts.length} 笔产品` });
+    } catch (e) {
+        console.error('Batch Create Error:', e);
+        // 返回更详细的错误
+        return response({ error: '批次建立产品时发生错误', details: e.message, stack: e.stack }, 500);
+    }
+}
+
+// 【确保这些旧函数还存在于档案中，因为路由还需要它们】
+async function handleGet(context) { /* ... */ }
+async function handlePost(context) { /* ... */ }
+async function handlePut(context) { /* ... */ }

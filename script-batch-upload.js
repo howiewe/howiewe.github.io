@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         document.head.appendChild(script);
     }
-    
+
     // --- Rendering Functions ---
     function render() {
         renderImagePool();
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .filter(Boolean)
                 .map(url => `<img src="${url}">`)
                 .join('');
-            
+
             item.innerHTML = `
                 <div class="data-item-header">
                     <span class="data-item-status ${prod.status}">${prod.status === 'assigned' ? '✅' : '⚪️'}</span>
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         render();
     }
-    
+
     // --- CSV & Image Upload Logic ---
     imageDropzone.addEventListener('click', () => imageUploadInput.click());
     imageUploadInput.addEventListener('change', (e) => handleImageFiles(e.target.files));
@@ -175,55 +175,78 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Final Submit Logic ---
+    // --- Final Submit Logic (修正版) ---
     finalSubmitBtn.addEventListener('click', async () => {
         finalSubmitBtn.disabled = true;
-        finalSubmitBtn.textContent = '处理中，请稍候...';
+        finalSubmitBtn.textContent = '处理中 (0%)...';
 
-        // Step 1: Upload all assigned images to R2
-        const uploadPromises = state.images
-            .filter(img => img.status === 'assigned')
-            .map(async (img) => {
-                const fileName = `product-${img.id}.${img.file.name.split('.').pop()}`;
+        try {
+            // --- Step 1: Upload all assigned images to R2 ---
+            const imagesToUpload = state.images.filter(img => img.status === 'assigned');
+            const uploadResults = [];
+
+            for (let i = 0; i < imagesToUpload.length; i++) {
+                const img = imagesToUpload[i];
+                finalSubmitBtn.textContent = `上传图片 (${i + 1}/${imagesToUpload.length})...`;
+
+                const fileName = `product-${img.id}-${Date.now()}.${img.file.name.split('.').pop() || 'webp'}`;
                 try {
                     const response = await fetch(`/api/upload/${fileName}`, { method: 'PUT', body: img.file });
-                    if (!response.ok) throw new Error('Upload failed');
+                    if (!response.ok) throw new Error('图片上传失败');
                     const result = await response.json();
-                    img.r2Url = result.url;
-                    return { success: true, imgId: img.id, url: result.url };
+                    uploadResults.push({ success: true, imgId: img.id, url: result.url });
                 } catch (e) {
-                    return { success: false, imgId: img.id, error: e.message };
+                    uploadResults.push({ success: false, imgId: img.id, error: e.message });
                 }
-            });
-        
-        const uploadResults = await Promise.all(uploadPromises);
+            }
 
-        // Step 2: Prepare final product data
-        const finalProducts = state.products
-            .filter(p => p.status === 'assigned')
-            .map(prod => {
-                const imageUrls = prod.assignedImageIds.map(id => {
-                    const result = uploadResults.find(r => r.imgId === id);
-                    return result?.success ? result.url : null;
-                }).filter(Boolean);
-                
-                return { ...prod.data, imageUrls };
-            });
+            // --- Step 2: Prepare final product data ---
+            finalSubmitBtn.textContent = '正在整理产品资料...';
 
-        // Step 3: Send final data to a new backend endpoint
-        try {
+            const finalProducts = state.products
+                .filter(p => p.status === 'assigned')
+                .map(prod => {
+                    // 从上传结果中，找到属于这个产品的所有图片 URL
+                    const imageUrls = prod.assignedImageIds
+                        .map(id => {
+                            const result = uploadResults.find(r => r.imgId === id);
+                            // 只加入成功上传的图片
+                            return result?.success ? result.url : null;
+                        })
+                        .filter(Boolean); // 过滤掉上传失败的图片 (null)
+
+                    // 【这就是关键修正】
+                    // 我们返回一个包含了 CSV 所有资料(...prod.data) 
+                    // 和我们刚刚处理好的图片 URL 列表 (imageUrls) 的新物件。
+                    return {
+                        ...prod.data,
+                        imageUrls
+                    };
+                });
+
+            // --- Step 3: Send final data to the backend ---
+            finalSubmitBtn.textContent = '正在储存至资料库...';
+
             const response = await fetch('/api/batch-create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ products: finalProducts })
             });
-            if (!response.ok) throw new Error('Failed to save products');
-            
-            alert('批次建档成功！');
-            window.location.href = '/admin.html'; // Redirect back to main admin page
+
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.details || '储存产品时发生未知错误');
+            }
+
+            alert('批次建档成功！即将返回主管理页面。');
+            window.location.href = '/admin.html';
+
         } catch (e) {
             alert(`发生错误: ${e.message}`);
+            // 在出错时重置按钮状态，以便使用者可以重试
             finalSubmitBtn.disabled = false;
-            finalSubmitBtn.textContent = '完成建档';
+            updateSubmitButton(); // 使用 updateSubmitButton 来恢复按钮文字
+            console.error("Final Submit Error:", e);
         }
     });
 
