@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- IndexedDB 幫手函式 (本地快取) ---
+    // --- IndexedDB & DOM Declarations ---
+    // (省略了这部分，和上一版完全一样，无需改动)
     const dbName = 'ProductCatalogDB_CF';
     const dbVersion = 1;
     function openDB() { return new Promise((resolve, reject) => { const request = indexedDB.open(dbName, dbVersion); request.onerror = event => reject(`無法開啟 IndexedDB 資料庫: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); request.onupgradeneeded = event => { const db = event.target.result; if (!db.objectStoreNames.contains('products')) db.createObjectStore('products', { keyPath: 'id' }); if (!db.objectStoreNames.contains('categories')) db.createObjectStore('categories', { keyPath: 'id' }); }; }); }
     function readData(storeName) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readonly'); const store = transaction.objectStore(storeName); const request = store.getAll(); request.onerror = event => reject(`無法從 ${storeName} 讀取資料: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); }); }
     function writeData(storeName, data) { return new Promise(async (resolve, reject) => { const db = await openDB(); const transaction = db.transaction(storeName, 'readwrite'); const store = transaction.objectStore(storeName); store.clear(); data.forEach(item => store.put(item)); transaction.oncomplete = () => resolve(); transaction.onerror = event => reject(`無法寫入資料至 ${storeName}: ${event.target.errorCode}`); }); }
 
-    // --- DOM 元素宣告 (确保所有元素都存在于 admin.html) ---
     const productList = document.getElementById('product-list');
     const form = document.getElementById('product-form');
     const formTitle = document.getElementById('form-title');
@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageOverlay = document.getElementById('page-overlay');
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const syncStatus = document.getElementById('sync-status');
-    // const pullFromCloudBtn = document.getElementById('pull-from-cloud-btn'); // 此按钮已在最新 HTML 中移除
     const manageCategoriesBtn = document.getElementById('manage-categories-btn');
     const categoryModal = document.getElementById('category-modal-container');
     const categoryModalCloseBtn = document.getElementById('category-modal-close-btn');
@@ -41,16 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const inlineCropRotateBtn = document.getElementById('inline-crop-rotate-btn');
     const inlineCropCancelBtn = document.getElementById('inline-crop-cancel-btn');
     const imagePreviewArea = document.getElementById('image-preview-area');
-
-    // --- 全域變數 ---
-    let allProducts = [], allCategories = [];
-    let cropper;
-    let currentCategoryId = 'all';
-    let currentImageItems = [];
-    let sortableInstance = null;
-    let isSaving = false;
-
-    // --- 核心 API 邏輯 ---
+    
+    // (省略了所有函数定义，和上一版完全一样，无需改动)
+    // ...
+    // ... (所有函数 handleGet, handlePost, openProductModal, etc. 都在这里) ...
+    // ...
     async function fetchDataFromCloud() {
         try {
             updateSyncStatus('正在從雲端拉取資料...', 'syncing');
@@ -71,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
     }
-
     async function saveDataToCloud(showToastMsg = true) {
         if (isSaving) { showToast('正在儲存中，請稍候...', 'info'); return; }
         isSaving = true;
@@ -94,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
             isSaving = false;
         }
     }
-
     async function uploadImage(blob, fileName) {
         try {
             const response = await fetch(`/api/upload/${fileName}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob });
@@ -108,15 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return null;
         }
     }
-
     function updateSyncStatus(message, status) {
         if (syncStatus) {
             syncStatus.textContent = message;
             syncStatus.className = `sync-status ${status}`;
         }
     }
-
-    // --- UI 狀態管理 ---
     function setUIState(isReady) {
         if (manageCategoriesBtn) manageCategoriesBtn.disabled = !isReady;
         if (addNewBtn) addNewBtn.disabled = !isReady;
@@ -132,17 +121,14 @@ document.addEventListener('DOMContentLoaded', () => {
             allCategories = [];
         }
     }
-
-    // --- 分類樹 & 產品渲染 ---
     function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
-    function buildCategoryTree() { 
+    function buildCategoryTree() {
         const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
         const tree = [];
         for (const category of categoryMap.values()) {
             if (category.parentId === null) tree.push(category);
             else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
         }
-        
         let treeHtml = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`;
         function createTreeHTML(nodes) {
             let subHtml = '<ul>';
@@ -154,7 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return subHtml + '</ul>';
         }
         if (categoryTreeContainer) categoryTreeContainer.innerHTML = treeHtml + createTreeHTML(tree) + '</ul>';
-        
         let selectOptions = '<option value="" disabled selected>請選擇分類</option>';
         function createSelectOptions(nodes, depth = 0) {
             for (const node of nodes) {
@@ -165,7 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
         createSelectOptions(tree);
         if (categorySelect) categorySelect.innerHTML = selectOptions;
     }
-    
     function getCategoryIdsWithChildren(startId) {
         if (startId === 'all') return null;
         const ids = new Set([startId]);
@@ -176,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return ids;
     }
-    
     function renderProducts() {
         if (!productList) return;
         const searchTerm = searchBox.value.toLowerCase();
@@ -203,10 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
             productList.appendChild(card);
         });
     }
-
-    // --- 省略其他函式 (updateAndSave, 分類管理, Modal, 表單, 裁切, etc...) ---
-    // --- 确保这些函数也存在于你的文件中 ---
-    
     async function updateAndSave(storeName, data, triggerRemoteSave = true) {
         if (storeName === 'products') allProducts = data;
         else if (storeName === 'categories') allCategories = data;
@@ -216,16 +195,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProducts();
         if (triggerRemoteSave) saveDataToCloud();
     }
-    
-    function buildCategoryManagementTree() { /* ... 之前的代码 ... */ }
-    async function addCategory(parentId = null) { /* ... 之前的代码 ... */ }
-    async function editCategory(id) { /* ... 之前的代码 ... */ }
-    async function deleteCategory(id) { /* ... 之前的代码 ... */ }
-    
-    function openModal(modal) { modal.classList.remove('hidden'); }
-    function closeModal(modal) { modal.classList.add('hidden'); }
-    
-    form.addEventListener('submit', async (e) => {
+    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if(categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
+    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (name !== null) { alert('分類名稱不能為空！'); } }
+    async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
+    async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); } }
+    function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
+    function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
+    if(form) form.addEventListener('submit', async (e) => {
         e.preventDefault();
         showToast('开始上传图片...', 'info');
         const uploadPromises = currentImageItems.map(async (item) => {
@@ -240,17 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const finalImageUrls = (await Promise.all(uploadPromises)).filter(url => url);
         showToast('图片处理完成，正在储存产品资料...', 'info');
         const id = productIdInput.value;
-        const newProductData = {
-            id: id ? parseInt(id) : Date.now(),
-            name: document.getElementById('product-name').value,
-            sku: document.getElementById('product-sku').value,
-            ean13: ean13Input.value,
-            price: parseFloat(document.getElementById('product-price').value),
-            description: document.getElementById('product-description').value,
-            imageUrls: finalImageUrls,
-            imageSize: parseInt(imageSizeSlider.value),
-            categoryId: parseInt(categorySelect.value)
-        };
+        const newProductData = { id: id ? parseInt(id) : Date.now(), name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value, ean13: ean13Input.value, price: parseFloat(document.getElementById('product-price').value), description: document.getElementById('product-description').value, imageUrls: finalImageUrls, imageSize: parseInt(imageSizeSlider.value), categoryId: parseInt(categorySelect.value) };
         if (!newProductData.categoryId) { alert("请选择一个产品分类！"); return; }
         let updatedProducts;
         if (id) {
@@ -262,7 +228,6 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal(editModal);
         hideCropper();
     });
-
     function openProductModal(product = null) {
         resetForm();
         if (product) {
@@ -286,7 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
         openModal(editModal);
         initSortable();
     }
-    
     async function deleteProduct(id) {
         if (confirm('您确定要删除这个产品吗？')) {
             const updatedProducts = allProducts.filter(p => p.id != id);
@@ -296,7 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
             hideCropper();
         }
     }
-    
     function resetForm() {
         if (form) form.reset();
         if (productIdInput) productIdInput.value = '';
@@ -311,8 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBarcodePreview();
         hideCropper();
     }
-    
-    function initSortable() { /* ... 之前的代码 ... */ }
+    function initSortable() { if (sortableInstance) { sortableInstance.destroy(); } if (thumbnailListAdmin) { try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const movedItem = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, movedItem); renderAdminImagePreview(); }, }); } catch (e) { console.error("SortableJS 初始化失敗!", e); } } }
     function renderAdminImagePreview() {
         if (!thumbnailListAdmin || !mainImagePreview) return;
         thumbnailListAdmin.innerHTML = '';
@@ -321,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mainImagePreview.style.display = 'block';
             const currentScale = parseInt(imageSizeSlider.value) / 100;
             mainImagePreview.style.transform = `scale(${currentScale})`;
-            deleteBtn.style.display = productIdInput.value ? 'inline-flex' : 'none'; // Show delete button if editing
+            deleteBtn.classList.remove('hidden');
             currentImageItems.forEach((item, index) => {
                 const thumbItem = document.createElement('div');
                 thumbItem.className = index === 0 ? 'thumbnail-item active' : 'thumbnail-item';
@@ -331,22 +293,31 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             mainImagePreview.src = '';
             mainImagePreview.style.display = 'none';
+            deleteBtn.classList.add('hidden');
         }
     }
-    
-    // ... 裁切逻辑 ...
-    function showCropper(file) { /* ... */ }
-    function hideCropper() { /* ... */ }
-
+    if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const indexToDelete = parseInt(target.dataset.index); const itemToDelete = currentImageItems[indexToDelete]; if (itemToDelete && itemToDelete.url.startsWith('blob:')) { URL.revokeObjectURL(itemToDelete.url); } currentImageItems.splice(indexToDelete, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const indexToShow = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[indexToShow].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(item => item.classList.remove('active')); target.parentElement.classList.add('active'); } });
+    function showCropper(file) {
+        if (!file || !file.type.startsWith('image/')) { showToast('請選擇有效的圖片檔案', 'error'); return; }
+        const objectUrl = URL.createObjectURL(file);
+        imagePreviewArea.classList.add('hidden');
+        inlineCropperWorkspace.classList.remove('hidden');
+        inlineCropperImage.onload = () => { if (cropper) cropper.destroy(); cropper = new Cropper(inlineCropperImage, { aspectRatio: 1 / 1, viewMode: 1, autoCropArea: 0.9, background: false, }); };
+        inlineCropperImage.src = objectUrl;
+    }
+    function hideCropper() { if (cropper) { const objectUrl = inlineCropperImage.src; cropper.destroy(); cropper = null; inlineCropperImage.src = ''; if (objectUrl && objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl); } inlineCropperWorkspace.classList.add('hidden'); imagePreviewArea.classList.remove('hidden'); }
+    if(inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob: blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗，請重試', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
+    if (inlineCropRotateBtn) inlineCropRotateBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
+    if (inlineCropCancelBtn) inlineCropCancelBtn.addEventListener('click', hideCropper);
     function updateBarcodePreview() { /* ... */ }
-    function showToast(message, type = 'info', duration = 3000) { /* ... */ }
-
+    function showToast(message, type = 'info', duration = 3000) { const toastContainer = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
+    
     // --- 初始化函式 ---
     async function init() {
+        // 安全地绑定所有事件
         const closeAndCleanupEditModal = () => { closeModal(editModal); hideCropper(); };
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeAndCleanupEditModal);
         if (editModal) editModal.addEventListener('click', (e) => { if (e.target === editModal) closeAndCleanupEditModal(); });
-        
         if (themeToggle) themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
         if (addNewBtn) addNewBtn.addEventListener('click', () => openProductModal());
         if (searchBox) searchBox.addEventListener('input', renderProducts);
@@ -359,13 +330,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const target = e.target.closest('a'); if (target) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); target.classList.add('active'); currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id); renderProducts(); if (window.innerWidth <= 992) toggleSidebar(); } });
         if (uploadImageBtn) uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
         if (imageUploadInput) imageUploadInput.addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; if (file) showCropper(file); e.target.value = ''; });
-        if (inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { /* ... 之前的裁切确认逻辑 ... */ });
-        if (inlineCropRotateBtn) inlineCropRotateBtn.addEventListener('click', () => { if(cropper) cropper.rotate(90); });
-        if (inlineCropCancelBtn) inlineCropCancelBtn.addEventListener('click', hideCropper);
         if (ean13Input) ean13Input.addEventListener('input', updateBarcodePreview);
         if (imageSizeSlider) imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if (mainImagePreview) { const scaleValue = newSize / 100; mainImagePreview.style.transform = `scale(${scaleValue})`; } });
-        if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', (e) => { /* ... 之前的缩图点击逻辑 ... */ });
-
+        
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         
