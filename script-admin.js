@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inlineCropRotateBtn = document.getElementById('inline-crop-rotate-btn');
     const inlineCropCancelBtn = document.getElementById('inline-crop-cancel-btn');
     const imagePreviewArea = document.getElementById('image-preview-area');
-    
+
     // (省略了所有函数定义，和上一版完全一样，无需改动)
     // ...
     // ... (所有函数 handleGet, handlePost, openProductModal, etc. 都在这里) ...
@@ -106,16 +106,20 @@ document.addEventListener('DOMContentLoaded', () => {
             syncStatus.className = `sync-status ${status}`;
         }
     }
+
     function setUIState(isReady) {
         if (manageCategoriesBtn) manageCategoriesBtn.disabled = !isReady;
         if (addNewBtn) addNewBtn.disabled = !isReady;
         if (searchBox) searchBox.disabled = !isReady;
 
         if (isReady) {
+            // 确保在渲染前，分类资料已经准备好
             buildCategoryTree();
+            // 主动将分类设定为 'all' 并触发一次渲染，确保初次载入
+            currentCategoryId = 'all';
             renderProducts();
         } else {
-            if (productList) productList.innerHTML = '<p class="empty-message">正在從雲端載入資料，請稍候...</p>';
+            if (productList) productList.innerHTML = '<p class="empty-message">正在从云端载入资料，请稍候...</p>';
             if (categoryTreeContainer) categoryTreeContainer.innerHTML = '';
             allProducts = [];
             allCategories = [];
@@ -195,13 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProducts();
         if (triggerRemoteSave) saveDataToCloud();
     }
-    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if(categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
+    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14m-7-7h14"/></svg></button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if (categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
     async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (name !== null) { alert('分類名稱不能為空！'); } }
     async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
     async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); } }
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
-    if(form) form.addEventListener('submit', async (e) => {
+    if (form) form.addEventListener('submit', async (e) => {
         e.preventDefault();
         showToast('开始上传图片...', 'info');
         const uploadPromises = currentImageItems.map(async (item) => {
@@ -306,12 +310,12 @@ document.addEventListener('DOMContentLoaded', () => {
         inlineCropperImage.src = objectUrl;
     }
     function hideCropper() { if (cropper) { const objectUrl = inlineCropperImage.src; cropper.destroy(); cropper = null; inlineCropperImage.src = ''; if (objectUrl && objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl); } inlineCropperWorkspace.classList.add('hidden'); imagePreviewArea.classList.remove('hidden'); }
-    if(inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob: blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗，請重試', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
+    if (inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob: blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗，請重試', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
     if (inlineCropRotateBtn) inlineCropRotateBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
     if (inlineCropCancelBtn) inlineCropCancelBtn.addEventListener('click', hideCropper);
     function updateBarcodePreview() { /* ... */ }
     function showToast(message, type = 'info', duration = 3000) { const toastContainer = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
-    
+
     // --- 初始化函式 ---
     async function init() {
         // 安全地绑定所有事件
@@ -327,21 +331,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if (categoryManagementTree) categoryManagementTree.addEventListener('click', (e) => { const target = e.target.closest('.action-btn'); if (!target) return; const id = parseInt(target.dataset.id); if (target.classList.contains('add-child-btn')) addCategory(id); else if (target.classList.contains('edit-cat-btn')) editCategory(id); else if (target.classList.contains('delete-cat-btn')) deleteCategory(id); });
         if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleSidebar);
         if (pageOverlay) pageOverlay.addEventListener('click', toggleSidebar);
-        if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const target = e.target.closest('a'); if (target) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); target.classList.add('active'); currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id); renderProducts(); if (window.innerWidth <= 992) toggleSidebar(); } });
+        if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => {
+            e.preventDefault();
+            const target = e.target.closest('a');
+            if (target) {
+                document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
+                target.classList.add('active');
+                currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id);
+                renderProducts();
+                if (window.innerWidth <= 992) toggleSidebar();
+            }
+        });
         if (uploadImageBtn) uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
         if (imageUploadInput) imageUploadInput.addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; if (file) showCropper(file); e.target.value = ''; });
         if (ean13Input) ean13Input.addEventListener('input', updateBarcodePreview);
         if (imageSizeSlider) imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if (mainImagePreview) { const scaleValue = newSize / 100; mainImagePreview.style.transform = `scale(${scaleValue})`; } });
-        
+
+        // 裁切相关的事件绑定也放在这里
+        if (inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob: blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗，請重試', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
+        if (inlineCropRotateBtn) inlineCropRotateBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
+        if (inlineCropCancelBtn) inlineCropCancelBtn.addEventListener('click', hideCropper);
+        if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const indexToDelete = parseInt(target.dataset.index); const itemToDelete = currentImageItems[indexToDelete]; if (itemToDelete && itemToDelete.url.startsWith('blob:')) { URL.revokeObjectURL(itemToDelete.url); } currentImageItems.splice(indexToDelete, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const indexToShow = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[indexToShow].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(item => item.classList.remove('active')); target.parentElement.classList.add('active'); } });
+
+        // --- 启动流程 ---
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
-        
+
         setUIState(false);
         const success = await fetchDataFromCloud();
         if (success) {
             setUIState(true);
         } else {
-             try {
+            try {
                 const localProducts = await readData('products');
                 const localCategories = await readData('categories');
                 if (localProducts && localProducts.length > 0) {
@@ -350,10 +371,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     setUIState(true);
                     updateSyncStatus('雲端連接失敗，已載入本地快取', 'error');
                 } else {
-                     updateSyncStatus('雲端連接失敗，且無本地快取', 'error');
+                    updateSyncStatus('雲端連接失敗，且無本地快取', 'error');
                 }
             } catch (e) {
-                 updateSyncStatus('雲端及本地均載入失敗', 'error');
+                updateSyncStatus('雲端及本地均載入失敗', 'error');
             }
         }
     }
