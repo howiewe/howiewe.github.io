@@ -160,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
+                encoding: "UTF-8",
                 complete: (results) => {
                     state.products = results.data.map((row, index) => ({
                         id: `prod_${Date.now()}_${index}`,
