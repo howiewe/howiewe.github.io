@@ -1,225 +1,36 @@
-// functions/api/[[path]].js (CSV 批次匯入功能升級版)
+// functions/api/[[path]].js (最終清理版)
 
-import Papa from 'papaparse'; // 導入我們剛剛安裝的 CSV 解析庫
+import Papa from 'papaparse';
 
-// --- 統一的 API 響應格式 (保持不變) ---
+// --- 統一的 API 響應格式 ---
 const response = (data, status = 200) => new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' }
 });
 
+// --- API 處理函式 ---
 
-// --- 核心匯入邏輯 ---
-async function handleCsvImport(context) {
-    const { request, env } = context;
-    const { DB, IMAGE_BUCKET, R2_PUBLIC_URL } = env;
-
-    try {
-        const formData = await request.formData();
-        const file = formData.get('csvFile');
-
-        if (!file) {
-            return response({ error: '找不到上傳的 CSV 檔案' }, 400);
-        }
-
-        const csvText = await file.text();
-
-        // 使用 PapaParse 解析 CSV
-        const parseResult = Papa.parse(csvText, {
-            header: true, // 將第一行作為標題 (key)
-            skipEmptyLines: true, // 跳過空行
-        });
-
-        if (parseResult.errors.length > 0) {
-            return response({ error: 'CSV 檔案格式錯誤', details: parseResult.errors }, 400);
-        }
-
-        const productsFromCsv = parseResult.data;
-        
-        // 獲取現有的所有產品和分類，以便比對
-        let allProducts = await DB.get('products', 'json') || [];
-        let allCategories = await DB.get('categories', 'json') || [];
-        const productSkuMap = new Map(allProducts.map(p => [p.sku, p]));
-        const categoryNameMap = new Map(allCategories.map(c => [c.name, c]));
-
-        const report = {
-            totalRows: productsFromCsv.length,
-            successAdded: 0,
-            successUpdated: 0,
-            failed: 0,
-            errors: []
-        };
-        
-        // 處理每一行 CSV 資料
-        for (const [index, productData] of productsFromCsv.entries()) {
-            const rowNum = index + 2; // CSV 行號 (包含標題行)
-
-            // 驗證基本欄位
-            if (!productData.sku || !productData.name || !productData.price || !productData.category) {
-                report.failed++;
-                report.errors.push(`第 ${rowNum} 行: 缺少必要的欄位 (sku, name, price, category)`);
-                continue;
-            }
-            
-            try {
-                // 處理分類
-                let categoryId;
-                if (categoryNameMap.has(productData.category)) {
-                    categoryId = categoryNameMap.get(productData.category).id;
-                } else {
-                    // 自動建立新分類
-                    const newCategory = { id: Date.now() + index, name: productData.category.trim(), parentId: null };
-                    allCategories.push(newCategory);
-                    categoryNameMap.set(newCategory.name, newCategory);
-                    categoryId = newCategory.id;
-                }
-
-                // 處理圖片
-                const imageUrlsToProcess = (productData.imageUrls || '').split(',').map(url => url.trim()).filter(url => url);
-                const finalImageUrls = [];
-                for (const imageUrl of imageUrlsToProcess) {
-                    try {
-                        const imageResponse = await fetch(imageUrl);
-                        if (!imageResponse.ok) throw new Error(`無法抓取圖片 ${imageUrl}`);
-                        
-                        const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-                        const fileExtension = contentType.split('/')[1] || 'jpg';
-                        const fileName = `product-${productData.sku}-${Date.now()}.${fileExtension}`;
-                        
-                        await IMAGE_BUCKET.put(fileName, imageResponse.body, {
-                            httpMetadata: { contentType },
-                        });
-                        finalImageUrls.push(`${R2_PUBLIC_URL}/${fileName}`);
-
-                    } catch (imgErr) {
-                         // 如果單張圖片抓取失敗，只記錄錯誤，不中斷整個產品的匯入
-                        report.errors.push(`第 ${rowNum} 行 (SKU: ${productData.sku}): 圖片 ${imageUrl} 處理失敗: ${imgErr.message}`);
-                    }
-                }
-                
-                // 組合產品物件
-                const productObject = {
-                    name: productData.name,
-                    sku: productData.sku,
-                    price: parseFloat(productData.price),
-                    description: productData.description || '',
-                    categoryId: categoryId,
-                    imageUrls: finalImageUrls,
-                    ean13: productData.ean13 || '',
-                    imageSize: 90, // 批次匯入的預設為 90
-                };
-
-                // 判斷是新增還是更新
-                if (productSkuMap.has(productData.sku)) {
-                    // 更新
-                    const existingProduct = productSkuMap.get(productData.sku);
-                    productObject.id = existingProduct.id;
-                    const productIndex = allProducts.findIndex(p => p.id === existingProduct.id);
-                    allProducts[productIndex] = productObject;
-                    report.successUpdated++;
-                } else {
-                    // 新增
-                    productObject.id = Date.now() + index;
-                    allProducts.push(productObject);
-                    report.successAdded++;
-                }
-                productSkuMap.set(productObject.sku, productObject); // 更新 map
-
-            } catch (procErr) {
-                report.failed++;
-                report.errors.push(`第 ${rowNum} 行 (SKU: ${productData.sku}): 處理失敗: ${procErr.message}`);
-            }
-        }
-        
-        // 將更新後的所有資料存回 KV
-        await DB.put('products', JSON.stringify(allProducts));
-        await DB.put('categories', JSON.stringify(allCategories));
-
-        return response(report);
-
-    } catch (e) {
-        console.error("CSV Import Error:", e);
-        return response({ error: '匯入過程中發生嚴重錯誤', details: e.message }, 500);
-    }
-}
-
-// --- 匯出 CSV 邏輯 ---
-async function handleCsvExport(context) {
+async function handleGet(context) {
     const { DB } = context.env;
     try {
         const products = await DB.get('products', 'json') || [];
         const categories = await DB.get('categories', 'json') || [];
-        const categoryIdMap = new Map(categories.map(c => [c.id, c.name]));
-        
-        const dataForCsv = products.map(p => ({
-            sku: p.sku || '',
-            name: p.name || '',
-            price: p.price || 0,
-            description: p.description || '',
-            category: categoryIdMap.get(p.categoryId) || '未分類',
-            imageUrls: (p.imageUrls || []).join(','),
-            ean13: p.ean13 || ''
-        }));
-        
-        const csvString = Papa.unparse(dataForCsv);
-        const BOM = '\uFEFF'; // 加入 BOM 來修復 Excel 亂碼問題
-        
-        return new Response(BOM + csvString, {
-            headers: {
-                'Content-Type': 'text/csv;charset=utf-8-sig',
-                'Content-Disposition': 'attachment; filename="products.csv"'
-            }
-        });
+        return response({ products, categories });
     } catch (e) {
-        console.error("CSV Export Error:", e);
-        return response({ error: '匯出失敗', details: e.message }, 500);
+        return response({ error: '無法讀取資料庫' }, 500);
     }
-}
-
-
-// --- 主處理函式，路由 (Router) ---
-export async function onRequest(context) {
-    const { request } = context;
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const method = request.method;
-
-    // 現有的資料 API (保持不變)
-    if (path.startsWith('/api/data')) {
-        if (method === 'GET') return await context.env.DB.get('products_and_categories_view'); /* handleGet(context); */
-        if (method === 'POST') return await context.env.DB.put('products_and_categories_view', request.body); /* handlePost(context); */
-    } 
-    // 現有的圖片上傳 API (保持不變)
-    else if (path.startsWith('/api/upload')) {
-        if (method === 'PUT') return handlePut(context);
-    } 
-    // 【新增】CSV 匯入 API
-    else if (path === '/api/import/csv' && method === 'POST') {
-        return handleCsvImport(context);
-    }
-    // 【新增】CSV 匯出 API
-    else if (path === '/api/export/csv' && method === 'GET') {
-        return handleCsvExport(context);
-    }
-
-    return response({ error: '無效的 API 路徑或方法' }, 404);
-}
-
-// --- 其他舊函式 (handleGet, handlePost, handlePut) 保持不變 ---
-// 你可以把它們的原版程式碼放在這裡，或者直接刪除，因為上面的路由已經包含了它們
-async function handleGet(context) {
-    const { DB } = context.env;
-    const products = await DB.get('products', 'json') || [];
-    const categories = await DB.get('categories', 'json') || [];
-    return response({ products, categories });
 }
 
 async function handlePost(context) {
     const { DB } = context.env;
-    const { products, categories } = await context.request.json();
-    await DB.put('products', JSON.stringify(products));
-    await DB.put('categories', JSON.stringify(categories));
-    return response({ message: '資料儲存成功' });
+    try {
+        const { products, categories } = await request.json();
+        await DB.put('products', JSON.stringify(products));
+        await DB.put('categories', JSON.stringify(categories));
+        return response({ message: '資料儲存成功' });
+    } catch (e) {
+        return response({ error: '寫入資料庫時發生錯誤' }, 500);
+    }
 }
 
 async function handlePut(context) {
@@ -227,9 +38,11 @@ async function handlePut(context) {
     const { request } = context;
     const url = new URL(request.url);
     const objectName = url.pathname.split('/').pop();
+
     if (!objectName) return response({ error: '缺少檔名' }, 400);
     if (!R2_PUBLIC_URL) return response({ error: 'R2_PUBLIC_URL 環境變數未設定' }, 500);
     if (!IMAGE_BUCKET) return response({ error: 'IMAGE_BUCKET 綁定未設定' }, 500);
+
     try {
         const object = await IMAGE_BUCKET.put(objectName, request.body, {
             httpMetadata: { contentType: request.headers.get('content-type') },
@@ -241,11 +54,7 @@ async function handlePut(context) {
         return response({ error: `上傳圖片失敗: ${e.message}` }, 500);
     }
 }
-// functions/api/[[path]].js
 
-// ... (文件顶部的 import Papa from 'papaparse' 和 response 函数保持不变) ...
-
-// 【新增这个函数】
 async function handleBatchCreate(context) {
     const { request, env } = context;
     const { DB } = env;
@@ -253,34 +62,28 @@ async function handleBatchCreate(context) {
     try {
         const { products: newProducts } = await request.json();
         if (!newProducts || !Array.isArray(newProducts)) {
-            return response({ error: '无效的产品资料格式' }, 400);
+            return response({ error: '無效的產品資料格式' }, 400);
         }
 
         let allProducts = await DB.get('products', 'json') || [];
         let allCategories = await DB.get('categories', 'json') || [];
-        
-        // 使用 Map 可以提高查找效率，并避免重复
-        const productSkuMap = new Map(allProducts.map(p => [p.sku, p]));
         const categoryNameMap = new Map(allCategories.map(c => [c.name, c]));
 
         newProducts.forEach((productData, index) => {
-            // 【健壮性优化】确保 category 是一个有效的字串
             const categoryName = (productData.category || '未分類').trim();
-
             let categoryId;
+
             if (categoryNameMap.has(categoryName)) {
                 categoryId = categoryNameMap.get(categoryName).id;
             } else {
-                // 自动建立新分类
                 const newCategory = { id: Date.now() + index, name: categoryName, parentId: null };
                 allCategories.push(newCategory);
-                categoryNameMap.set(newCategory.name, newCategory); // 更新 map
+                categoryNameMap.set(newCategory.name, newCategory);
                 categoryId = newCategory.id;
             }
 
-            // 【健壮性优化】确保所有栏位都有预设值
             const finalProduct = {
-                id: Date.now() + index, // 简化处理，总是新增
+                id: Date.now() + index,
                 sku: productData.sku || `SKU-${Date.now() + index}`,
                 name: productData.name || '未命名产品',
                 price: parseFloat(productData.price) || 0,
@@ -290,25 +93,36 @@ async function handleBatchCreate(context) {
                 ean13: productData.ean13 || '',
                 imageSize: 90,
             };
-
-            // 【逻辑修正】这里我们简化为只处理新增，避免复杂的更新逻辑
-            // 如果要支持更新，需要在这里检查 productSkuMap
             allProducts.push(finalProduct);
         });
 
-        // 将更新后的资料存回 KV
         await DB.put('products', JSON.stringify(allProducts));
         await DB.put('categories', JSON.stringify(allCategories));
 
-        return response({ success: true, message: `成功汇入 ${newProducts.length} 笔产品` });
+        return response({ success: true, message: `成功匯入 ${newProducts.length} 筆產品` });
     } catch (e) {
         console.error('Batch Create Error:', e);
-        // 返回更详细的错误
-        return response({ error: '批次建立产品时发生错误', details: e.message, stack: e.stack }, 500);
+        return response({ error: '批次建立產品時發生錯誤', details: e.message }, 500);
     }
 }
 
-// 【确保这些旧函数还存在于档案中，因为路由还需要它们】
-async function handleGet(context) { /* ... */ }
-async function handlePost(context) { /* ... */ }
-async function handlePut(context) { /* ... */ }
+// --- 主處理函式 (統一路由) ---
+export async function onRequest(context) {
+    const { request } = context;
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const method = request.method;
+
+    if (path.startsWith('/api/data')) {
+        if (method === 'GET') return handleGet(context);
+        if (method === 'POST') return handlePost(context);
+    }
+    else if (path.startsWith('/api/upload')) {
+        if (method === 'PUT') return handlePut(context);
+    }
+    else if (path === '/api/batch-create' && method === 'POST') {
+        return handleBatchCreate(context);
+    }
+
+    return response({ error: '無效的 API 路徑或方法' }, 404);
+}
