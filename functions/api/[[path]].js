@@ -1,15 +1,16 @@
-// functions/api/[[path]].js (最終清理版)
+// functions/api/[[path]].js (最终版 - 20250921)
 
 import Papa from 'papaparse';
 
-// --- 統一的 API 響應格式 ---
+// --- 统一的 API 响应格式 ---
 const response = (data, status = 200) => new Response(JSON.stringify(data), {
     status,
     headers: { 'Content-Type': 'application/json' }
 });
 
-// --- API 處理函式 ---
+// --- API 处理函式 ---
 
+// GET /api/data - 获取所有产品和分类
 async function handleGet(context) {
     const { DB } = context.env;
     try {
@@ -17,31 +18,36 @@ async function handleGet(context) {
         const categories = await DB.get('categories', 'json') || [];
         return response({ products, categories });
     } catch (e) {
-        return response({ error: '無法讀取資料庫' }, 500);
+        console.error("GET /api/data Error:", e);
+        return response({ error: '无法读取资料库' }, 500);
     }
 }
 
+// POST /api/data - 储存所有产品和分类 (用于单笔编辑)
 async function handlePost(context) {
-    const { DB } = context.env;
+    const { request, env } = context;
+    const { DB } = env;
     try {
         const { products, categories } = await request.json();
         await DB.put('products', JSON.stringify(products));
         await DB.put('categories', JSON.stringify(categories));
-        return response({ message: '資料儲存成功' });
+        return response({ message: '资料储存成功' });
     } catch (e) {
-        return response({ error: '寫入資料庫時發生錯誤' }, 500);
+        console.error("POST /api/data Error:", e);
+        return response({ error: '写入资料库时发生错误' }, 500);
     }
 }
 
+// PUT /api/upload/:fileName - 上传单个图片
 async function handlePut(context) {
-    const { IMAGE_BUCKET, R2_PUBLIC_URL } = context.env;
-    const { request } = context;
+    const { request, env } = context;
+    const { IMAGE_BUCKET, R2_PUBLIC_URL } = env;
     const url = new URL(request.url);
     const objectName = url.pathname.split('/').pop();
 
     if (!objectName) return response({ error: '缺少檔名' }, 400);
-    if (!R2_PUBLIC_URL) return response({ error: 'R2_PUBLIC_URL 環境變數未設定' }, 500);
-    if (!IMAGE_BUCKET) return response({ error: 'IMAGE_BUCKET 綁定未設定' }, 500);
+    if (!R2_PUBLIC_URL) return response({ error: 'R2_PUBLIC_URL 环境变数未设定' }, 500);
+    if (!IMAGE_BUCKET) return response({ error: 'IMAGE_BUCKET 绑定未设定' }, 500);
 
     try {
         const object = await IMAGE_BUCKET.put(objectName, request.body, {
@@ -50,11 +56,12 @@ async function handlePut(context) {
         const publicUrl = `${R2_PUBLIC_URL}/${object.key}`;
         return response({ message: '上傳成功', url: publicUrl, key: object.key });
     } catch (e) {
-        console.error("PUT Error Details:", JSON.stringify(e, null, 2));
+        console.error("PUT /api/upload Error:", JSON.stringify(e, null, 2));
         return response({ error: `上傳圖片失敗: ${e.message}` }, 500);
     }
 }
 
+// POST /api/batch-create - 接收匹配好的资料并批次建立产品
 async function handleBatchCreate(context) {
     const { request, env } = context;
     const { DB } = env;
@@ -62,7 +69,7 @@ async function handleBatchCreate(context) {
     try {
         const { products: newProducts } = await request.json();
         if (!newProducts || !Array.isArray(newProducts)) {
-            return response({ error: '無效的產品資料格式' }, 400);
+            return response({ error: '无效的產品资料格式' }, 400);
         }
 
         let allProducts = await DB.get('products', 'json') || [];
@@ -99,14 +106,14 @@ async function handleBatchCreate(context) {
         await DB.put('products', JSON.stringify(allProducts));
         await DB.put('categories', JSON.stringify(allCategories));
 
-        return response({ success: true, message: `成功匯入 ${newProducts.length} 筆產品` });
+        return response({ success: true, message: `成功汇入 ${newProducts.length} 笔产品` });
     } catch (e) {
-        console.error('Batch Create Error:', e);
-        return response({ error: '批次建立產品時發生錯誤', details: e.message }, 500);
+        console.error('POST /api/batch-create Error:', e);
+        return response({ error: '批次建立产品时发生错误', details: e.message }, 500);
     }
 }
 
-// --- 主處理函式 (統一路由) ---
+// --- 主处理函式 (统一路由) ---
 export async function onRequest(context) {
     const { request } = context;
     const url = new URL(request.url);
