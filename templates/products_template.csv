@@ -1,3 +1,11 @@
-sku,name,price,description,category,imageUrls
-"SKU-001","ç¯„ä¾‹ç”¢å“A",999,"é€™æ˜¯ç”¢å“Açš„æè¿°","ç¯„ä¾‹åˆ†é¡ž","https://example.com/image_a.jpg"
-"SKU-002","ç¯„ä¾‹ç”¢å“B",1280,"é€™æ˜¯ç”¢å“Bçš„æè¿°ï¼Œæœ‰å…©å¼µåœ–ç‰‡","å¦ä¸€å€‹åˆ†é¡ž","https://example.com/image_b1.jpg,https://example.com/image_b2.jpg"
+sku,name,price,description,category,stock
+SKU-101,Äx²y,1299,¼Ð·Ç¤Ø¤oªº«Ç¤º¥~Äx²y¡A­@¿i¨¾·Æ,¹B°Ê¥Î«~,150
+SKU-102,¦Ð¤ò²y©ç,1599,»´¶q°ª¼u¤Oªº¦Ð¤ò²y©ç¡A¾A¦Xªì¾ÇªÌ»P¶i¶¥ª±®a,¹B°Ê¥Î«~,120
+SKU-103,¨¬²y,1099,°ª¼u¤O¦X¦¨¥Ö­²¨¬²y¡A¾A¦X¯ó¦a»P¤H¤u¯ó¥Ö¨Ï¥Î,¹B°Ê¥Î«~,200
+SKU-104,·ì¦÷¹Ô,899,¥[«p¨¾·Æ·ì¦÷¹Ô¡AµÎ¾A¤ä¼µ¦UºØ·ì¦÷°Ê§@,¹B°Ê¥Î«~,180
+SKU-105,³ý¹a10KG,1199,¾ó½¦¥]ÂÐ³ý¹a¡A¾A¦X©~®a»P°·¨­©Ð°V½m,¹B°Ê¥Î«~,90
+SKU-106,¸õÃ·,299,±M·~¿ûµ·¸õÃ·¡A»´«K­@¥Î¡A´£¤É¤ßªÍ¥\¯à,¹B°Ê¥Î«~,250
+SKU-107,¹B°ÊÅ@µÃ,499,¼u©Ê³z®ðÅ@µÃ¡A´£¨Ñ¤âµÃÃ­©w»P«OÅ@,¹B°Ê¥Î«~,300
+SKU-108,µn¤s­I¥],2899,¦h¥\¯à¤j®e¶qµn¤s­I¥]¡A¨¾¤ô­@¥Î,¹B°Ê¥Î«~,75
+SKU-109,´åªaµìÃè,699,¨¾Ãú°ª²M´åªaµìÃè¡A¶K¦XµÎ¾A,¹B°Ê¥Î«~,160
+SKU-110,ºô²y©ç,1999,°ª±i¤Oºô²y©ç¡A¼W±jÀ»²y±±¨î»P¤O¶q,¹B°Ê¥Î«~,110
