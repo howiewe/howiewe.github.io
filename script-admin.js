@@ -61,10 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Fetch data failed:', error);
             updateSyncStatus('雲端同步失敗', 'error');
+            showToast(`拉取雲端資料失敗: ${error.message}`, 'error');
             return false;
         }
     }
-    // (saveDataToCloud and uploadImage functions remain the same)
     async function saveDataToCloud(showToastMsg = true) {
         if (isSaving) { showToast('正在儲存中，請稍候...', 'info'); return; }
         isSaving = true;
@@ -109,16 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchBox) searchBox.disabled = !isReady;
         if (isReady) {
             buildCategoryTree();
-            currentCategoryId = 'all'; // Reset to 'all'
+            currentCategoryId = 'all';
             document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
-            document.querySelector('#category-tree a[data-id="all"]')?.classList.add('active');
+            const allLink = document.querySelector('#category-tree a[data-id="all"]');
+            if(allLink) allLink.classList.add('active');
             renderProducts();
         } else {
             if (productList) productList.innerHTML = '<p class="empty-message">正在從雲端載入資料...</p>';
             if (categoryTreeContainer) categoryTreeContainer.innerHTML = '';
         }
     }
-    // (buildCategoryTree, renderProducts and other rendering functions remain the same)
     function buildCategoryTree() {
         const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
         const tree = [];
@@ -155,54 +155,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Modal, Form, Cropper Logic ---
-    function openProductModal(product = null) {
-        resetForm();
-        if (product) {
-            formTitle.textContent = '编辑产品';
-            productIdInput.value = product.id;
-            document.getElementById('product-name').value = product.name;
-            document.getElementById('product-sku').value = product.sku;
-            ean13Input.value = product.ean13;
-            document.getElementById('product-price').value = product.price;
-            document.getElementById('product-description').value = product.description;
-            categorySelect.value = product.categoryId;
-            currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url, isNew: false, blob: null })) : [];
-            const imageSize = product.imageSize || 90;
-            imageSizeSlider.value = imageSize;
-            imageSizeValue.textContent = imageSize;
-            deleteBtn.classList.remove('hidden');
-            deleteBtn.onclick = () => deleteProduct(product.id);
-        } else {
-            formTitle.textContent = '新增产品';
-        }
-        renderAdminImagePreview();
-        updateBarcodePreview();
-        openModal(editModal);
-        initSortable();
-    }
-    // (All other helper functions like resetForm, deleteProduct, cropper logic, etc., remain the same)
+    // --- Modal, Form, Cropper, and other functions ---
     async function updateAndSave(storeName, data, triggerRemoteSave = true) { if (storeName === 'products') allProducts = data; else if (storeName === 'categories') allCategories = data; await writeData(storeName, data); if (storeName === 'categories') buildCategoryTree(); renderProducts(); if (triggerRemoteSave) saveDataToCloud(); }
     function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類">+</button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if(categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
-    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId: parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (name !== null) { alert('分類名稱不能為空！'); } }
+    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { const newCategory = { id: Date.now(), name: name.trim(), parentId }; allCategories.push(newCategory); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (name !== null) { alert('分類名稱不能為空！'); } }
     async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { category.name = newName.trim(); await updateAndSave('categories', allCategories); buildCategoryManagementTree(); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
-    async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('無法刪除！請先刪除或移動此分類下的所有子分類。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('無法刪除！尚有產品使用此分類。'); return; } if (confirm('您確定要刪除這個分類嗎？此操作無法復原。')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); } }
+    async function deleteCategory(id) { const hasChildren = allCategories.some(c => c.parentId === id); if (hasChildren) { alert('无法删除！请先删除子分类。'); return; } const isUsed = allProducts.some(p => p.categoryId === id); if (isUsed) { alert('无法删除！尚有产品使用此分类。'); return; } if (confirm('您确定要删除这个分类吗？')) { const updatedCategories = allCategories.filter(c => c.id !== id); await updateAndSave('categories', updatedCategories); buildCategoryManagementTree(); } }
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
-    async function deleteProduct(id) { if (confirm('您確定要刪除這個產品嗎？')) { const updatedProducts = allProducts.filter(p => p.id != id); await updateAndSave('products', updatedProducts, true); showToast('产品已删除', 'info'); closeModal(editModal); hideCropper(); } }
-    function resetForm() { if (form) form.reset(); if (productIdInput) productIdInput.value = ''; currentImageItems.forEach(item => { if (item.url.startsWith('blob:')) URL.revokeObjectURL(item.url); }); currentImageItems = []; renderAdminImagePreview(); if (imageSizeSlider) imageSizeSlider.value = 90; if (imageSizeValue) imageSizeValue.textContent = 90; if (mainImagePreview) mainImagePreview.style.transform = 'scale(1)'; if (deleteBtn) deleteBtn.classList.add('hidden'); if (categorySelect) categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropper(); }
-    function initSortable() { if (sortableInstance) { sortableInstance.destroy(); } if (thumbnailListAdmin) { try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, ghostClass: 'sortable-ghost', onEnd: (evt) => { const movedItem = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, movedItem); renderAdminImagePreview(); }, }); } catch (e) { console.error("SortableJS 初始化失敗!", e); } } }
-    function renderAdminImagePreview() { if (!thumbnailListAdmin || !mainImagePreview) return; thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; const currentScale = parseInt(imageSizeSlider.value) / 100; mainImagePreview.style.transform = `scale(${currentScale})`; deleteBtn.classList.remove('hidden'); currentImageItems.forEach((item, index) => { const thumbItem = document.createElement('div'); thumbItem.className = index === 0 ? 'thumbnail-item active' : 'thumbnail-item'; thumbItem.innerHTML = `<img src="${item.url}" data-index="${index}" alt="缩图 ${index + 1}"><button type="button" class="delete-thumb-btn" data-index="${index}" title="删除此图">&times;</button>`; thumbnailListAdmin.appendChild(thumbItem); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; deleteBtn.classList.add('hidden'); } }
-    function showCropper(file) { if (!file || !file.type.startsWith('image/')) { showToast('請選擇有效的圖片檔案', 'error'); return; } const objectUrl = URL.createObjectURL(file); imagePreviewArea.classList.add('hidden'); inlineCropperWorkspace.classList.remove('hidden'); inlineCropperImage.onload = () => { if (cropper) cropper.destroy(); cropper = new Cropper(inlineCropperImage, { aspectRatio: 1 / 1, viewMode: 1, autoCropArea: 0.9, background: false, }); }; inlineCropperImage.src = objectUrl; }
-    function hideCropper() { if (cropper) { const objectUrl = inlineCropperImage.src; cropper.destroy(); cropper = null; inlineCropperImage.src = ''; if (objectUrl && objectUrl.startsWith('blob:')) URL.revokeObjectURL(objectUrl); } inlineCropperWorkspace.classList.add('hidden'); imagePreviewArea.classList.remove('hidden'); }
-    function updateBarcodePreview() { if(!ean13Input) return; const value = ean13Input.value; const previewSvg = document.getElementById('barcode-preview'); if (value.length >= 12 && value.length <= 13) { try { JsBarcode(previewSvg, value, { format: "EAN13", lineColor: "#000", width: 2, height: 50, displayValue: true }); previewSvg.style.display = 'block'; } catch (e) { previewSvg.style.display = 'none'; } } else { previewSvg.style.display = 'none'; } }
-    function showToast(message, type = 'info', duration = 3000) { const toastContainer = document.getElementById('toast-container'); if (!toastContainer) return; const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; toastContainer.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
-
+    if(form) form.addEventListener('submit', async (e) => { e.preventDefault(); showToast('处理中...', 'info'); const uploadPromises = currentImageItems.map(async item => { if (item.isNew && item.blob) { const ext = item.blob.type.split('/')[1] || 'webp'; const tempId = productIdInput.value || `new_${Date.now()}`; const fileName = `product-${tempId}-${Date.now()}.${ext}`; return uploadImage(item.blob, fileName); } return item.url; }); const finalImageUrls = (await Promise.all(uploadPromises)).filter(Boolean); const id = productIdInput.value; const data = { id: id ? parseInt(id) : Date.now(), name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value, ean13: ean13Input.value, price: parseFloat(document.getElementById('product-price').value), description: document.getElementById('product-description').value, imageUrls: finalImageUrls, imageSize: parseInt(imageSizeSlider.value), categoryId: parseInt(categorySelect.value) }; if (!data.categoryId) { alert("请选择分类！"); return; } let updated = id ? allProducts.map(p => p.id == id ? data : p) : [...allProducts, data]; await updateAndSave('products', updated, true); closeModal(editModal); hideCropper(); });
+    function openProductModal(product = null) { resetForm(); if (product) { formTitle.textContent = '编辑产品'; productIdInput.value = product.id; document.getElementById('product-name').value = product.name; document.getElementById('product-sku').value = product.sku; ean13Input.value = product.ean13; document.getElementById('product-price').value = product.price; document.getElementById('product-description').value = product.description; categorySelect.value = product.categoryId; currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url, isNew: false, blob: null })) : []; const size = product.imageSize || 90; imageSizeSlider.value = size; imageSizeValue.textContent = size; deleteBtn.classList.remove('hidden'); deleteBtn.onclick = () => deleteProduct(product.id); } else { formTitle.textContent = '新增产品'; } renderAdminImagePreview(); updateBarcodePreview(); openModal(editModal); initSortable(); }
+    async function deleteProduct(id) { if (confirm('您确定要删除这个产品吗？')) { await updateAndSave('products', allProducts.filter(p => p.id != id), true); showToast('产品已删除', 'info'); closeModal(editModal); hideCropper(); } }
+    function resetForm() { if(form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if(i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropper(); }
+    function initSortable() { if (sortableInstance) sortableInstance.destroy(); if(thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, onEnd: (evt) => { const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch(e) { console.error("SortableJS init failed:", e); } }
+    function renderAdminImagePreview() { if (!thumbnailListAdmin || !mainImagePreview) return; thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`; if (productIdInput.value) deleteBtn.classList.remove('hidden'); currentImageItems.forEach((item, index) => { const thumb = document.createElement('div'); thumb.className = index === 0 ? 'thumbnail-item active' : 'thumbnail-item'; thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`; thumbnailListAdmin.appendChild(thumb); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; deleteBtn.classList.add('hidden'); } }
+    function showCropper(file) { if (!file.type.startsWith('image/')) { showToast('请选择图片文件', 'error'); return; } const url = URL.createObjectURL(file); imagePreviewArea.classList.add('hidden'); inlineCropperWorkspace.classList.remove('hidden'); inlineCropperImage.onload = () => { if (cropper) cropper.destroy(); cropper = new Cropper(inlineCropperImage, { aspectRatio: 1, viewMode: 1, autoCropArea: .9, background: false }); }; inlineCropperImage.src = url; }
+    function hideCropper() { if (cropper) { const url = inlineCropperImage.src; cropper.destroy(); cropper = null; inlineCropperImage.src = ''; if (url.startsWith('blob:')) URL.revokeObjectURL(url); } inlineCropperWorkspace.classList.add('hidden'); imagePreviewArea.classList.remove('hidden'); }
+    function updateBarcodePreview() { if(!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
+    function showToast(message, type = 'info', duration = 3000) { const el = document.getElementById('toast-container'); if (!el) return; const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; el.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
 
     // --- Initialization ---
     async function init() {
-        // Event Listeners
-        if (form) form.addEventListener('submit', async (e) => { e.preventDefault(); /* ... form submit logic ... */ });
         const closeAndCleanupEditModal = () => { closeModal(editModal); hideCropper(); };
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeAndCleanupEditModal);
         if (editModal) editModal.addEventListener('click', (e) => { if (e.target === editModal) closeAndCleanupEditModal(); });
@@ -213,24 +186,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (categoryModalCloseBtn) categoryModalCloseBtn.addEventListener('click', () => closeModal(categoryModal));
         if (addTopLevelCategoryBtn) addTopLevelCategoryBtn.addEventListener('click', () => addCategory(null));
         if (categoryManagementTree) categoryManagementTree.addEventListener('click', (e) => { const target = e.target.closest('.action-btn'); if (!target) return; const id = parseInt(target.dataset.id); if (target.classList.contains('add-child-btn')) addCategory(id); else if (target.classList.contains('edit-cat-btn')) editCategory(id); else if (target.classList.contains('delete-cat-btn')) deleteCategory(id); });
-        if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleSidebar);
-        if (pageOverlay) pageOverlay.addEventListener('click', toggleSidebar);
-        if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const target = e.target.closest('a'); if (target) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); target.classList.add('active'); currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id); renderProducts(); if (window.innerWidth <= 992) toggleSidebar(); } });
+        if (menuToggleBtn) menuToggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+        if (pageOverlay) pageOverlay.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
+        if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const target = e.target.closest('a'); if (target) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); target.classList.add('active'); currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id); renderProducts(); if (window.innerWidth <= 992) document.body.classList.remove('sidebar-open'); } });
         if (uploadImageBtn) uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
         if (imageUploadInput) imageUploadInput.addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; if (file) showCropper(file); e.target.value = ''; });
-        if (inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob: blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗，請重試', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
+        if(inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
         if (inlineCropRotateBtn) inlineCropRotateBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
         if (inlineCropCancelBtn) inlineCropCancelBtn.addEventListener('click', hideCropper);
         if (ean13Input) ean13Input.addEventListener('input', updateBarcodePreview);
-        if (imageSizeSlider) imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if (mainImagePreview) { const scaleValue = newSize / 100; mainImagePreview.style.transform = `scale(${scaleValue})`; } });
-        if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const indexToDelete = parseInt(target.dataset.index); const itemToDelete = currentImageItems[indexToDelete]; if (itemToDelete && itemToDelete.url.startsWith('blob:')) { URL.revokeObjectURL(itemToDelete.url); } currentImageItems.splice(indexToDelete, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const indexToShow = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[indexToShow].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(item => item.classList.remove('active')); target.parentElement.classList.add('active'); } });
+        if (imageSizeSlider) imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if (mainImagePreview) mainImagePreview.style.transform = `scale(${newSize / 100})`; });
+        if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const index = parseInt(target.dataset.index); const item = currentImageItems[index]; if (item?.url.startsWith('blob:')) URL.revokeObjectURL(item.url); currentImageItems.splice(index, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const index = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[index].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(i => i.classList.remove('active')); target.parentElement.classList.add('active'); } });
 
-        // --- Startup ---
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         setUIState(false);
-        const success = await fetchDataFromCloud();
-        if (success) {
+        if (await fetchDataFromCloud()) {
             setUIState(true);
         } else {
             try {
@@ -241,12 +212,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     allCategories = localCategories || [];
                     setUIState(true);
                     updateSyncStatus('雲端連接失敗，已載入本地快取', 'error');
-                } else {
-                    updateSyncStatus('雲端連接失敗，且無本地快取', 'error');
-                }
-            } catch (e) {
-                updateSyncStatus('雲端及本地均載入失敗', 'error');
-            }
+                } else { updateSyncStatus('雲端連接失敗，且無本地快取', 'error'); }
+            } catch (e) { updateSyncStatus('雲端及本地均載入失敗', 'error'); }
         }
     }
     init();
