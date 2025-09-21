@@ -1,0 +1,3 @@
+sku,name,price,description,category,imageUrls
+"SKU-001","範例產品A",999,"這是產品A的描述","範例分類","https://example.com/image_a.jpg"
+"SKU-002","範例產品B",1280,"這是產品B的描述，有兩張圖片","另一個分類","https://example.com/image_b1.jpg,https://example.com/image_b2.jpg"
