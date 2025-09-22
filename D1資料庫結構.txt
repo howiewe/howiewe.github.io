@@ -1,0 +1,3 @@
+wrangler d1 execute product-catalog --remote --command="CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, parentId INTEGER, FOREIGN KEY (parentId) REFERENCES categories(id));"
+
+wrangler d1 execute product-catalog --remote --command="CREATE TABLE products (id INTEGER PRIMARY KEY AUTOINCREMENT, sku TEXT UNIQUE, name TEXT NOT NULL, ean13 TEXT, price REAL DEFAULT 0, description TEXT, imageUrls TEXT, imageSize INTEGER DEFAULT 90, categoryId INTEGER, FOREIGN KEY (categoryId) REFERENCES categories(id));"
