@@ -1,5 +1,5 @@
-/* === HOWIEWE'S PRODUCT CATALOG REDESIGN === */
-/* Designed by your AI Product Designer (Dark Mode colors reverted to original) */
+/* === HOWIEWE'S PRODUCT CATALOG REDESIGN (MODIFIED FOR 1:1 IMAGE CONTAINERS) === */
+/* Designed by your AI Product Designer */
 
 /* --- 1. 全域與變數設定 (Global & Variables) --- */
 :root {
@@ -31,17 +31,13 @@
     --font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* === MODIFICATION: Reverted to original Dark Mode colors === */
 body.dark-mode {
     --bg-color: #121212;
-    --surface-color: #1e1e1e;      /* 對應舊的 --card-bg */
-    --text-primary: #e9ecef;       /* 對應舊的 --text-color & --heading-color */
-    --text-secondary: #9ca3af;     /* 保留一個對比度較好的次要文字顏色 */
+    --surface-color: #1e1e1e;
+    --text-primary: #e9ecef;
+    --text-secondary: #9ca3af;
     --border-color: #495057;
     --input-bg: #2a2a2a;
-    
-    /* 按鈕等主題顏色將會沿用淺色模式的定義，以符合原始 CSS 的行為 */
-    /* 例如 --primary-color 會是 #3b82f6 */
 }
 
 /* --- 2. 基本樣式與布局 (Base & Layout) --- */
@@ -267,12 +263,30 @@ form input:focus, form textarea:focus, form select:focus {
 
 /* --- 9. 圖片相關樣式 (Image-related Styles) --- */
 .image-gallery-admin, .image-gallery-customer { display: flex; flex-direction: column; gap: 1rem; }
+
+/* === 【修改點 1/2】後台編輯彈窗的主圖容器 === */
 .main-image-wrapper {
-    width: 100%; height: 350px; display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--border-color); background-color: var(--bg-color);
-    border-radius: var(--border-radius-md); overflow: hidden; padding: 0.5rem;
+    width: 100%;
+    height: 0;
+    padding-top: 100%; /* 讓高度等於寬度，形成正方形 */
+    position: relative; /* 為內部圖片定位 */
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
 }
-.main-image-wrapper img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.2s ease; }
+.main-image-wrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem; /* 讓圖片有內邊距 */
+    box-sizing: border-box; /* 確保 padding 不會讓圖片超出範圍 */
+    object-fit: contain; /* 確保圖片不變形，完整顯示 */
+    transition: transform 0.2s ease;
+}
+
 .thumbnail-list { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .thumbnail-item {
     position: relative; width: 80px; height: 80px; border: 2px solid var(--border-color);
@@ -305,9 +319,30 @@ form input:focus, form textarea:focus, form select:focus {
 #product-detail-info .barcode-display svg { width: 100%; height: auto; display: block; }
 
 /* --- 11. Customer Image Slider --- */
-.slider-container { position: relative; width: 100%; overflow: hidden; border-radius: var(--border-radius-md); background-color: var(--bg-color); }
-.slider-wrapper { display: flex; transition: transform 0.4s ease-in-out; height: 350px; cursor: grab; user-select: none; }
-.slider-wrapper:active { cursor: grabbing; }
+/* === 【修改點 2/2】前台詳情彈窗的輪播容器 === */
+.slider-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--border-radius-md);
+    background-color: var(--bg-color);
+    /* 新增以下屬性，讓容器變正方形 */
+    height: 0;
+    padding-top: 100%;
+}
+.slider-wrapper {
+    display: flex;
+    transition: transform 0.4s ease-in-out;
+    cursor: grab;
+    user-select: none;
+    /* 新增以下屬性，讓輪播軌道填滿正方形容器 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
 .slide { flex: 0 0 100%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0.5rem; }
 .slide img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
 .slider-nav-btn {
