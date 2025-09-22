@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 這裡現在可以安全地訪問 imageUrls[0]
             const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : '';
             card.innerHTML = `
-                <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 100}%;"></div>
+                <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${ (product.imageSize || 90) / 100 });"></div>
                 <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>
             `;
             productList.appendChild(card);
