@@ -1,3 +1,5 @@
+// script-customer.js (修正版)
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 元素宣告 ---
     const productList = document.getElementById('product-list');
@@ -25,30 +27,57 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentTranslate = 0;
     let prevTranslate = 0;
 
-    // --- 資料載入函式 ---
+    // --- 資料載入函式 (*** 核心修正處 ***) ---
     async function loadData() {
         try {
-            const response = await fetch('/api/data?t=' + new Date().getTime());
+            // 在開始獲取前，顯示載入中訊息
+            if (productList) {
+                productList.innerHTML = '<p class="empty-message">正在載入產品資料...</p>';
+            }
+
+            const response = await fetch('/api/all-data?t=' + new Date().getTime());
             if (!response.ok) {
-                throw new Error(`網路回應不正常: ${response.status}`);
+                throw new Error(`網路回應不正常: ${response.status} ${response.statusText}`);
             }
             
             const data = await response.json();
             allCategories = data.categories || [];
+            
+            // 【關鍵修正】
+            // 確保 allProducts 陣列中的每一項的 imageUrls 都是真正的陣列，
+            // 而不是從 D1 直接取出的 JSON 字串。
             allProducts = (data.products || []).map(p => {
-                if (!p.imageUrls) { p.imageUrls = []; }
-                return p;
+                let parsedImageUrls = [];
+                if (typeof p.imageUrls === 'string' && p.imageUrls.startsWith('[')) {
+                    // 如果 imageUrls 是個看起來像陣列的字串，就嘗試解析它
+                    try {
+                        parsedImageUrls = JSON.parse(p.imageUrls);
+                    } catch (e) {
+                        console.error(`解析產品 ${p.id} 的 imageUrls 失敗:`, p.imageUrls);
+                        parsedImageUrls = []; // 解析失敗則給一個空陣列
+                    }
+                } else if (Array.isArray(p.imageUrls)) {
+                    // 如果它本身就是陣列，就直接使用
+                    parsedImageUrls = p.imageUrls;
+                }
+                
+                return {
+                    ...p,
+                    imageUrls: parsedImageUrls // 確保回傳的是陣列
+                };
             });
     
             buildCategoryTree();
             renderProducts();
         } catch (err) {
             console.error("無法載入資料:", err);
-            productList.innerHTML = '<p class="empty-message">無法載入產品資料，請檢查主控台 (F12) 的錯誤訊息。</p>';
+            if (productList) {
+                productList.innerHTML = `<p class="empty-message">無法載入產品資料。<br>請檢查瀏覽器主控台 (F12) 的錯誤訊息，或聯繫管理員。</p>`;
+            }
         }
     }
 
-    // --- 響應式側邊欄 & 分類樹 & 產品渲染 ---
+    // --- 響應式側邊欄 & 分類樹 & 產品渲染 (保持不變) ---
     function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
     if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleSidebar);
     if (pageOverlay) pageOverlay.addEventListener('click', toggleSidebar);
@@ -86,28 +115,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- BUG FIX STARTS HERE (renderProducts & its helper function) ---
     const getCategoryIdsWithChildren = (startId) => {
         if (startId === 'all') return null;
-        
         const ids = new Set();
         const queue = [startId];
-
         while (queue.length > 0) {
             const currentId = queue.shift();
             ids.add(currentId);
-
             const children = allCategories.filter(c => c.parentId === currentId);
-            for (const child of children) {
-                queue.push(child.id);
-            }
+            for (const child of children) queue.push(child.id);
         }
         return ids;
     };
 
     function renderProducts() {
         if (!productList) return;
-        const searchTerm = searchBox.value.toLowerCase();
+        const searchTerm = searchBox ? searchBox.value.toLowerCase() : '';
         const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId);
         
         const filteredProducts = allProducts.filter(p => {
@@ -118,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         productList.innerHTML = '';
         if (filteredProducts.length === 0) {
-            productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>';
+            productList.innerHTML = '<p class="empty-message">找不到符合條件的產品。</p>';
             return;
         }
 
@@ -126,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'product-card';
             card.onclick = () => openDetailModal(product.id);
+            // 這裡現在可以安全地訪問 imageUrls[0]
             const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : '';
             card.innerHTML = `
                 <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="width: ${product.imageSize || 100}%;"></div>
@@ -134,9 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
             productList.appendChild(card);
         });
     }
-    // --- BUG FIX ENDS HERE ---
 
-    // --- Slider 邏輯 ---
+    // --- Slider 邏輯 (保持不變) ---
     function showSlide(index) {
         if (totalSlides <= 1) return;
         if (index >= totalSlides) index = 0;
@@ -146,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSlideIndex = index;
         updateUI();
     }
-
     function updateUI() {
         if (sliderDots) document.querySelectorAll('.dot').forEach((dot, i) => dot.classList.toggle('active', i === currentSlideIndex));
         if (detailThumbnailList) document.querySelectorAll('#detail-thumbnail-list .thumbnail-item').forEach((item, i) => item.classList.toggle('active', i === currentSlideIndex));
@@ -154,10 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if(nextSlideBtn) nextSlideBtn.style.display = totalSlides > 1 ? 'flex' : 'none';
         if(sliderDots) sliderDots.style.display = totalSlides > 1 ? 'flex' : 'none';
     }
-
     function nextSlide() { showSlide(currentSlideIndex + 1); }
     function prevSlide() { showSlide(currentSlideIndex - 1); }
-
     function dragStart(e) {
         if (totalSlides <= 1) return;
         isDragging = true;
@@ -165,14 +185,12 @@ document.addEventListener('DOMContentLoaded', () => {
         sliderWrapper.style.transition = 'none';
         prevTranslate = -currentSlideIndex * sliderWrapper.clientWidth;
     }
-
     function dragMove(e) {
         if (!isDragging) return;
         const currentPosition = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
         currentTranslate = prevTranslate + currentPosition - startPosX;
         sliderWrapper.style.transform = `translateX(${currentTranslate}px)`;
     }
-
     function dragEnd() {
         if (!isDragging || totalSlides <= 1) return;
         isDragging = false;
@@ -183,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showSlide(currentSlideIndex);
     }
 
-    // --- 詳情彈窗 (Modal) ---
+    // --- 詳情彈窗 (Modal) (保持不變) ---
     function openDetailModal(id) {
         const product = allProducts.find(p => p.id === id);
         if (!product || !detailInfo || !sliderWrapper || !detailThumbnailList || !sliderDots) return;
@@ -226,10 +244,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function closeModal() {
         if(detailModal) detailModal.classList.add('hidden');
-        document.body.classList.remove('modal-open');
+        document.body.classList.add('modal-open');
     }
 
-    // --- 初始化與事件監聽 ---
+    // --- 初始化與事件監聽 (保持不變) ---
     function init() {
         if (themeToggle) themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
         if (searchBox) searchBox.addEventListener('input', renderProducts);
