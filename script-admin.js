@@ -355,7 +355,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 background: false,
 
                 // --- 【新增】以下是實現「完全鎖定」的核心設定 ---
-                dragMode: 'none' // 禁止移動圖片本身
+                dragMode: 'move',         // 禁止在圖片上拖曳來建立新裁切框或移動圖片
+                movable: true        // 禁止移動圖片本身
             });
         };
 
