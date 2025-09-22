@@ -1,6 +1,4 @@
-// functions/api/[[path]].js (最终纯净版)
-
-import Papa from 'papaparse';
+// functions/api/[[path]].js (升級版：支援 EAN13 與樹狀分類)
 
 // --- 统一的 API 响应格式 ---
 const response = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -61,7 +59,7 @@ async function handlePut(context) {
     }
 }
 
-// POST /api/batch-create - 批次建立产品
+// POST /api/batch-create - 批次建立产品 (*** 全新升級版 ***)
 async function handleBatchCreate(context) {
     const { request, env } = context;
     const { DB } = env;
@@ -73,35 +71,53 @@ async function handleBatchCreate(context) {
 
         let allProducts = await DB.get('products', 'json') || [];
         let allCategories = await DB.get('categories', 'json') || [];
-        const categoryNameMap = new Map(allCategories.map(c => [c.name, c]));
 
+        // 遍历从前端传来的每一笔新产品资料
         newProducts.forEach((productData, index) => {
-            const categoryName = (productData.category || '未分類').trim();
-            let categoryId;
+            // --- 核心功能：处理树状分类 ---
+            const categoryPath = (productData.category || '未分類').trim();
+            const categoryNames = categoryPath.split('>').map(name => name.trim()).filter(Boolean);
+            
+            let currentParentId = null; // 从顶层开始 (parentId: null)
 
-            if (categoryNameMap.has(categoryName)) {
-                categoryId = categoryNameMap.get(categoryName).id;
-            } else {
-                const newCategory = { id: Date.now() + index, name: categoryName, parentId: null };
-                allCategories.push(newCategory);
-                categoryNameMap.set(newCategory.name, newCategory);
-                categoryId = newCategory.id;
+            // 循序处理路径中的每一个分类名称，例如 ["运动用品", "跳繩"]
+            for (const categoryName of categoryNames) {
+                // 查找是否已存在相同名称且相同父级的分类
+                let existingCategory = allCategories.find(c => c.name === categoryName && c.parentId === currentParentId);
+
+                if (existingCategory) {
+                    // 如果存在，就用它的 ID 作为下一轮循环的 parentId
+                    currentParentId = existingCategory.id;
+                } else {
+                    // 如果不存在，就地创建这个新分类
+                    const newCategory = {
+                        id: Date.now() + index + Math.round(Math.random() * 1000), // 使用更唯一的方式产生 ID
+                        name: categoryName,
+                        parentId: currentParentId
+                    };
+                    allCategories.push(newCategory);
+                    // 使用这个新建立的分类 ID 作为下一轮的 parentId
+                    currentParentId = newCategory.id;
+                }
             }
+            // 循环结束后，currentParentId 就是产品最终所属的分类ID
 
+            // --- 核心功能：组装包含 ean13 的最终产品资料 ---
             const finalProduct = {
-                id: Date.now() + index,
+                id: Date.now() + index + Math.round(Math.random() * 1000),
                 sku: productData.sku || `SKU-${Date.now() + index}`,
                 name: productData.name || '未命名产品',
                 price: parseFloat(productData.price) || 0,
                 description: productData.description || '',
-                categoryId: categoryId,
+                categoryId: currentParentId, // 使用我们刚刚处理好的最终分类ID
                 imageUrls: productData.imageUrls || [],
-                ean13: productData.ean13 || '',
+                ean13: productData.ean13 || '', // *** 新增 ean13 栏位 ***
                 imageSize: 90,
             };
             allProducts.push(finalProduct);
         });
 
+        // 将更新后的产品和分类资料一次性写回 KV
         await DB.put('products', JSON.stringify(allProducts));
         await DB.put('categories', JSON.stringify(allCategories));
 
@@ -111,6 +127,7 @@ async function handleBatchCreate(context) {
         return response({ error: '批次建立产品时发生错误', details: e.message }, 500);
     }
 }
+
 
 // --- 主路由函式 (The Router) ---
 export async function onRequest(context) {
