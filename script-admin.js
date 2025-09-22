@@ -356,9 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // --- 【新增】以下是實現「完全鎖定」的核心設定 ---
                 dragMode: 'none',         // 禁止在圖片上拖曳來建立新裁切框或移動圖片
-                movable: false,           // 禁止移動圖片本身
-                cropBoxMovable: false,    // 禁止移動裁切框
-                cropBoxResizable: false   // 禁止縮放裁切框
+                movable: false        // 禁止移動圖片本身
             });
         };
 
