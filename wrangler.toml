@@ -1,0 +1,18 @@
+# wrangler.toml (用於 wrangler dev 本地開發)
+
+name = "product-catalog-api"
+main = "functions/api/[[path]].js"
+compatibility_date = "2023-10-30"
+
+[[r2_buckets]]
+binding = "IMAGE_BUCKET"
+bucket_name = "your-r2-bucket-name" # <== !! 請換成您真實的 R2 儲存桶名稱
+
+# 綁定 D1 資料庫，注意 binding 的名字換成了 D1_DB
+[[d1_databases]]
+binding = "D1_DB" # <== !! 使用我們新的、安全的變數名
+database_name = "product-catalog"
+database_id = "7c629a5d-d22a-4e60-bdfb-e2cafa0fa846" # <== !! 請換成您在步驟 1 複製的資料庫 ID
+
+[vars]
+R2_PUBLIC_URL = "https://your-public-r2-url" # <== !! 請換成您 R2 的公開網址
