@@ -164,11 +164,69 @@ document.addEventListener('DOMContentLoaded', () => {
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
     if(form) form.addEventListener('submit', async (e) => { e.preventDefault(); showToast('处理中...', 'info'); const uploadPromises = currentImageItems.map(async item => { if (item.isNew && item.blob) { const ext = item.blob.type.split('/')[1] || 'webp'; const tempId = productIdInput.value || `new_${Date.now()}`; const fileName = `product-${tempId}-${Date.now()}.${ext}`; return uploadImage(item.blob, fileName); } return item.url; }); const finalImageUrls = (await Promise.all(uploadPromises)).filter(Boolean); const id = productIdInput.value; const data = { id: id ? parseInt(id) : Date.now(), name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value, ean13: ean13Input.value, price: parseFloat(document.getElementById('product-price').value), description: document.getElementById('product-description').value, imageUrls: finalImageUrls, imageSize: parseInt(imageSizeSlider.value), categoryId: parseInt(categorySelect.value) }; if (!data.categoryId) { alert("请选择分类！"); return; } let updated = id ? allProducts.map(p => p.id == id ? data : p) : [...allProducts, data]; await updateAndSave('products', updated, true); closeModal(editModal); hideCropper(); });
-    function openProductModal(product = null) { resetForm(); if (product) { formTitle.textContent = '编辑产品'; productIdInput.value = product.id; document.getElementById('product-name').value = product.name; document.getElementById('product-sku').value = product.sku; ean13Input.value = product.ean13; document.getElementById('product-price').value = product.price; document.getElementById('product-description').value = product.description; categorySelect.value = product.categoryId; currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url, isNew: false, blob: null })) : []; const size = product.imageSize || 90; imageSizeSlider.value = size; imageSizeValue.textContent = size; deleteBtn.classList.remove('hidden'); deleteBtn.onclick = () => deleteProduct(product.id); } else { formTitle.textContent = '新增产品'; } renderAdminImagePreview(); updateBarcodePreview(); openModal(editModal); initSortable(); }
+    
+    // --- BUG FIX STARTS HERE ---
+    function openProductModal(product = null) {
+        resetForm();
+        if (product) {
+            // This is EDIT mode
+            formTitle.textContent = '编辑产品';
+            productIdInput.value = product.id;
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-sku').value = product.sku;
+            ean13Input.value = product.ean13;
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-description').value = product.description;
+            categorySelect.value = product.categoryId;
+            currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url, isNew: false, blob: null })) : [];
+            const size = product.imageSize || 90;
+            imageSizeSlider.value = size;
+            imageSizeValue.textContent = size;
+
+            // BUGFIX: Always show delete button in edit mode, regardless of images.
+            deleteBtn.classList.remove('hidden');
+            deleteBtn.onclick = () => deleteProduct(product.id);
+
+        } else {
+            // This is ADD NEW mode
+            formTitle.textContent = '新增产品';
+            // deleteBtn is already hidden by resetForm()
+        }
+        
+        renderAdminImagePreview(); // This function now only handles images
+        updateBarcodePreview();
+        openModal(editModal);
+        initSortable();
+    }
+    // --- BUG FIX ENDS HERE ---
+
     async function deleteProduct(id) { if (confirm('您确定要删除这个产品吗？')) { await updateAndSave('products', allProducts.filter(p => p.id != id), true); showToast('产品已删除', 'info'); closeModal(editModal); hideCropper(); } }
     function resetForm() { if(form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if(i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropper(); }
     function initSortable() { if (sortableInstance) sortableInstance.destroy(); if(thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, onEnd: (evt) => { const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch(e) { console.error("SortableJS init failed:", e); } }
-    function renderAdminImagePreview() { if (!thumbnailListAdmin || !mainImagePreview) return; thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`; if (productIdInput.value) deleteBtn.classList.remove('hidden'); currentImageItems.forEach((item, index) => { const thumb = document.createElement('div'); thumb.className = index === 0 ? 'thumbnail-item active' : 'thumbnail-item'; thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`; thumbnailListAdmin.appendChild(thumb); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; deleteBtn.classList.add('hidden'); } }
+    
+    // --- BUG FIX STARTS HERE ---
+    function renderAdminImagePreview() {
+        if (!thumbnailListAdmin || !mainImagePreview) return;
+        thumbnailListAdmin.innerHTML = '';
+        if (currentImageItems.length > 0) {
+            mainImagePreview.src = currentImageItems[0].url;
+            mainImagePreview.style.display = 'block';
+            mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`;
+            // BUGFIX: Removed logic that controlled delete button from here.
+            currentImageItems.forEach((item, index) => {
+                const thumb = document.createElement('div');
+                thumb.className = index === 0 ? 'thumbnail-item active' : 'thumbnail-item';
+                thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`;
+                thumbnailListAdmin.appendChild(thumb);
+            });
+        } else {
+            mainImagePreview.src = '';
+            mainImagePreview.style.display = 'none';
+            // BUGFIX: Removed logic that controlled delete button from here.
+        }
+    }
+    // --- BUG FIX ENDS HERE ---
+
     function showCropper(file) { if (!file.type.startsWith('image/')) { showToast('请选择图片文件', 'error'); return; } const url = URL.createObjectURL(file); imagePreviewArea.classList.add('hidden'); inlineCropperWorkspace.classList.remove('hidden'); inlineCropperImage.onload = () => { if (cropper) cropper.destroy(); cropper = new Cropper(inlineCropperImage, { aspectRatio: 1, viewMode: 1, autoCropArea: .9, background: false }); }; inlineCropperImage.src = url; }
     function hideCropper() { if (cropper) { const url = inlineCropperImage.src; cropper.destroy(); cropper = null; inlineCropperImage.src = ''; if (url.startsWith('blob:')) URL.revokeObjectURL(url); } inlineCropperWorkspace.classList.add('hidden'); imagePreviewArea.classList.remove('hidden'); }
     function updateBarcodePreview() { if(!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
