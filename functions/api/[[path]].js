@@ -1,4 +1,4 @@
-// functions/api/[[path]].js (D1 批次匯入修正版)
+// functions/api/[[path]].js (D1 AUTOINCREMENT 修正版)
 
 // --- 統一的 API 響應格式 ---
 const response = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -37,7 +37,6 @@ export async function onRequest(context) {
                 if (method === 'PUT' && id) return await handleImageUpload(context, id);
                 break;
             case 'batch-create':
-                 // 【關鍵修正】確保路由指向新的批次建立函式
                  if (method === 'POST') return await handleBatchCreateV2(db, await request.json());
                  break;
         }
@@ -48,45 +47,72 @@ export async function onRequest(context) {
     }
 }
 
-// --- 資料庫操作函式 (除了 handleBatchCreate 其他不變) ---
+// --- 資料庫操作函式 ---
 
-async function getAllData(db) { /* ... 保持不變 ... */ 
+async function getAllData(db) {
     const productsQuery = db.prepare("SELECT * FROM products ORDER BY id DESC");
     const categoriesQuery = db.prepare("SELECT * FROM categories ORDER BY name ASC");
     const [productsResult, categoriesResult] = await db.batch([productsQuery, categoriesQuery]);
-    const products = (productsResult.results || []).map(p => ({ ...p, imageUrls: p.imageUrls ? JSON.parse(p.imageUrls) : [] }));
+    // 確保 imageUrls 永遠是陣列
+    const products = (productsResult.results || []).map(p => {
+        try {
+            return { ...p, imageUrls: p.imageUrls ? JSON.parse(p.imageUrls) : [] };
+        } catch(e) {
+            console.error(`Failed to parse imageUrls for product id ${p.id}:`, p.imageUrls);
+            return { ...p, imageUrls: [] }; // 解析失敗則返回空陣列
+        }
+    });
     return response({ products, categories: categoriesResult.results || [] });
 }
-async function createOrUpdateProduct(db, product) { /* ... 保持不變 ... */ 
+
+async function createOrUpdateProduct(db, product) {
     const { id, sku, name, ean13, price, description, imageUrls, imageSize, categoryId } = product;
     const imageUrlsJson = JSON.stringify(imageUrls || []);
     let results;
-    if (id) {
-        ({ results } = await db.prepare(`UPDATE products SET sku = ?, name = ?, ean13 = ?, price = ?, description = ?, imageUrls = ?, imageSize = ?, categoryId = ? WHERE id = ? RETURNING *`).bind(sku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId, id).run());
-    } else {
-        const newId = Date.now();
-        ({ results } = await db.prepare(`INSERT INTO products (id, sku, name, ean13, price, description, imageUrls, imageSize, categoryId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`).bind(newId, sku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId).run());
+
+    if (id) { // 更新現有產品
+        ({ results } = await db.prepare(
+            `UPDATE products SET sku = ?, name = ?, ean13 = ?, price = ?, description = ?, imageUrls = ?, imageSize = ?, categoryId = ? WHERE id = ? RETURNING *`
+        ).bind(sku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId, id).run());
+    } else { // 【修正】新增產品，移除 id 欄位，讓資料庫自動生成
+        ({ results } = await db.prepare(
+            `INSERT INTO products (sku, name, ean13, price, description, imageUrls, imageSize, categoryId) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
+        ).bind(sku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId).run());
     }
+    
+    if (!results || results.length === 0) {
+        throw new Error("資料庫操作失敗，未返回任何結果。");
+    }
+
     const finalProduct = { ...results[0], imageUrls: JSON.parse(results[0].imageUrls) };
     return response(finalProduct, id ? 200 : 201);
 }
-async function deleteProduct(db, id) { /* ... 保持不變 ... */ 
+
+async function deleteProduct(db, id) {
     const { success } = await db.prepare("DELETE FROM products WHERE id = ?").bind(id).run();
     if (!success) throw new Error("刪除產品失敗");
     return response({ message: '產品已刪除' });
 }
-async function createOrUpdateCategory(db, category) { /* ... 保持不變 ... */ 
-    const { id, name, parentId } = category;
+
+async function createOrUpdateCategory(db, category) {
+    const { id, name, parentId = null } = category;
     let results;
-    if (id) {
-        ({ results } = await db.prepare("UPDATE categories SET name = ?, parentId = ? WHERE id = ? RETURNING *").bind(name, parentId, id).run());
-    } else {
-        const newId = Date.now();
-        ({ results } = await db.prepare("INSERT INTO categories (id, name, parentId) VALUES (?, ?, ?) RETURNING *").bind(newId, name, parentId).run());
+    if (id) { // 更新現有分類
+        ({ results } = await db.prepare(
+            "UPDATE categories SET name = ?, parentId = ? WHERE id = ? RETURNING *"
+        ).bind(name, parentId, id).run());
+    } else { // 【修正】新增分類，移除 id 欄位，讓資料庫自動生成
+        ({ results } = await db.prepare(
+            "INSERT INTO categories (name, parentId) VALUES (?, ?) RETURNING *"
+        ).bind(name, parentId).run());
+    }
+     if (!results || results.length === 0) {
+        throw new Error("分類操作失敗，未返回任何結果。");
     }
     return response(results[0], id ? 200 : 201);
 }
-async function deleteCategory(db, id) { /* ... 保持不變 ... */ 
+
+async function deleteCategory(db, id) { 
     const { count } = await db.prepare("SELECT count(*) as count FROM categories WHERE parentId = ?").bind(id).first();
     if (count > 0) return response({ error: '無法刪除！請先刪除其所有子分類。' }, 400);
     const { product_count } = await db.prepare("SELECT count(*) as product_count FROM products WHERE categoryId = ?").bind(id).first();
@@ -94,7 +120,8 @@ async function deleteCategory(db, id) { /* ... 保持不變 ... */
     await db.prepare("DELETE FROM categories WHERE id = ?").bind(id).run();
     return response({ message: '分類已刪除' });
 }
-async function handleImageUpload(context, fileName) { /* ... 保持不變 ... */ 
+
+async function handleImageUpload(context, fileName) { 
     const { request, env } = context;
     const { IMAGE_BUCKET, R2_PUBLIC_URL } = env;
     if (!fileName) return response({ error: '缺少檔名' }, 400);
@@ -103,18 +130,16 @@ async function handleImageUpload(context, fileName) { /* ... 保持不變 ... */
     return response({ message: '上傳成功', url: publicUrl, key: object.key });
 }
 
-
-// --- 【全新升級的批次建立函式】 ---
+// --- 【全新升級且已修復的批次建立函式】 ---
 async function handleBatchCreateV2(db, { products: newProducts }) {
     if (!newProducts || !Array.isArray(newProducts) || newProducts.length === 0) {
         return response({ error: '無效或空的產品資料' }, 400);
     }
     
-    // 使用一個 Map 來快取已處理的分類路徑，避免重複查詢資料庫
     const categoryCache = new Map();
-    // 預先載入所有現有分類
     const { results: existingCategories } = await db.prepare("SELECT * FROM categories").run();
-    
+    const allCategories = existingCategories || [];
+
     // 這個函式是核心：它會處理 "A > B > C" 這樣的路徑
     async function getCategoryId(categoryPath) {
         const path = (categoryPath || '未分類').trim();
@@ -126,18 +151,17 @@ async function handleBatchCreateV2(db, { products: newProducts }) {
         let parentId = null;
 
         for (const name of names) {
-            let category = existingCategories.find(c => c.name === name && c.parentId === parentId);
+            let category = allCategories.find(c => c.name === name && c.parentId === parentId);
             
             if (category) {
                 parentId = category.id;
             } else {
-                // 如果在現有分類中找不到，就在資料庫中建立它
-                const newId = Date.now() + Math.random(); // 產生唯一的 ID
-                const { results } = await db.prepare("INSERT INTO categories (id, name, parentId) VALUES (?, ?, ?) RETURNING *")
-                                          .bind(newId, name, parentId)
+                // 【修正】如果分類不存在，就建立它。移除 id 欄位讓 D1 自動生成。
+                const { results } = await db.prepare("INSERT INTO categories (name, parentId) VALUES (?, ?) RETURNING *")
+                                          .bind(name, parentId)
                                           .run();
                 const newCategory = results[0];
-                existingCategories.push(newCategory); // 將新建的分類加入到我們的"快取"中
+                allCategories.push(newCategory); // 將新建的分類加入到我們的 "快取" 中
                 parentId = newCategory.id;
             }
         }
@@ -148,14 +172,13 @@ async function handleBatchCreateV2(db, { products: newProducts }) {
 
     const productStatements = [];
     for (const p of newProducts) {
-        // 為每個產品異步獲取或建立其分類 ID
         const categoryId = await getCategoryId(p.category);
         
+        // 【修正】準備產品的 INSERT 語句，同樣移除 id 欄位
         productStatements.push(
             db.prepare(
-                 `INSERT INTO products (id, sku, name, price, ean13, description, imageUrls, categoryId, imageSize) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                 `INSERT INTO products (sku, name, price, ean13, description, imageUrls, categoryId, imageSize) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
             ).bind(
-                Date.now() + Math.random(), // 產生唯一的產品 ID
                 p.sku || null,
                 p.name,
                 parseFloat(p.price) || 0,
@@ -163,12 +186,11 @@ async function handleBatchCreateV2(db, { products: newProducts }) {
                 p.description || '',
                 JSON.stringify(p.imageUrls || []),
                 categoryId,
-                90
+                90 // Default image size
             )
         );
     }
     
-    // 使用 D1 的批次功能一次性執行所有 INSERT 語句
     if (productStatements.length > 0) {
         await db.batch(productStatements);
     }
