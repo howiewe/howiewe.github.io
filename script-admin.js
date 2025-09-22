@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
             const data = await response.json();
             // 後端回傳的 imageUrls 已經是陣列了
-            allProducts = data.products || []; 
+            allProducts = data.products || [];
             allCategories = data.categories || [];
             await writeData('products', allProducts);
             await writeData('categories', allCategories);
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
     }
-    
+
     async function uploadImage(blob, fileName) {
         try {
             const response = await fetch(`/api/upload/${fileName}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob });
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`);
             const savedProduct = await response.json();
-            
+
             const index = allProducts.findIndex(p => p.id === savedProduct.id);
             if (index > -1) {
                 allProducts[index] = savedProduct;
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 allProducts.unshift(savedProduct);
             }
             await writeData('products', allProducts);
-            
+
             renderProducts();
             updateSyncStatus('儲存成功', 'synced');
             showToast('產品儲存成功', 'success');
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSyncStatus('正在刪除產品...', 'syncing');
             const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`);
-            
+
             allProducts = allProducts.filter(p => p.id !== id);
             await writeData('products', allProducts);
 
@@ -127,14 +127,14 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal(editModal);
             updateSyncStatus('刪除成功', 'synced');
             showToast('產品已刪除', 'info');
-        } catch(error) {
+        } catch (error) {
             updateSyncStatus('刪除失敗', 'error');
             showToast(`刪除產品失敗: ${error.message}`, 'error');
         }
     }
-    
+
     async function saveCategory(categoryData) {
-         try {
+        try {
             updateSyncStatus('儲存分類中...', 'syncing');
             const response = await fetch('/api/categories', {
                 method: 'POST',
@@ -146,10 +146,10 @@ document.addEventListener('DOMContentLoaded', () => {
             buildCategoryTree();
             buildCategoryManagementTree();
             updateSyncStatus('儲存成功', 'synced');
-         } catch(error) {
-             showToast(`儲存分類失敗: ${error.message}`, 'error');
-             updateSyncStatus('儲存失敗', 'error');
-         }
+        } catch (error) {
+            showToast(`儲存分類失敗: ${error.message}`, 'error');
+            updateSyncStatus('儲存失敗', 'error');
+        }
     }
 
     async function removeCategory(id) {
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetchDataFromCloud();
             buildCategoryTree();
             buildCategoryManagementTree();
-        } catch(error) {
+        } catch (error) {
             alert(error.message);
         }
     }
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentCategoryId = 'all';
             document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
             const allLink = document.querySelector('#category-tree a[data-id="all"]');
-            if(allLink) allLink.classList.add('active');
+            if (allLink) allLink.classList.add('active');
             renderProducts();
         } else {
             if (productList) productList.innerHTML = '<p class="empty-message">正在從雲端載入資料...</p>';
@@ -194,24 +194,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         tree.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
         let treeHtml = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`;
-        function createTreeHTML(nodes) { 
+        function createTreeHTML(nodes) {
             nodes.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
-            let subHtml = '<ul>'; 
-            for (const node of nodes) { 
-                subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`; 
-                if (node.children.length > 0) subHtml += createTreeHTML(node.children); 
-                subHtml += '</li>'; 
-            } 
-            return subHtml + '</ul>'; 
+            let subHtml = '<ul>';
+            for (const node of nodes) {
+                subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`;
+                if (node.children.length > 0) subHtml += createTreeHTML(node.children);
+                subHtml += '</li>';
+            }
+            return subHtml + '</ul>';
         }
         if (categoryTreeContainer) categoryTreeContainer.innerHTML = treeHtml + createTreeHTML(tree) + '</ul>';
         let selectOptions = '<option value="" disabled selected>請選擇分類</option>';
-        function createSelectOptions(nodes, depth = 0) { 
+        function createSelectOptions(nodes, depth = 0) {
             nodes.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
-            for (const node of nodes) { 
-                selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; 
-                if (node.children.length > 0) createSelectOptions(node.children, depth + 1); 
-            } 
+            for (const node of nodes) {
+                selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`;
+                if (node.children.length > 0) createSelectOptions(node.children, depth + 1);
+            }
         }
         createSelectOptions(tree);
         if (categorySelect) categorySelect.innerHTML = selectOptions;
@@ -258,12 +258,12 @@ document.addEventListener('DOMContentLoaded', () => {
             productList.appendChild(card);
         });
     }
-    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類">+</button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if(categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
+    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類">+</button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if (categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
     async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { await saveCategory({ name: name.trim(), parentId }); } else if (name !== null) { alert('分類名稱不能為空！'); } }
     async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { await saveCategory({ id: category.id, name: newName.trim(), parentId: category.parentId }); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
 
     // --- Modal & Form Logic ---
-    if(form) form.addEventListener('submit', async (e) => {
+    if (form) form.addEventListener('submit', async (e) => {
         e.preventDefault();
         showToast('處理中...', 'info');
 
@@ -277,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return item.url;
         });
         const finalImageUrls = (await Promise.all(uploadPromises)).filter(Boolean);
-        
+
         const productId = productIdInput.value ? parseInt(productIdInput.value) : null;
         const data = {
             id: productId,
@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
             imageSize: parseInt(imageSizeSlider.value),
             categoryId: parseInt(categorySelect.value)
         };
-        
+
         if (!data.categoryId) {
             alert("請選擇分類！");
             return;
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal(editModal);
         hideCropper();
     });
-    
+
     function openProductModal(product = null) {
         resetForm();
         if (product) {
@@ -321,20 +321,51 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             formTitle.textContent = '新增产品';
         }
-        
+
         renderAdminImagePreview();
         updateBarcodePreview();
         openModal(editModal);
         initSortable();
     }
-    function resetForm() { if(form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if(i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropper(); }
+    function resetForm() { if (form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if (i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropper(); }
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
-    function initSortable() { if (sortableInstance) sortableInstance.destroy(); if(thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, onEnd: (evt) => { const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch(e) { console.error("SortableJS init failed:", e); } }
+    function initSortable() { if (sortableInstance) sortableInstance.destroy(); if (thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, onEnd: (evt) => { const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch (e) { console.error("SortableJS init failed:", e); } }
     function renderAdminImagePreview() { if (!thumbnailListAdmin || !mainImagePreview) return; thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`; currentImageItems.forEach((item, index) => { const thumb = document.createElement('div'); thumb.className = index === 0 ? 'thumbnail-item active' : 'thumbnail-item'; thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`; thumbnailListAdmin.appendChild(thumb); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; } }
-    function showCropper(file) { if (!file.type.startsWith('image/')) { showToast('请选择图片文件', 'error'); return; } const url = URL.createObjectURL(file); imagePreviewArea.classList.add('hidden'); inlineCropperWorkspace.classList.remove('hidden'); inlineCropperImage.onload = () => { if (cropper) cropper.destroy(); cropper = new Cropper(inlineCropperImage, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false }); }; inlineCropperImage.src = url; }
+    function showCropper(file) {
+        if (!file.type.startsWith('image/')) {
+            showToast('请选择图片文件', 'error');
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        imagePreviewArea.classList.add('hidden');
+        inlineCropperWorkspace.classList.remove('hidden');
+
+        inlineCropperImage.onload = () => {
+            // 銷毀舊的實例 (如果存在)
+            if (cropper) {
+                cropper.destroy();
+            }
+
+            // 建立新的 Cropper 實例，並套用所有鎖定設定
+            cropper = new Cropper(inlineCropperImage, {
+                aspectRatio: 1,           // 保持 1:1 的正方形比例
+                viewMode: 1,              // 限制裁切框在圖片畫布內
+                autoCropArea: 1,          // 【修改點】裁切框預設為 100% 滿版
+                background: false,
+
+                // --- 【新增】以下是實現「完全鎖定」的核心設定 ---
+                dragMode: 'none',         // 禁止在圖片上拖曳來建立新裁切框或移動圖片
+                movable: false,           // 禁止移動圖片本身
+                cropBoxMovable: false,    // 禁止移動裁切框
+                cropBoxResizable: false   // 禁止縮放裁切框
+            });
+        };
+
+        inlineCropperImage.src = url;
+    }
     function hideCropper() { if (cropper) { const url = inlineCropperImage.src; cropper.destroy(); cropper = null; inlineCropperImage.src = ''; if (url.startsWith('blob:')) URL.revokeObjectURL(url); } inlineCropperWorkspace.classList.add('hidden'); imagePreviewArea.classList.remove('hidden'); }
-    function updateBarcodePreview() { if(!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
+    function updateBarcodePreview() { if (!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
     function showToast(message, type = 'info', duration = 3000) { const el = document.getElementById('toast-container'); if (!el) return; const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; el.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
 
     // --- Initialization ---
@@ -353,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const target = e.target.closest('a'); if (target) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); target.classList.add('active'); currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id); renderProducts(); if (window.innerWidth <= 992) document.body.classList.remove('sidebar-open'); } });
         if (uploadImageBtn) uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
         if (imageUploadInput) imageUploadInput.addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; if (file) showCropper(file); e.target.value = ''; });
-        if(inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
+        if (inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
         if (inlineCropRotateBtn) inlineCropRotateBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
         if (inlineCropCancelBtn) inlineCropCancelBtn.addEventListener('click', hideCropper);
         if (ean13Input) ean13Input.addEventListener('input', updateBarcodePreview);
