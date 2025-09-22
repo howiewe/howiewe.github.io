@@ -1,22 +1,22 @@
 /* === HOWIEWE'S PRODUCT CATALOG REDESIGN === */
-/* Designed by your AI Product Designer */
+/* Designed by your AI Product Designer (Dark Mode colors reverted to original) */
 
 /* --- 1. 全域與變數設定 (Global & Variables) --- */
 :root {
     /* 色彩 Palette (Light Mode) */
-    --bg-color: #f9fafb; /* 更柔和的背景灰 */
-    --surface-color: #ffffff; /* 卡片、Modal 等表面顏色 */
-    --text-primary: #111827; /* 主要文字，近黑色 */
-    --text-secondary: #6b7280; /* 次要文字，灰色 */
-    --border-color: #e5e7eb; /* 邊框顏色 */
-    --input-bg: #ffffff; /* 輸入框背景 */
-    --primary-color: #3b82f6; /* 主題色 (現代藍) */
+    --bg-color: #f9fafb;
+    --surface-color: #ffffff;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+    --input-bg: #ffffff;
+    --primary-color: #3b82f6;
     --primary-color-hover: #2563eb;
-    --secondary-color: #6b7280; /* 次要按鈕等 */
+    --secondary-color: #6b7280;
     --secondary-color-hover: #4b5563;
-    --danger-color: #ef4444; /* 危險/刪除 */
+    --danger-color: #ef4444;
     --danger-color-hover: #dc2626;
-    --success-color: #22c55e; /* 成功 */
+    --success-color: #22c55e;
     --success-color-hover: #16a34a;
 
     /* 陰影 & 圓角 */
@@ -31,22 +31,17 @@
     --font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* === MODIFICATION: Reverted to original Dark Mode colors === */
 body.dark-mode {
-    /* 色彩 Palette (Dark Mode) */
-    --bg-color: #111827;
-    --surface-color: #1f2937;
-    --text-primary: #f9fafb;
-    --text-secondary: #9ca3af;
-    --border-color: #374151;
-    --input-bg: #374151;
-    --primary-color: #60a5fa;
-    --primary-color-hover: #3b82f6;
-    --secondary-color: #9ca3af;
-    --secondary-color-hover: #d1d5db;
-    --danger-color: #f87171;
-    --danger-color-hover: #ef4444;
-    --success-color: #4ade80;
-    --success-color-hover: #22c55e;
+    --bg-color: #121212;
+    --surface-color: #1e1e1e;      /* 對應舊的 --card-bg */
+    --text-primary: #e9ecef;       /* 對應舊的 --text-color & --heading-color */
+    --text-secondary: #9ca3af;     /* 保留一個對比度較好的次要文字顏色 */
+    --border-color: #495057;
+    --input-bg: #2a2a2a;
+    
+    /* 按鈕等主題顏色將會沿用淺色模式的定義，以符合原始 CSS 的行為 */
+    /* 例如 --primary-color 會是 #3b82f6 */
 }
 
 /* --- 2. 基本樣式與布局 (Base & Layout) --- */
@@ -138,7 +133,6 @@ body.dark-mode .icon-moon { display: block; } body.dark-mode .icon-sun { display
     color: white;
     font-weight: 700;
 }
-body.dark-mode #category-tree li a.active { color: var(--text-primary); }
 
 /* --- 6. 主內容區 (Main Content) --- */
 .toolbar { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
@@ -242,7 +236,6 @@ form input:focus, form textarea:focus, form select:focus {
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 .btn-primary { background-color: var(--primary-color); color: white; }
 .btn-primary:hover:not(:disabled) { background-color: var(--primary-color-hover); }
-body.dark-mode .btn-primary { color: var(--text-primary); }
 .btn-secondary {
     background-color: var(--surface-color); color: var(--text-primary);
     border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);
