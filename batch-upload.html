@@ -8,146 +8,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* 新增的批次建檔专属样式 */
-        .batch-workspace {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-            padding: 1rem;
-            height: calc(100vh - 60px); /* 减去 header 高度 */
-            overflow: hidden;
-        }
-
-        .batch-panel {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .batch-panel h2 { margin-top: 0; }
-        
-        /* 左右分栏布局 (PC 端) */
-        @media (min-width: 992px) {
-            .batch-workspace {
-                flex-direction: row;
-            }
-            #image-panel { width: 40%; }
-            #data-panel { width: 60%; }
-        }
-
-        /* 图片上传区 */
-        #image-dropzone {
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 2rem;
-            text-align: center;
-            color: var(--secondary-color);
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        #image-dropzone:hover, #image-dropzone.dragover {
-            background-color: rgba(13, 110, 253, 0.05);
-            border-color: var(--primary-color);
-        }
-        #image-pool {
-            flex-grow: 1;
-            overflow-y: auto;
-            margin-top: 1rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 1rem;
-            padding: 0.5rem;
-        }
-        .img-thumbnail {
-            position: relative;
-            width: 100%;
-            padding-top: 100%; /* 1:1 aspect ratio */
-            border-radius: 8px;
-            overflow: hidden;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: border-color 0.2s ease, opacity 0.3s ease;
-        }
-        .img-thumbnail img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .img-thumbnail.selected {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.4);
-        }
-        .img-thumbnail.assigned {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        
-        /* 资料列表区 */
-        #data-list {
-            flex-grow: 1;
-            overflow-y: auto;
-            margin-top: 1rem;
-        }
-        .data-item {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        .data-item:hover {
-            background-color: rgba(128, 128, 128, 0.05);
-        }
-        .data-item.assigned {
-             background-color: rgba(25, 135, 84, 0.1);
-        }
-        .data-item-header {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 700;
-        }
-        .data-item-status {
-            font-size: 1.5rem;
-            line-height: 1;
-        }
-        .data-item-status.pending { color: var(--secondary-color); }
-        .data-item-status.assigned { color: #198754; }
-        .data-item-images {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.75rem;
-        }
-        .data-item-images img {
-            width: 50px;
-            height: 50px;
-            border-radius: 4px;
-            object-fit: cover;
-        }
-
-        #final-submit-bar {
-            padding: 1rem 1.5rem;
-            background-color: var(--card-bg);
-            border-top: 1px solid var(--border-color);
-            text-align: right;
-        }
-        .btn-success { background-color: #198754; color: #fff; }
-    </style>
 </head>
 <body class="batch-page">
     <header>
         <div class="header-content">
-             <a href="/admin.html" style="text-decoration: none; color: inherit;"><h1>批次建檔工作台</h1></a>
+            <h1><a href="/admin.html">批次建檔工作台</a></h1>
             <button id="theme-toggle" title="切換深色/淺色模式">
-                 <!-- (SVG icons here) -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sun"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
             </button>
         </div>
     </header>
@@ -155,30 +23,28 @@
     <div class="batch-workspace">
         <!-- 左侧：图片素材库 -->
         <div id="image-panel" class="batch-panel">
-            <h2>1. 上传图片素材</h2>
-            <div id="image-dropzone">将所有产品图片拖到这里，或点击选择</div>
+            <h2>1. 上傳圖片素材</h2>
+            <div id="image-dropzone">將所有產品圖片拖到這裡，或點擊選擇</div>
             <input type="file" id="image-upload-input" multiple accept="image/*" class="hidden">
-            <div id="image-pool">
-                <!-- 图片缩图将由 JS 动态生成 -->
-            </div>
+            <div id="image-pool"></div>
         </div>
 
         <!-- 右侧：资料对位区 -->
         <div id="data-panel" class="batch-panel">
-            <h2>2. 上传并匹配产品资料</h2>
-            <div class="button-group">
-                <button id="upload-csv-btn" class="btn btn-primary">上传产品资料 (CSV)</button>
-                <a href="/templates/products_template_simple.csv" download class="btn btn-secondary">下载范本</a>
+            <h2>2. 上傳並匹配產品資料</h2>
+            <div class="button-group" style="margin-top: 0;">
+                <button id="upload-csv-btn" class="btn btn-primary">上傳產品資料 (CSV)</button>
+                <a href="/templates/products_template_simple.csv" download class="btn btn-secondary">下載範本</a>
             </div>
             <input type="file" id="csv-upload-input" accept=".csv" class="hidden">
             <div id="data-list">
-                <p style="color: var(--secondary-color); text-align:center;">请先上传 CSV 档案以载入产品资料</p>
+                <p class="empty-message">請先上傳 CSV 檔案以載入產品資料</p>
             </div>
         </div>
     </div>
     
-    <div id="final-submit-bar" style="position: fixed; bottom: 0; width: 100%; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);">
-        <button id="final-submit-btn" class="btn btn-success" disabled>完成建档 (0 / 0)</button>
+    <div id="final-submit-bar">
+        <button id="final-submit-btn" class="btn btn-success" disabled>完成建檔 (0 / 0)</button>
     </div>
 
     <script src="script-batch-upload.js"></script>
