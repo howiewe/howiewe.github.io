@@ -332,35 +332,88 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
     function initSortable() { if (sortableInstance) sortableInstance.destroy(); if (thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, onEnd: (evt) => { const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch (e) { console.error("SortableJS init failed:", e); } }
     function renderAdminImagePreview() { if (!thumbnailListAdmin || !mainImagePreview) return; thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`; currentImageItems.forEach((item, index) => { const thumb = document.createElement('div'); thumb.className = index === 0 ? 'thumbnail-item active' : 'thumbnail-item'; thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`; thumbnailListAdmin.appendChild(thumb); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; } }
-    function showCropper(file) {
+    function createSquareImageBlob(imageFile) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(imageFile);
+            const img = new Image();
+            img.onload = () => {
+                // 決定正方形畫布的大小，取決於原始圖片最長的那一邊
+                const size = Math.max(img.naturalWidth, img.naturalHeight);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // 計算繪製位置，使其在畫布中置中
+                const x = (size - img.naturalWidth) / 2;
+                const y = (size - img.naturalHeight) / 2;
+
+                // 將原始圖片繪製到畫布上
+                ctx.drawImage(img, x, y);
+
+                // 釋放原始圖片的 Object URL 以節省記憶體
+                URL.revokeObjectURL(url);
+
+                // 將畫布內容轉換為 Blob 物件
+                // 使用 'image/png' 格式來保留透明背景
+                canvas.toBlob(blob => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('Canvas to Blob conversion failed.'));
+                    }
+                }, 'image/png');
+            };
+            img.onerror = (err) => {
+                URL.revokeObjectURL(url);
+                reject(err);
+            };
+            img.src = url;
+        });
+    }
+    async function showCropper(file) {
         if (!file.type.startsWith('image/')) {
             showToast('请选择图片文件', 'error');
             return;
         }
-        const url = URL.createObjectURL(file);
-        imagePreviewArea.classList.add('hidden');
-        inlineCropperWorkspace.classList.remove('hidden');
 
-        inlineCropperImage.onload = () => {
-            // 銷毀舊的實例 (如果存在)
-            if (cropper) {
-                cropper.destroy();
-            }
+        try {
+            // 【核心改造】步驟 1: 先將上傳的圖片轉換成帶透明背景的正方形圖片
+            const squareImageBlob = await createSquareImageBlob(file);
 
-            // 建立新的 Cropper 實例，並套用所有鎖定設定
-            cropper = new Cropper(inlineCropperImage, {
-                aspectRatio: 1,           // 保持 1:1 的正方形比例
-                viewMode: 1,              // 限制裁切框在圖片畫布內
-                autoCropArea: 1,          // 【修改點】裁切框預設為 100% 滿版
-                background: false,
+            // 步驟 2: 為這張新的方形圖片建立預覽 URL
+            const url = URL.createObjectURL(squareImageBlob);
 
-                // --- 【新增】以下是實現「完全鎖定」的核心設定 ---
-                dragMode: 'move',         // 禁止在圖片上拖曳來建立新裁切框或移動圖片
-                movable: true        // 禁止移動圖片本身
-            });
-        };
+            imagePreviewArea.classList.add('hidden');
+            inlineCropperWorkspace.classList.remove('hidden');
 
-        inlineCropperImage.src = url;
+            inlineCropperImage.onload = () => {
+                if (cropper) {
+                    cropper.destroy();
+                }
+
+                // 步驟 3: 將這張完美的方形圖片交給 Cropper.js
+                cropper = new Cropper(inlineCropperImage, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 1,          // 裁切框預設為 100% 滿版
+                    background: false,
+                    dragMode: 'move',         // 允許在畫布上拖曳來「移動圖片」
+                    movable: true            // 明確允許圖片可以被移動
+                });
+
+                // 注意：我們不需要再手動釋放 url 了，
+                // 因為 hideCropper 函式中已經包含了 URL.revokeObjectURL 的邏輯。
+            };
+
+            inlineCropperImage.src = url;
+
+        } catch (error) {
+            console.error("Error processing image for cropper:", error);
+            showToast('圖片處理失敗，請稍後再試', 'error');
+            hideCropper();
+        }
     }
     function hideCropper() { if (cropper) { const url = inlineCropperImage.src; cropper.destroy(); cropper = null; inlineCropperImage.src = ''; if (url.startsWith('blob:')) URL.revokeObjectURL(url); } inlineCropperWorkspace.classList.add('hidden'); imagePreviewArea.classList.remove('hidden'); }
     function updateBarcodePreview() { if (!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
