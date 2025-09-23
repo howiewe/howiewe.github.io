@@ -2,6 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 元素宣告 ---
+    const viewToggleBtn = document.getElementById('view-toggle-btn');
     const productList = document.getElementById('product-list');
     const categoryTreeContainer = document.getElementById('category-tree');
     const searchBox = document.getElementById('search-box');
@@ -16,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevSlideBtn = document.getElementById('prev-slide-btn');
     const nextSlideBtn = document.getElementById('next-slide-btn');
     const sliderDots = document.getElementById('slider-dots');
-    
+
     // --- 全域變數 ---
     let allProducts = [], allCategories = [];
     let currentCategoryId = 'all';
@@ -39,10 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) {
                 throw new Error(`網路回應不正常: ${response.status} ${response.statusText}`);
             }
-            
+
             const data = await response.json();
             allCategories = data.categories || [];
-            
+
             // 【關鍵修正】
             // 確保 allProducts 陣列中的每一項的 imageUrls 都是真正的陣列，
             // 而不是從 D1 直接取出的 JSON 字串。
@@ -60,13 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 如果它本身就是陣列，就直接使用
                     parsedImageUrls = p.imageUrls;
                 }
-                
+
                 return {
                     ...p,
                     imageUrls: parsedImageUrls // 確保回傳的是陣列
                 };
             });
-    
+
             buildCategoryTree();
             renderProducts();
         } catch (err) {
@@ -84,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildCategoryTree() {
         if (!categoryTreeContainer) return;
-        const categoryMap = new Map(allCategories.map(c => [c.id, {...c, children: []}]));
+        const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
         const tree = [];
         for (const category of categoryMap.values()) {
             if (category.parentId === null) tree.push(category);
@@ -103,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryTreeContainer.innerHTML = html + createTreeHTML(tree) + '</ul>';
     }
 
-    if(categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => {
+    if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => {
         e.preventDefault();
         const targetLink = e.target.closest('a');
         if (targetLink) {
@@ -132,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!productList) return;
         const searchTerm = searchBox ? searchBox.value.toLowerCase() : '';
         const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId);
-        
+
         const filteredProducts = allProducts.filter(p => {
             const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId));
             const matchesSearch = p.name.toLowerCase().includes(searchTerm) || (p.sku && p.sku.toLowerCase().includes(searchTerm));
@@ -152,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 這裡現在可以安全地訪問 imageUrls[0]
             const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : '';
             card.innerHTML = `
-                <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${ (product.imageSize || 90) / 100 });"></div>
+                <div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${(product.imageSize || 90) / 100});"></div>
                 <div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>
             `;
             productList.appendChild(card);
@@ -172,9 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUI() {
         if (sliderDots) document.querySelectorAll('.dot').forEach((dot, i) => dot.classList.toggle('active', i === currentSlideIndex));
         if (detailThumbnailList) document.querySelectorAll('#detail-thumbnail-list .thumbnail-item').forEach((item, i) => item.classList.toggle('active', i === currentSlideIndex));
-        if(prevSlideBtn) prevSlideBtn.style.display = totalSlides > 1 ? 'flex' : 'none';
-        if(nextSlideBtn) nextSlideBtn.style.display = totalSlides > 1 ? 'flex' : 'none';
-        if(sliderDots) sliderDots.style.display = totalSlides > 1 ? 'flex' : 'none';
+        if (prevSlideBtn) prevSlideBtn.style.display = totalSlides > 1 ? 'flex' : 'none';
+        if (nextSlideBtn) nextSlideBtn.style.display = totalSlides > 1 ? 'flex' : 'none';
+        if (sliderDots) sliderDots.style.display = totalSlides > 1 ? 'flex' : 'none';
     }
     function nextSlide() { showSlide(currentSlideIndex + 1); }
     function prevSlide() { showSlide(currentSlideIndex - 1); }
@@ -206,13 +207,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const product = allProducts.find(p => p.id === id);
         if (!product || !detailInfo || !sliderWrapper || !detailThumbnailList || !sliderDots) return;
         const category = allCategories.find(c => c.id === product.categoryId);
-        
+
         detailInfo.innerHTML = ` <h2>${product.name}</h2> <p class="price">$${product.price}</p> <p>${product.description || ''}</p> <dl class="details-grid"> <dt>分類</dt><dd>${category ? category.name : '未分類'}</dd> <dt>編號</dt><dd>${product.sku || 'N/A'}</dd> <dt>EAN-13</dt><dd>${product.ean13 || 'N/A'}</dd> </dl> ${product.ean13 ? `<div class="barcode-display"><svg id="detail-barcode"></svg></div>` : ''} `;
-        
+
         sliderWrapper.innerHTML = '';
         detailThumbnailList.innerHTML = '';
         sliderDots.innerHTML = '';
-        
+
         const imageUrls = product.imageUrls || [];
         totalSlides = imageUrls.length;
         currentSlideIndex = 0;
@@ -230,20 +231,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sliderWrapper.style.transform = 'translateX(0px)';
         updateUI();
-        
+
         if (detailModal) detailModal.classList.remove('hidden');
         document.body.classList.add('modal-open');
 
         if (product.ean13) {
-            setTimeout(() => { 
-                const barcodeElement = document.getElementById('detail-barcode'); 
-                if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) { console.error('JsBarcode error:', e); } 
+            setTimeout(() => {
+                const barcodeElement = document.getElementById('detail-barcode');
+                if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) { console.error('JsBarcode error:', e); }
             }, 0);
         }
     }
-    
+
     function closeModal() {
-        if(detailModal) detailModal.classList.add('hidden');
+        if (detailModal) detailModal.classList.add('hidden');
         document.body.classList.add('modal-open');
     }
 
@@ -251,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function init() {
         if (themeToggle) themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
         if (searchBox) searchBox.addEventListener('input', renderProducts);
-        
+
         if (prevSlideBtn) prevSlideBtn.addEventListener('click', prevSlide);
         if (nextSlideBtn) nextSlideBtn.addEventListener('click', nextSlide);
         if (sliderWrapper) {
@@ -265,16 +266,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (detailThumbnailList) detailThumbnailList.addEventListener('click', e => { if (e.target.dataset.index) showSlide(parseInt(e.target.dataset.index)); });
         if (sliderDots) sliderDots.addEventListener('click', e => { if (e.target.dataset.index) showSlide(parseInt(e.target.dataset.index)); });
-        
+
         document.addEventListener('keydown', e => { if (detailModal && !detailModal.classList.contains('hidden')) { if (e.key === 'ArrowLeft') prevSlide(); if (e.key === 'ArrowRight') nextSlide(); } });
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
         if (detailModal) detailModal.addEventListener('click', e => { if (e.target === detailModal) closeModal(); });
 
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
-        
+
         loadData();
+        // --- View Toggle Logic ---
+        if (viewToggleBtn && productList) {
+            // 1. 頁面載入時，讀取 localStorage 的設定，預設為兩欄
+            const savedView = localStorage.getItem('productView') || 'two-columns';
+            if (savedView === 'two-columns') {
+                productList.classList.add('view-two-columns');
+                viewToggleBtn.classList.remove('list-view-active');
+            } else {
+                productList.classList.remove('view-two-columns');
+                viewToggleBtn.classList.add('list-view-active');
+            }
+
+            // 2. 監聽按鈕點擊事件
+            viewToggleBtn.addEventListener('click', () => {
+                // 切換 productList 的 class
+                productList.classList.toggle('view-two-columns');
+
+                // 檢查當前是否為兩欄模式
+                const isTwoColumns = productList.classList.contains('view-two-columns');
+
+                // 切換按鈕 icon 的 class
+                viewToggleBtn.classList.toggle('list-view-active', !isTwoColumns);
+
+                // 3. 將使用者的選擇存入 localStorage
+                localStorage.setItem('productView', isTwoColumns ? 'two-columns' : 'one-column');
+            });
+        }
     }
-    
+
     init();
 });

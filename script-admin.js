@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- DOM Elements ---
+    const viewToggleBtn = document.getElementById('view-toggle-btn');
     const productList = document.getElementById('product-list');
     const form = document.getElementById('product-form');
     const formTitle = document.getElementById('form-title');
@@ -254,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (productToEdit) openProductModal(productToEdit);
             };
             const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : '';
-            card.innerHTML = `<div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${ (product.imageSize || 90) / 100 });"></div><div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>`;
+            card.innerHTML = `<div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${(product.imageSize || 90) / 100});"></div><div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>`;
             productList.appendChild(card);
         });
     }
@@ -458,6 +459,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateSyncStatus('雲端連接失敗，已載入本地快取', 'error');
                 } else { updateSyncStatus('雲端連接失敗，且無本地快取', 'error'); }
             } catch (e) { updateSyncStatus('雲端及本地均載入失敗', 'error'); }
+        }
+        // --- View Toggle Logic ---
+        if (viewToggleBtn && productList) {
+            // 1. 頁面載入時，讀取 localStorage 的設定，預設為兩欄
+            const savedView = localStorage.getItem('productView') || 'two-columns';
+            if (savedView === 'two-columns') {
+                productList.classList.add('view-two-columns');
+                viewToggleBtn.classList.remove('list-view-active');
+            } else {
+                productList.classList.remove('view-two-columns');
+                viewToggleBtn.classList.add('list-view-active');
+            }
+
+            // 2. 監聽按鈕點擊事件
+            viewToggleBtn.addEventListener('click', () => {
+                // 切換 productList 的 class
+                productList.classList.toggle('view-two-columns');
+
+                // 檢查當前是否為兩欄模式
+                const isTwoColumns = productList.classList.contains('view-two-columns');
+
+                // 切換按鈕 icon 的 class
+                viewToggleBtn.classList.toggle('list-view-active', !isTwoColumns);
+
+                // 3. 將使用者的選擇存入 localStorage
+                localStorage.setItem('productView', isTwoColumns ? 'two-columns' : 'one-column');
+            });
         }
     }
     init();

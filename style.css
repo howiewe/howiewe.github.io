@@ -461,3 +461,48 @@ form input:focus, form textarea:focus, form select:focus {
 @media (hover: none) {
     .slider-container .slider-nav-btn { opacity: 0.7; }
 }
+
+/* --- 15. 檢視模式切換按鈕 (View Toggle Button) --- */
+.view-toggle {
+    display: none; /* 預設 (電腦版) 隱藏 */
+    padding: 0.5rem;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border-color);
+    background-color: var(--surface-color);
+    color: var(--text-secondary);
+}
+.view-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+.view-toggle .icon-list { display: none; }
+.view-toggle.list-view-active .icon-grid { display: none; }
+.view-toggle.list-view-active .icon-list { display: block; }
+
+
+/* --- 在響應式斷點中調整 --- */
+@media (max-width: 768px) {
+    /* 讓 toolbar 內的元素可以左右分開 */
+    .toolbar {
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* 在手機上顯示切換按鈕 */
+    .view-toggle {
+        display: flex; 
+        margin-left: 1rem; /* 與搜尋框或其他按鈕保持一點距離 */
+    }
+
+    /* 手機版的 product-grid 預設改為一欄 */
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* 當有 .view-two-columns class 時，強制變為兩欄 */
+    .product-grid.view-two-columns {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem; /* 兩欄時，間距可以小一點 */
+    }
+}
