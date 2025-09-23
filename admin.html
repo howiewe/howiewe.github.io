@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +13,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
     <div id="toast-container"></div>
@@ -22,72 +20,33 @@
 
     <header>
         <div class="header-content">
-            <button id="menu-toggle-btn" class="menu-toggle-btn" title="分類選單"><svg xmlns="http://www.w3.org/2000/svg"
-                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg></button>
+            <button id="menu-toggle-btn" class="menu-toggle-btn" title="分類選單"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
             <h1>產品管理</h1>
             <div style="display:flex;align-items:center;gap:1rem">
                 <div id="sync-status" class="sync-status">正在初始化...</div>
-                <button id="theme-toggle" title="切換深色/淺色模式"><svg xmlns="http://www.w3.org/2000/svg" width="24"
-                        height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round" class="icon-sun">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                    </svg><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="icon-moon">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                    </svg></button>
+                <button id="theme-toggle" title="切換深色/淺色模式"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sun"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
             </div>
         </div>
     </header>
 
     <div class="main-wrapper">
-        <aside id="category-sidebar">
-            <nav id="category-tree"></nav>
-        </aside>
+        <aside id="category-sidebar"><nav id="category-tree"></nav></aside>
         <main>
-            <div class="toolbar">
-                <input type="search" id="search-box" placeholder="搜尋產品名稱...">
-
-                <!-- ▼▼▼ 新增的區塊 ▼▼▼ -->
-                <div style="display: flex; align-items: center;">
+            <div class="container">
+                <!-- ▼▼▼ 這裡的結構是關鍵：拿掉了多餘的 div，讓所有按鈕成為 toolbar 的直接子元素 ▼▼▼ -->
+                <div class="toolbar">
+                    <input type="search" id="search-box" placeholder="搜尋產品名稱...">
                     <button id="view-toggle-btn" class="btn view-toggle" title="切換檢視模式">
-                        <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                        <svg class="icon-list" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="8" y1="6" x2="21" y2="6"></line>
-                            <line x1="8" y1="12" x2="21" y2="12"></line>
-                            <line x1="8" y1="18" x2="21" y2="18"></line>
-                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                        </svg>
+                        <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        <svg class="icon-list" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     </button>
                     <button id="manage-categories-btn" class="btn btn-secondary">管理分類</button>
                     <a href="/batch-upload.html" class="btn btn-success">批次建檔</a>
                     <button id="add-new-btn" class="btn btn-primary">新增產品</button>
                 </div>
-                <!-- ▲▲▲ 新增的區塊 ▲▲▲ -->
+                <!-- ▲▲▲ 結構修正結束 ▲▲▲ -->
+
+                <div id="product-list" class="product-grid"></div>
             </div>
         </main>
     </div>
@@ -100,26 +59,17 @@
             <form id="product-form" novalidate>
                 <input type="hidden" id="product-id">
                 <div class="form-grid">
-                    <div class="form-group"><label for="product-name">產品名稱</label><input type="text" id="product-name"
-                            required></div>
-                    <div class="form-group"><label for="product-sku">產品編號 (SKU)</label><input type="text"
-                            id="product-sku" required></div>
-                    <div class="form-group"><label for="product-price">產品價格</label><input type="number"
-                            id="product-price" required></div>
-                    <div class="form-group"><label for="product-ean13">EAN-13 條碼 (12或13碼)</label><input type="text"
-                            id="product-ean13" maxlength="13" pattern="\d{12,13}"></div>
+                    <div class="form-group"><label for="product-name">產品名稱</label><input type="text" id="product-name" required></div>
+                    <div class="form-group"><label for="product-sku">產品編號 (SKU)</label><input type="text" id="product-sku" required></div>
+                    <div class="form-group"><label for="product-price">產品價格</label><input type="number" id="product-price" required></div>
+                    <div class="form-group"><label for="product-ean13">EAN-13 條碼 (12或13碼)</label><input type="text" id="product-ean13" maxlength="13" pattern="\d{12,13}"></div>
                 </div>
-                <div class="form-group"><label for="product-category-select">產品分類</label><select
-                        id="product-category-select" required></select></div>
-                <div class="form-group">
-                    <div class="barcode-preview-container"><svg id="barcode-preview"></svg></div>
-                </div>
-                <div class="form-group"><label for="product-description">產品描述</label><textarea id="product-description"
-                        rows="4"></textarea></div>
+                <div class="form-group"><label for="product-category-select">產品分類</label><select id="product-category-select" required></select></div>
+                <div class="form-group"><div class="barcode-preview-container"><svg id="barcode-preview"></svg></div></div>
+                <div class="form-group"><label for="product-description">產品描述</label><textarea id="product-description" rows="4"></textarea></div>
                 <div class="form-group">
                     <label>產品圖片 (可拖曳縮圖排序)</label>
-                    <div id="inline-cropper-workspace" class="hidden"
-                        style="border:1px dashed #ccc;padding:1rem;border-radius:8px;margin-bottom:1rem">
+                    <div id="inline-cropper-workspace" class="hidden" style="border:1px dashed #ccc;padding:1rem;border-radius:8px;margin-bottom:1rem">
                         <div class="cropper-container"><img id="inline-cropper-image" src=""></div>
                         <div class="button-group">
                             <button type="button" id="inline-crop-confirm-btn" class="btn btn-primary">確認此圖</button>
@@ -133,15 +83,12 @@
                             <div id="thumbnail-list-admin" class="thumbnail-list"></div>
                         </div>
                         <div class="button-group">
-                            <button type="button" id="upload-image-btn" class="btn btn-secondary">上傳新圖片</button>
+                           <button type="button" id="upload-image-btn" class="btn btn-secondary">上傳新圖片</button>
                         </div>
-                        <input type="file" id="product-image-upload" accept="image/png,image/jpeg,image/webp"
-                            class="hidden">
+                        <input type="file" id="product-image-upload" accept="image/png,image/jpeg,image/webp" class="hidden">
                     </div>
                 </div>
-                <div class="form-group"><label for="image-size">圖片顯示大小: <span
-                            id="image-size-value">90</span>%</label><input type="range" id="image-size" min="10"
-                        max="100" step="5"></div>
+                <div class="form-group"><label for="image-size">圖片顯示大小: <span id="image-size-value">90</span>%</label><input type="range" id="image-size" min="10" max="100" step="5"></div>
                 <div class="button-group">
                     <button type="submit" class="btn btn-primary">儲存變更</button>
                     <button type="button" id="delete-btn" class="btn btn-danger hidden">刪除此產品</button>
@@ -156,12 +103,10 @@
             <button id="category-modal-close-btn" class="close-btn" title="關閉">&times;</button>
             <h2>分類管理</h2>
             <div id="category-management-tree"></div>
-            <div class="button-group"><button id="add-toplevel-category-btn" class="btn btn-primary">新增頂層分類</button>
-            </div>
+            <div class="button-group"><button id="add-toplevel-category-btn" class="btn btn-primary">新增頂層分類</button></div>
         </div>
     </div>
 
     <script src="script-admin.js"></script>
 </body>
-
 </html>

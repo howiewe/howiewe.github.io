@@ -226,6 +226,7 @@ form input:focus, form textarea:focus, form select:focus {
     cursor: pointer; font-size: 1rem; font-weight: 700;
     transition: background-color 0.2s, transform 0.1s;
     display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    white-space: nowrap; /* 確保按鈕文字不換行 */
 }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
@@ -454,9 +455,23 @@ form input:focus, form textarea:focus, form select:focus {
 @media (max-width: 768px) {
     header h1 { font-size: 1.25rem; }
     .container { padding: 1.5rem 1rem; }
-    .product-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+    
+    /* ▼▼▼ CSS 修正處 ▼▼▼ */
+    /* 讓 toolbar 在手機上換行，並讓元素左右對齊 */
+    .toolbar {
+        flex-wrap: wrap; /* 允許換行 */
+        justify-content: space-between;
+        align-items: center;
+        row-gap: 1rem; /* 新增行間距 */
+    }
+    /* 讓搜尋框在手機上佔滿整行 */
+    #search-box {
+        width: 100%;
+        order: -1; /* 將搜尋框提到最前面 */
+    }
+    /* ▲▲▲ CSS 修正處 ▲▲▲ */
+    
     .modal-content { padding: 1.5rem; }
-    .toolbar { flex-direction: column; align-items: stretch; }
 }
 @media (hover: none) {
     .slider-container .slider-nav-btn { opacity: 0.7; }
@@ -483,16 +498,9 @@ form input:focus, form textarea:focus, form select:focus {
 
 /* --- 在響應式斷點中調整 --- */
 @media (max-width: 768px) {
-    /* 讓 toolbar 內的元素可以左右分開 */
-    .toolbar {
-        justify-content: space-between;
-        align-items: center;
-    }
-    
     /* 在手機上顯示切換按鈕 */
     .view-toggle {
         display: flex; 
-        margin-left: 1rem; /* 與搜尋框或其他按鈕保持一點距離 */
     }
 
     /* 手機版的 product-grid 預設改為一欄 */
