@@ -139,6 +139,22 @@ main {
     overflow-y: auto;
     transition: transform 0.3s ease-in-out;
     padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-actions {
+    /* 這會自動將此區塊推到 Flex 容器 (側邊欄) 的最底部 */
+    margin-top: auto;
+    /* 與上方的分類樹產生一些間距 */
+    padding-top: 1rem;
+    /* 新增一條分隔線，視覺上更清晰 */
+    border-top: 1px solid var(--border-color);
+}
+
+.sidebar-actions .btn {
+    /* 讓按鈕填滿整個側邊欄寬度 */
+    width: 100%;
 }
 
 .menu-toggle-btn,
@@ -1117,8 +1133,11 @@ form select:focus {
         flex-basis: 100%;
         display: flex;
         gap: 0.75rem;
-        justify-content: flex-end;
-        /* 按鈕靠右對齊 */
+    }
+
+    .toolbar-actions .btn {
+        flex: 1;
+        /* 讓這兩個按鈕平均分配空間 */
     }
 
     .modal-content {
