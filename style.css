@@ -144,16 +144,12 @@ main {
 }
 
 .sidebar-actions {
-    /* 這會自動將此區塊推到 Flex 容器 (側邊欄) 的最底部 */
     margin-top: auto;
-    /* 與上方的分類樹產生一些間距 */
     padding-top: 1rem;
-    /* 新增一條分隔線，視覺上更清晰 */
     border-top: 1px solid var(--border-color);
 }
 
 .sidebar-actions .btn {
-    /* 讓按鈕填滿整個側邊欄寬度 */
     width: 100%;
 }
 
@@ -304,7 +300,6 @@ body.dark-mode .icon-sun {
 .product-card .image-container {
     width: 100%;
     padding-top: 100%;
-    /* 1:1 Aspect Ratio */
     position: relative;
     background-color: var(--bg-color);
 }
@@ -478,7 +473,6 @@ form select:focus {
     justify-content: center;
     gap: 0.5rem;
     white-space: nowrap;
-    /* 確保按鈕文字不換行 */
 }
 
 .btn:hover {
@@ -604,9 +598,7 @@ form select:focus {
     width: 100%;
     height: 0;
     padding-top: 100%;
-    /* 讓高度等於寬度，形成正方形 */
     position: relative;
-    /* 為內部圖片定位 */
     border: 1px solid var(--border-color);
     background-color: var(--bg-color);
     border-radius: var(--border-radius-md);
@@ -620,11 +612,8 @@ form select:focus {
     width: 100%;
     height: 100%;
     padding: 0.5rem;
-    /* 讓圖片有內邊距 */
     box-sizing: border-box;
-    /* 確保 padding 不會讓圖片超出範圍 */
     object-fit: contain;
-    /* 確保圖片不變形，完整顯示 */
     transition: transform 0.2s ease;
 }
 
@@ -691,21 +680,87 @@ form select:focus {
     gap: 2rem;
 }
 
-/* --- 10. Cropper & Barcode --- */
-.cropper-container {
-    width: 100%;
-    height: 0;
-    padding-top: 100%;
-    position: relative;
-    background-color: var(--input-bg);
+/* --- 10. 全新圖片上傳流程樣式 (New Image Upload Flow Styles) --- */
+
+/* 狀態一: 空狀態的拖曳區 */
+#image-dropzone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
 }
 
-.cropper-container .cropper-wrap-box {
-    position: absolute;
-    top: 0;
-    left: 0;
+#image-dropzone:hover,
+#image-dropzone.dragover {
+    background-color: color-mix(in srgb, var(--primary-color) 5%, transparent);
+    border-color: var(--primary-color);
+}
+
+#image-dropzone p {
+    margin: 0.5rem 0;
+    font-weight: 500;
+}
+
+#image-dropzone span {
+    font-size: 0.875rem;
+}
+
+/* 狀態二: 縮圖列表中的 "+" 按鈕 */
+.thumbnail-item.add-new {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-style: dashed;
+}
+
+.thumbnail-item.add-new:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background-color: color-mix(in srgb, var(--primary-color) 5%, transparent);
+}
+
+/* 裁切工作區 Modal */
+#cropper-modal .cropper-content {
+    background-color: var(--surface-color);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+#cropper-modal h3 {
+    margin-top: 0;
+}
+
+#cropper-modal p {
+    color: var(--text-secondary);
+    margin-top: -0.5rem;
+    margin-bottom: 1rem;
+}
+
+#cropper-modal .cropper-container {
     width: 100%;
-    height: 100%;
+    height: 40vh;
+    max-height: 400px;
+    background-color: var(--bg-color);
+    margin-bottom: 1rem;
+}
+#cropper-modal .cropper-container img {
+    max-height: 100%;
 }
 
 .cropper-view-box,
@@ -714,6 +769,15 @@ form select:focus {
     outline-color: color-mix(in srgb, var(--primary-color) 75%, transparent);
 }
 
+#cropper-modal .button-group.cropper-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr; /* 響應式按鈕佈局 */
+    gap: 0.75rem;
+    width: 100%;
+}
+
+
+/* --- 11. Customer Image Slider & 舊有樣式 ... --- */
 #product-detail-info .price {
     font-size: 1.8rem;
     font-weight: bold;
@@ -747,7 +811,6 @@ form select:focus {
     display: block;
 }
 
-/* --- 11. Customer Image Slider --- */
 .slider-container {
     position: relative;
     width: 100%;
@@ -869,7 +932,7 @@ form select:focus {
     margin-top: 0;
 }
 
-#image-dropzone {
+.batch-page #image-dropzone {
     border: 2px dashed var(--border-color);
     border-radius: var(--border-radius-md);
     padding: 2rem;
@@ -879,8 +942,8 @@ form select:focus {
     transition: background-color 0.2s, border-color 0.2s;
 }
 
-#image-dropzone:hover,
-#image-dropzone.dragover {
+.batch-page #image-dropzone:hover,
+.batch-page #image-dropzone.dragover {
     background-color: color-mix(in srgb, var(--primary-color) 5%, transparent);
     border-color: var(--primary-color);
 }
@@ -1117,19 +1180,14 @@ form select:focus {
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
-        /* 確保搜尋框和切換鈕左右對齊 */
         row-gap: 1rem;
     }
 
     #search-box {
-        /* 讓搜尋框自動填滿可用空間，但留出位置給切換鈕 */
         flex-grow: 1;
-        /* 移除 width: 100% 和 order: -1 */
     }
 
-    /* 針對 admin.html 新增的按鈕包裹層 */
     .toolbar-actions {
-        /* 讓這個 div 佔滿整行，從而實現換行效果 */
         flex-basis: 100%;
         display: flex;
         gap: 0.75rem;
@@ -1137,11 +1195,14 @@ form select:focus {
 
     .toolbar-actions .btn {
         flex: 1;
-        /* 讓這兩個按鈕平均分配空間 */
     }
 
     .modal-content {
         padding: 1.5rem;
+    }
+    
+    #cropper-modal .button-group.cropper-actions {
+        grid-template-columns: 1fr; /* 手機上變為單欄 */
     }
 }
 
@@ -1154,7 +1215,6 @@ form select:focus {
 /* --- 15. 檢視模式切換按鈕 (View Toggle Button) --- */
 .view-toggle {
     display: none;
-    /* 預設 (電腦版) 隱藏 */
     padding: 0.5rem;
     width: 40px;
     height: 40px;
@@ -1183,21 +1243,16 @@ form select:focus {
 
 /* --- 在響應式斷點中調整 --- */
 @media (max-width: 768px) {
-
-    /* 在手機上顯示切換按鈕 */
     .view-toggle {
         display: flex;
     }
 
-    /* 手機版的 product-grid 預設改為一欄 */
     .product-grid {
         grid-template-columns: 1fr;
     }
 
-    /* 當有 .view-two-columns class 時，強制變為兩欄 */
     .product-grid.view-two-columns {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
-        /* 兩欄時，間距可以小一點 */
     }
 }

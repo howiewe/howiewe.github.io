@@ -1,4 +1,4 @@
-// script-admin.js (最終確認版)
+// script-admin.js (全新圖片上傳流程版)
 document.addEventListener('DOMContentLoaded', () => {
     // --- IndexedDB (快取機制) ---
     const dbName = 'ProductCatalogDB_CF';
@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function openDB() { return new Promise((resolve, reject) => { const request = indexedDB.open(dbName, dbVersion); request.onerror = event => reject(`DB Error: ${event.target.errorCode}`); request.onsuccess = event => resolve(event.target.result); request.onupgradeneeded = event => { const db = event.target.result; if (!db.objectStoreNames.contains('products')) db.createObjectStore('products', { keyPath: 'id' }); if (!db.objectStoreNames.contains('categories')) db.createObjectStore('categories', { keyPath: 'id' }); }; }); }
     function readData(storeName) { return new Promise(async (resolve, reject) => { const db = await openDB(); const tx = db.transaction(storeName, 'readonly'); const store = tx.objectStore(storeName); const req = store.getAll(); req.onerror = event => reject(`Read Error: ${event.target.errorCode}`); req.onsuccess = event => resolve(event.target.result); }); }
     function writeData(storeName, data) { return new Promise(async (resolve, reject) => { const db = await openDB(); const tx = db.transaction(storeName, 'readwrite'); const store = tx.objectStore(storeName); store.clear(); data.forEach(item => store.put(item)); tx.oncomplete = () => resolve(); tx.onerror = event => reject(`Write Error: ${event.target.errorCode}`); }); }
-
 
     // --- DOM Elements ---
     const viewToggleBtn = document.getElementById('view-toggle-btn');
@@ -22,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const addNewBtn = document.getElementById('add-new-btn');
     const deleteBtn = document.getElementById('delete-btn');
-    const uploadImageBtn = document.getElementById('upload-image-btn');
     const imageUploadInput = document.getElementById('product-image-upload');
     const mainImagePreview = document.getElementById('main-image-preview');
     const thumbnailListAdmin = document.getElementById('thumbnail-list-admin');
@@ -37,275 +35,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryModalCloseBtn = document.getElementById('category-modal-close-btn');
     const categoryManagementTree = document.getElementById('category-management-tree');
     const addTopLevelCategoryBtn = document.getElementById('add-toplevel-category-btn');
-    const inlineCropperWorkspace = document.getElementById('inline-cropper-workspace');
-    const inlineCropperImage = document.getElementById('inline-cropper-image');
-    const inlineCropConfirmBtn = document.getElementById('inline-crop-confirm-btn');
-    const inlineCropRotateBtn = document.getElementById('inline-crop-rotate-btn');
-    const inlineCropCancelBtn = document.getElementById('inline-crop-cancel-btn');
-    const imagePreviewArea = document.getElementById('image-preview-area');
 
+    // --- 【新】圖片上傳流程相關 DOM 元素 ---
+    const imageEmptyState = document.getElementById('image-empty-state');
+    const imageDropzone = document.getElementById('image-dropzone');
+    const imageUploadArea = document.getElementById('image-upload-area');
+    const addMoreImagesBtn = document.getElementById('add-more-images-btn');
+    const cropperModal = document.getElementById('cropper-modal');
+    const cropperImage = document.getElementById('cropper-image');
+    const cropperStatus = document.getElementById('cropper-status');
+    const cropperConfirmBtn = document.getElementById('cropper-confirm-btn');
+    const cropperRotateBtn = document.getElementById('cropper-rotate-btn');
+    const cropperCancelBtn = document.getElementById('cropper-cancel-btn');
 
     // --- Global State ---
     let allProducts = [], allCategories = [];
     let cropper, currentCategoryId = 'all', currentImageItems = [], sortableInstance = null;
+    let imageProcessingQueue = []; // 【新】用於處理多圖上傳的佇列
+    let originalQueueLength = 0;   // 【新】用於顯示進度
 
-    // --- API Logic (D1 版本) ---
-    async function fetchDataFromCloud() {
-        try {
-            updateSyncStatus('正在從雲端拉取資料...', 'syncing');
-            const response = await fetch('/api/all-data?t=' + new Date().getTime());
-            if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
-            const data = await response.json();
-            // 後端回傳的 imageUrls 已經是陣列了
-            allProducts = data.products || [];
-            allCategories = data.categories || [];
-            await writeData('products', allProducts);
-            await writeData('categories', allCategories);
-            updateSyncStatus('已與雲端同步', 'synced');
-            return true;
-        } catch (error) {
-            console.error('Fetch data failed:', error);
-            updateSyncStatus('雲端同步失敗', 'error');
-            showToast(`拉取雲端資料失敗: ${error.message}`, 'error');
-            return false;
-        }
-    }
+    // --- API Logic (保持不變) ---
+    async function fetchDataFromCloud() { /* ... */ try { updateSyncStatus('正在從雲端拉取資料...', 'syncing'); const response = await fetch('/api/all-data?t=' + new Date().getTime()); if (!response.ok) throw new Error(`Server Error: ${response.statusText}`); const data = await response.json(); allProducts = data.products || []; allCategories = data.categories || []; await writeData('products', allProducts); await writeData('categories', allCategories); updateSyncStatus('已與雲端同步', 'synced'); return true; } catch (error) { console.error('Fetch data failed:', error); updateSyncStatus('雲端同步失敗', 'error'); showToast(`拉取雲端資料失敗: ${error.message}`, 'error'); return false; } }
+    async function uploadImage(blob, fileName) { /* ... */ try { const response = await fetch(`/api/upload/${fileName}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob }); if (!response.ok) throw new Error(`圖片上傳失敗: ${response.statusText}`); const result = await response.json(); showToast('圖片上傳成功', 'success'); return result.url; } catch (error) { console.error('上傳圖片失敗:', error); showToast(`圖片上傳失敗: ${error.message}`, 'error'); return null; } }
+    async function saveProduct(productData) { /* ... */ try { updateSyncStatus('正在儲存產品...', 'syncing'); const response = await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`); const savedProduct = await response.json(); const index = allProducts.findIndex(p => p.id === savedProduct.id); if (index > -1) { allProducts[index] = savedProduct; } else { allProducts.unshift(savedProduct); } await writeData('products', allProducts); renderProducts(); updateSyncStatus('儲存成功', 'synced'); showToast('產品儲存成功', 'success'); } catch (error) { updateSyncStatus('儲存失敗', 'error'); showToast(`儲存產品失敗: ${error.message}`, 'error'); console.error(error); } }
+    async function deleteProductApi(id) { /* ... */ if (!confirm('您確定要刪除這個產品嗎？')) return; try { updateSyncStatus('正在刪除產品...', 'syncing'); const response = await fetch(`/api/products/${id}`, { method: 'DELETE' }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`); allProducts = allProducts.filter(p => p.id !== id); await writeData('products', allProducts); renderProducts(); closeModal(editModal); updateSyncStatus('刪除成功', 'synced'); showToast('產品已刪除', 'info'); } catch (error) { updateSyncStatus('刪除失敗', 'error'); showToast(`刪除產品失敗: ${error.message}`, 'error'); } }
+    async function saveCategory(categoryData) { /* ... */ try { updateSyncStatus('儲存分類中...', 'syncing'); const response = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(categoryData) }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).error || response.statusText}`); await fetchDataFromCloud(); buildCategoryTree(); buildCategoryManagementTree(); updateSyncStatus('儲存成功', 'synced'); } catch (error) { showToast(`儲存分類失敗: ${error.message}`, 'error'); updateSyncStatus('儲存失敗', 'error'); } }
+    async function removeCategory(id) { /* ... */ try { const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' }); if (!response.ok) { const errData = await response.json(); throw new Error(errData.error || '刪除失敗'); } await fetchDataFromCloud(); buildCategoryTree(); buildCategoryManagementTree(); } catch (error) { alert(error.message); } }
 
-    async function uploadImage(blob, fileName) {
-        try {
-            const response = await fetch(`/api/upload/${fileName}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob });
-            if (!response.ok) throw new Error(`圖片上傳失敗: ${response.statusText}`);
-            const result = await response.json();
-            showToast('圖片上傳成功', 'success');
-            return result.url;
-        } catch (error) {
-            console.error('上傳圖片失敗:', error);
-            showToast(`圖片上傳失敗: ${error.message}`, 'error');
-            return null;
-        }
-    }
-
-    async function saveProduct(productData) {
-        try {
-            updateSyncStatus('正在儲存產品...', 'syncing');
-            const response = await fetch('/api/products', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(productData)
-            });
-            if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`);
-            const savedProduct = await response.json();
-
-            const index = allProducts.findIndex(p => p.id === savedProduct.id);
-            if (index > -1) {
-                allProducts[index] = savedProduct;
-            } else {
-                allProducts.unshift(savedProduct);
-            }
-            await writeData('products', allProducts);
-
-            renderProducts();
-            updateSyncStatus('儲存成功', 'synced');
-            showToast('產品儲存成功', 'success');
-        } catch (error) {
-            updateSyncStatus('儲存失敗', 'error');
-            showToast(`儲存產品失敗: ${error.message}`, 'error');
-            console.error(error);
-        }
-    }
-
-    async function deleteProductApi(id) {
-        if (!confirm('您確定要刪除這個產品嗎？')) return;
-        try {
-            updateSyncStatus('正在刪除產品...', 'syncing');
-            const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`);
-
-            allProducts = allProducts.filter(p => p.id !== id);
-            await writeData('products', allProducts);
-
-            renderProducts();
-            closeModal(editModal);
-            updateSyncStatus('刪除成功', 'synced');
-            showToast('產品已刪除', 'info');
-        } catch (error) {
-            updateSyncStatus('刪除失敗', 'error');
-            showToast(`刪除產品失敗: ${error.message}`, 'error');
-        }
-    }
-
-    async function saveCategory(categoryData) {
-        try {
-            updateSyncStatus('儲存分類中...', 'syncing');
-            const response = await fetch('/api/categories', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(categoryData)
-            });
-            if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).error || response.statusText}`);
-            await fetchDataFromCloud(); // 重新拉取所有資料來更新UI
-            buildCategoryTree();
-            buildCategoryManagementTree();
-            updateSyncStatus('儲存成功', 'synced');
-        } catch (error) {
-            showToast(`儲存分類失敗: ${error.message}`, 'error');
-            updateSyncStatus('儲存失敗', 'error');
-        }
-    }
-
-    async function removeCategory(id) {
-        try {
-            const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || '刪除失敗');
-            }
-            await fetchDataFromCloud();
-            buildCategoryTree();
-            buildCategoryManagementTree();
-        } catch (error) {
-            alert(error.message);
-        }
-    }
-
-    // --- UI & Rendering Logic ---
+    // --- UI & Rendering Logic (部分修改) ---
     function updateSyncStatus(message, status) { if (syncStatus) { syncStatus.textContent = message; syncStatus.className = `sync-status ${status}`; } }
-    function setUIState(isReady) {
-        if (manageCategoriesBtn) manageCategoriesBtn.disabled = !isReady;
-        if (addNewBtn) addNewBtn.disabled = !isReady;
-        if (searchBox) searchBox.disabled = !isReady;
-        if (isReady) {
-            buildCategoryTree();
-            currentCategoryId = 'all';
-            document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
-            const allLink = document.querySelector('#category-tree a[data-id="all"]');
-            if (allLink) allLink.classList.add('active');
-            renderProducts();
-        } else {
-            if (productList) productList.innerHTML = '<p class="empty-message">正在從雲端載入資料...</p>';
-            if (categoryTreeContainer) categoryTreeContainer.innerHTML = '';
-        }
-    }
-    function buildCategoryTree() {
-        const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
-        const tree = [];
-        for (const category of categoryMap.values()) {
-            if (category.parentId === null) tree.push(category);
-            else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
-        }
-        tree.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
-        let treeHtml = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`;
-        function createTreeHTML(nodes) {
-            nodes.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
-            let subHtml = '<ul>';
-            for (const node of nodes) {
-                subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`;
-                if (node.children.length > 0) subHtml += createTreeHTML(node.children);
-                subHtml += '</li>';
-            }
-            return subHtml + '</ul>';
-        }
-        if (categoryTreeContainer) categoryTreeContainer.innerHTML = treeHtml + createTreeHTML(tree) + '</ul>';
-        let selectOptions = '<option value="" disabled selected>請選擇分類</option>';
-        function createSelectOptions(nodes, depth = 0) {
-            nodes.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
-            for (const node of nodes) {
-                selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`;
-                if (node.children.length > 0) createSelectOptions(node.children, depth + 1);
-            }
-        }
-        createSelectOptions(tree);
-        if (categorySelect) categorySelect.innerHTML = selectOptions;
-    }
-    function renderProducts() {
-        if (!productList) return;
-        const searchTerm = searchBox ? searchBox.value.toLowerCase() : '';
-        const getCategoryIdsWithChildren = (startId) => {
-            if (startId === 'all') return null;
-            const ids = new Set();
-            const queue = [startId];
-            while (queue.length > 0) {
-                const currentId = queue.shift();
-                ids.add(currentId);
-                const children = allCategories.filter(c => c.parentId === currentId);
-                for (const child of children) queue.push(child.id);
-            }
-            return ids;
-        };
-
-        const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId);
-
-        const filteredProducts = allProducts.filter(p => {
-            const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId));
-            const matchesSearch = p.name.toLowerCase().includes(searchTerm) || (p.sku && p.sku.toLowerCase().includes(searchTerm));
-            return matchesCategory && matchesSearch;
-        });
-
-        productList.innerHTML = '';
-        if (filteredProducts.length === 0) {
-            productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>';
-            return;
-        }
-
-        filteredProducts.forEach(product => {
-            const card = document.createElement('div');
-            card.className = 'product-card';
-            card.onclick = () => {
-                const productToEdit = allProducts.find(p => p.id === product.id);
-                if (productToEdit) openProductModal(productToEdit);
-            };
-            const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : '';
-            card.innerHTML = `<div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${(product.imageSize || 90) / 100});"></div><div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>`;
-            productList.appendChild(card);
-        });
-    }
-    function buildCategoryManagementTree() { const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類">+</button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if (categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
-    async function addCategory(parentId = null) { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { await saveCategory({ name: name.trim(), parentId }); } else if (name !== null) { alert('分類名稱不能為空！'); } }
-    async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { await saveCategory({ id: category.id, name: newName.trim(), parentId: category.parentId }); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
-
-    // --- Modal & Form Logic ---
+    function setUIState(isReady) { if (manageCategoriesBtn) manageCategoriesBtn.disabled = !isReady; if (addNewBtn) addNewBtn.disabled = !isReady; if (searchBox) searchBox.disabled = !isReady; if (isReady) { buildCategoryTree(); currentCategoryId = 'all'; document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); const allLink = document.querySelector('#category-tree a[data-id="all"]'); if (allLink) allLink.classList.add('active'); renderProducts(); } else { if (productList) productList.innerHTML = '<p class="empty-message">正在從雲端載入資料...</p>'; if (categoryTreeContainer) categoryTreeContainer.innerHTML = ''; } }
+    function buildCategoryTree() { /* ... */ const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } tree.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant')); let treeHtml = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`; function createTreeHTML(nodes) { nodes.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant')); let subHtml = '<ul>'; for (const node of nodes) { subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`; if (node.children.length > 0) subHtml += createTreeHTML(node.children); subHtml += '</li>'; } return subHtml + '</ul>'; } if (categoryTreeContainer) categoryTreeContainer.innerHTML = treeHtml + createTreeHTML(tree) + '</ul>'; let selectOptions = '<option value="" disabled selected>請選擇分類</option>'; function createSelectOptions(nodes, depth = 0) { nodes.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant')); for (const node of nodes) { selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; if (node.children.length > 0) createSelectOptions(node.children, depth + 1); } } createSelectOptions(tree); if (categorySelect) categorySelect.innerHTML = selectOptions; }
+    function renderProducts() { /* ... */ if (!productList) return; const searchTerm = searchBox ? searchBox.value.toLowerCase() : ''; const getCategoryIdsWithChildren = (startId) => { if (startId === 'all') return null; const ids = new Set(); const queue = [startId]; while (queue.length > 0) { const currentId = queue.shift(); ids.add(currentId); const children = allCategories.filter(c => c.parentId === currentId); for (const child of children) queue.push(child.id); } return ids; }; const categoryIdsToDisplay = getCategoryIdsWithChildren(currentCategoryId); const filteredProducts = allProducts.filter(p => { const matchesCategory = categoryIdsToDisplay === null || (p.categoryId && categoryIdsToDisplay.has(p.categoryId)); const matchesSearch = p.name.toLowerCase().includes(searchTerm) || (p.sku && p.sku.toLowerCase().includes(searchTerm)); return matchesCategory && matchesSearch; }); productList.innerHTML = ''; if (filteredProducts.length === 0) { productList.innerHTML = '<p class="empty-message">此分類下無產品。</p>'; return; } filteredProducts.forEach(product => { const card = document.createElement('div'); card.className = 'product-card'; card.onclick = () => { const productToEdit = allProducts.find(p => p.id === product.id); if (productToEdit) openProductModal(productToEdit); }; const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : ''; card.innerHTML = `<div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${(product.imageSize || 90) / 100});"></div><div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>`; productList.appendChild(card); }); }
+    function buildCategoryManagementTree() { /* ... */ const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類">+</button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if (categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
+    async function addCategory(parentId = null) { /* ... */ const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { await saveCategory({ name: name.trim(), parentId }); } else if (name !== null) { alert('分類名稱不能為空！'); } }
+    async function editCategory(id) { /* ... */ const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { await saveCategory({ id: category.id, name: newName.trim(), parentId: category.parentId }); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
+    
+    // --- 【修改】Modal & Form Logic ---
     if (form) form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        showToast('處理中...', 'info');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = '處理中...';
 
-        const uploadPromises = currentImageItems.map(async item => {
-            if (item.isNew && item.blob) {
+        try {
+            const imagesToUpload = currentImageItems.filter(item => item.isNew && item.blob);
+            let uploadedCount = 0;
+
+            const uploadPromises = imagesToUpload.map(async item => {
                 const ext = item.blob.type.split('/')[1] || 'webp';
                 const tempId = productIdInput.value || `new_${Date.now()}`;
-                const fileName = `product-${tempId}-${Date.now()}.${ext}`;
-                return uploadImage(item.blob, fileName);
+                const fileName = `product-${tempId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
+                const uploadedUrl = await uploadImage(item.blob, fileName);
+                uploadedCount++;
+                submitBtn.textContent = `上傳圖片 (${uploadedCount}/${imagesToUpload.length})...`;
+                item.url = uploadedUrl; // 更新 item 的 URL
+                return uploadedUrl;
+            });
+
+            await Promise.all(uploadPromises);
+
+            submitBtn.textContent = '正在儲存資料...';
+            
+            const finalImageUrls = currentImageItems.map(item => item.url);
+
+            const productId = productIdInput.value ? parseInt(productIdInput.value) : null;
+            const data = {
+                id: productId,
+                name: document.getElementById('product-name').value,
+                sku: document.getElementById('product-sku').value,
+                ean13: ean13Input.value,
+                price: parseFloat(document.getElementById('product-price').value),
+                description: document.getElementById('product-description').value,
+                imageUrls: finalImageUrls,
+                imageSize: parseInt(imageSizeSlider.value),
+                categoryId: parseInt(categorySelect.value)
+            };
+
+            if (!data.categoryId) {
+                alert("請選擇分類！");
+                return;
             }
-            return item.url;
-        });
-        const finalImageUrls = (await Promise.all(uploadPromises)).filter(Boolean);
 
-        const productId = productIdInput.value ? parseInt(productIdInput.value) : null;
-        const data = {
-            id: productId,
-            name: document.getElementById('product-name').value,
-            sku: document.getElementById('product-sku').value,
-            ean13: ean13Input.value,
-            price: parseFloat(document.getElementById('product-price').value),
-            description: document.getElementById('product-description').value,
-            imageUrls: finalImageUrls,
-            imageSize: parseInt(imageSizeSlider.value),
-            categoryId: parseInt(categorySelect.value)
-        };
-
-        if (!data.categoryId) {
-            alert("請選擇分類！");
-            return;
+            await saveProduct(data);
+            closeModal(editModal);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '儲存變更';
         }
-
-        await saveProduct(data);
-        closeModal(editModal);
-        hideCropper();
     });
 
     function openProductModal(product = null) {
         resetForm();
         if (product) {
-            formTitle.textContent = '编辑产品';
+            formTitle.textContent = '編輯產品';
             productIdInput.value = product.id;
             document.getElementById('product-name').value = product.name;
             document.getElementById('product-sku').value = product.sku;
@@ -320,110 +143,131 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteBtn.classList.remove('hidden');
             deleteBtn.onclick = () => deleteProductApi(product.id);
         } else {
-            formTitle.textContent = '新增产品';
+            formTitle.textContent = '新增產品';
         }
-
+        updateImageUIState(); // 【新】根據是否有圖片決定顯示哪個 UI
         renderAdminImagePreview();
         updateBarcodePreview();
         openModal(editModal);
         initSortable();
     }
-    function resetForm() { if (form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if (i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; renderAdminImagePreview(); imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropper(); }
+    function resetForm() { if (form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if (i.url && i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropperModal(); }
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
-    function initSortable() { if (sortableInstance) sortableInstance.destroy(); if (thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, onEnd: (evt) => { const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch (e) { console.error("SortableJS init failed:", e); } }
-    function renderAdminImagePreview() { if (!thumbnailListAdmin || !mainImagePreview) return; thumbnailListAdmin.innerHTML = ''; if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`; currentImageItems.forEach((item, index) => { const thumb = document.createElement('div'); thumb.className = index === 0 ? 'thumbnail-item active' : 'thumbnail-item'; thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`; thumbnailListAdmin.appendChild(thumb); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; } }
+    function initSortable() { if (sortableInstance) sortableInstance.destroy(); if (thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, filter: '.add-new', onEnd: (evt) => { if (evt.newIndex === currentImageItems.length) return; const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch (e) { console.error("SortableJS init failed:", e); } }
+    
+    // --- 【全新】圖片 UI 狀態管理 ---
+    function updateImageUIState() {
+        if (currentImageItems.length === 0) {
+            imageEmptyState.classList.remove('hidden');
+            imageUploadArea.classList.add('hidden');
+        } else {
+            imageEmptyState.classList.add('hidden');
+            imageUploadArea.classList.remove('hidden');
+        }
+    }
+    
+    function renderAdminImagePreview() {
+        if (!mainImagePreview) return;
+        
+        // 先移除舊的縮圖，但不移除 "+" 按鈕
+        thumbnailListAdmin.querySelectorAll('.thumbnail-item:not(.add-new)').forEach(el => el.remove());
+
+        if (currentImageItems.length > 0) {
+            mainImagePreview.src = currentImageItems[0].url;
+            mainImagePreview.style.display = 'block';
+            mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`;
+            
+            currentImageItems.forEach((item, index) => {
+                const thumb = document.createElement('div');
+                thumb.className = 'thumbnail-item';
+                if (index === 0) thumb.classList.add('active'); // 將第一張設為 active
+                thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`;
+                thumbnailListAdmin.insertBefore(thumb, addMoreImagesBtn); // 將縮圖插入到 "+" 按鈕之前
+            });
+        } else {
+            mainImagePreview.src = '';
+            mainImagePreview.style.display = 'none';
+        }
+        updateImageUIState();
+    }
+
     function createSquareImageBlob(imageFile) {
         return new Promise((resolve, reject) => {
             const url = URL.createObjectURL(imageFile);
             const img = new Image();
             img.onload = () => {
-                // 決定正方形畫布的大小，取決於原始圖片最長的那一邊
                 const size = Math.max(img.naturalWidth, img.naturalHeight);
-
                 const canvas = document.createElement('canvas');
                 canvas.width = size;
                 canvas.height = size;
                 const ctx = canvas.getContext('2d');
-
-                // 計算繪製位置，使其在畫布中置中
                 const x = (size - img.naturalWidth) / 2;
                 const y = (size - img.naturalHeight) / 2;
-
-                // 將原始圖片繪製到畫布上
                 ctx.drawImage(img, x, y);
-
-                // 釋放原始圖片的 Object URL 以節省記憶體
                 URL.revokeObjectURL(url);
-
-                // 將畫布內容轉換為 Blob 物件
-                // 使用 'image/png' 格式來保留透明背景
                 canvas.toBlob(blob => {
-                    if (blob) {
-                        resolve(blob);
-                    } else {
-                        reject(new Error('Canvas to Blob conversion failed.'));
-                    }
+                    if (blob) { resolve(blob); } else { reject(new Error('Canvas to Blob failed.')); }
                 }, 'image/png');
             };
-            img.onerror = (err) => {
-                URL.revokeObjectURL(url);
-                reject(err);
-            };
+            img.onerror = (err) => { URL.revokeObjectURL(url); reject(err); };
             img.src = url;
         });
     }
-    async function showCropper(file) {
-        if (!file.type.startsWith('image/')) {
-            showToast('请选择图片文件', 'error');
+
+    // --- 【全新】多圖裁切流程 ---
+    async function handleFileSelection(files) {
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (imageFiles.length === 0) return;
+        
+        imageProcessingQueue = imageFiles;
+        originalQueueLength = imageFiles.length;
+        processNextImageInQueue();
+    }
+    
+    async function processNextImageInQueue() {
+        if (imageProcessingQueue.length === 0) {
+            hideCropperModal();
             return;
         }
+        
+        const file = imageProcessingQueue.shift(); // 取出佇列中的第一個檔案
+        const processedBlob = await createSquareImageBlob(file);
+        const url = URL.createObjectURL(processedBlob);
+        
+        showCropperModal(url);
 
-        try {
-            // 【核心改造】步驟 1: 先將上傳的圖片轉換成帶透明背景的正方形圖片
-            const squareImageBlob = await createSquareImageBlob(file);
-
-            // 步驟 2: 為這張新的方形圖片建立預覽 URL
-            const url = URL.createObjectURL(squareImageBlob);
-
-            imagePreviewArea.classList.add('hidden');
-            inlineCropperWorkspace.classList.remove('hidden');
-
-            inlineCropperImage.onload = () => {
-                if (cropper) {
-                    cropper.destroy();
-                }
-
-                // 步驟 3: 將這張完美的方形圖片交給 Cropper.js
-                cropper = new Cropper(inlineCropperImage, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    autoCropArea: 1,          // 裁切框預設為 100% 滿版
-                    background: false,
-                    dragMode: 'move',         // 允許在畫布上拖曳來「移動圖片」
-                    movable: true            // 明確允許圖片可以被移動
-                });
-
-                // 注意：我們不需要再手動釋放 url 了，
-                // 因為 hideCropper 函式中已經包含了 URL.revokeObjectURL 的邏輯。
-            };
-
-            inlineCropperImage.src = url;
-
-        } catch (error) {
-            console.error("Error processing image for cropper:", error);
-            showToast('圖片處理失敗，請稍後再試', 'error');
-            hideCropper();
-        }
+        const currentIndex = originalQueueLength - imageProcessingQueue.length;
+        cropperStatus.textContent = `正在處理: ${currentIndex} / ${originalQueueLength}`;
+        cropperConfirmBtn.textContent = imageProcessingQueue.length > 0 ? '確認並處理下一張' : '完成裁切';
     }
-    function hideCropper() { if (cropper) { const url = inlineCropperImage.src; cropper.destroy(); cropper = null; inlineCropperImage.src = ''; if (url.startsWith('blob:')) URL.revokeObjectURL(url); } inlineCropperWorkspace.classList.add('hidden'); imagePreviewArea.classList.remove('hidden'); }
+
+    function showCropperModal(imageUrl) {
+        openModal(cropperModal);
+        cropperImage.src = imageUrl;
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(cropperImage, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false, dragMode: 'move', movable: true });
+    }
+
+    function hideCropperModal() {
+        closeModal(cropperModal);
+        if (cropper) {
+            const url = cropperImage.src;
+            cropper.destroy();
+            cropper = null;
+            if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+            cropperImage.src = '';
+        }
+        imageProcessingQueue = [];
+        originalQueueLength = 0;
+    }
+    
     function updateBarcodePreview() { if (!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
     function showToast(message, type = 'info', duration = 3000) { const el = document.getElementById('toast-container'); if (!el) return; const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; el.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
 
     // --- Initialization ---
     async function init() {
-        const closeAndCleanupEditModal = () => { closeModal(editModal); hideCropper(); };
-        if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeAndCleanupEditModal);
+        if (modalCloseBtn) modalCloseBtn.addEventListener('click', () => closeModal(editModal));
         if (themeToggle) themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
         if (addNewBtn) addNewBtn.addEventListener('click', () => openProductModal());
         if (searchBox) searchBox.addEventListener('input', renderProducts);
@@ -434,59 +278,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (menuToggleBtn) menuToggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
         if (pageOverlay) pageOverlay.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
         if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const target = e.target.closest('a'); if (target) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); target.classList.add('active'); currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id); renderProducts(); if (window.innerWidth <= 992) document.body.classList.remove('sidebar-open'); } });
-        if (uploadImageBtn) uploadImageBtn.addEventListener('click', () => imageUploadInput.click());
-        if (imageUploadInput) imageUploadInput.addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; if (file) showCropper(file); e.target.value = ''; });
-        if (inlineCropConfirmBtn) inlineCropConfirmBtn.addEventListener('click', () => { if (!cropper) return; inlineCropConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high', }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗', 'error'); } hideCropper(); inlineCropConfirmBtn.disabled = false; }, 'image/webp', 0.85); });
-        if (inlineCropRotateBtn) inlineCropRotateBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
-        if (inlineCropCancelBtn) inlineCropCancelBtn.addEventListener('click', hideCropper);
+        
+        // --- 【新】圖片上傳相關事件監聽 ---
+        [imageDropzone, addMoreImagesBtn].forEach(el => el.addEventListener('click', () => imageUploadInput.click()));
+        if (imageUploadInput) imageUploadInput.addEventListener('change', (e) => { handleFileSelection(e.target.files); e.target.value = ''; });
+        if (imageDropzone) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => imageDropzone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }));
+            ['dragenter', 'dragover'].forEach(eventName => imageDropzone.addEventListener(eventName, () => imageDropzone.classList.add('dragover')));
+            ['dragleave', 'drop'].forEach(eventName => imageDropzone.addEventListener(eventName, () => imageDropzone.classList.remove('dragover')));
+            imageDropzone.addEventListener('drop', e => handleFileSelection(e.dataTransfer.files));
+        }
+        if (cropperConfirmBtn) cropperConfirmBtn.addEventListener('click', () => { if (!cropper) return; cropperConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high' }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗', 'error'); } cropperConfirmBtn.disabled = false; processNextImageInQueue(); }, 'image/webp', 0.85); });
+        if (cropperRotateBtn) cropperRotateBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
+        if (cropperCancelBtn) cropperCancelBtn.addEventListener('click', hideCropperModal);
+
         if (ean13Input) ean13Input.addEventListener('input', updateBarcodePreview);
         if (imageSizeSlider) imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if (mainImagePreview) mainImagePreview.style.transform = `scale(${newSize / 100})`; });
-        if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', e => { const target = e.target; if (target.classList.contains('delete-thumb-btn')) { const index = parseInt(target.dataset.index); const item = currentImageItems[index]; if (item?.url.startsWith('blob:')) URL.revokeObjectURL(item.url); currentImageItems.splice(index, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const index = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[index].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(i => i.classList.remove('active')); target.parentElement.classList.add('active'); } });
+        if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', e => { const target = e.target.closest('button.delete-thumb-btn, img'); if (!target) return; if (target.classList.contains('delete-thumb-btn')) { const index = parseInt(target.dataset.index); const item = currentImageItems[index]; if (item?.url.startsWith('blob:')) URL.revokeObjectURL(item.url); currentImageItems.splice(index, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const index = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[index].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(i => i.classList.remove('active')); target.closest('.thumbnail-item').classList.add('active'); } });
 
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         setUIState(false);
-        if (await fetchDataFromCloud()) {
-            setUIState(true);
-        } else {
-            try {
-                const localProducts = await readData('products');
-                const localCategories = await readData('categories');
-                if (localProducts && localProducts.length > 0) {
-                    allProducts = localProducts;
-                    allCategories = localCategories || [];
-                    setUIState(true);
-                    updateSyncStatus('雲端連接失敗，已載入本地快取', 'error');
-                } else { updateSyncStatus('雲端連接失敗，且無本地快取', 'error'); }
-            } catch (e) { updateSyncStatus('雲端及本地均載入失敗', 'error'); }
-        }
-        // --- View Toggle Logic ---
-        if (viewToggleBtn && productList) {
-            // 1. 頁面載入時，讀取 localStorage 的設定，預設為兩欄
-            const savedView = localStorage.getItem('productView') || 'two-columns';
-            if (savedView === 'two-columns') {
-                productList.classList.add('view-two-columns');
-                viewToggleBtn.classList.remove('list-view-active');
-            } else {
-                productList.classList.remove('view-two-columns');
-                viewToggleBtn.classList.add('list-view-active');
-            }
-
-            // 2. 監聽按鈕點擊事件
-            viewToggleBtn.addEventListener('click', () => {
-                // 切換 productList 的 class
-                productList.classList.toggle('view-two-columns');
-
-                // 檢查當前是否為兩欄模式
-                const isTwoColumns = productList.classList.contains('view-two-columns');
-
-                // 切換按鈕 icon 的 class
-                viewToggleBtn.classList.toggle('list-view-active', !isTwoColumns);
-
-                // 3. 將使用者的選擇存入 localStorage
-                localStorage.setItem('productView', isTwoColumns ? 'two-columns' : 'one-column');
-            });
-        }
+        if (await fetchDataFromCloud()) { setUIState(true); } else { try { const localProducts = await readData('products'); const localCategories = await readData('categories'); if (localProducts && localProducts.length > 0) { allProducts = localProducts; allCategories = localCategories || []; setUIState(true); updateSyncStatus('雲端連接失敗，已載入本地快取', 'error'); } else { updateSyncStatus('雲端連接失敗，且無本地快取', 'error'); } } catch (e) { updateSyncStatus('雲端及本地均載入失敗', 'error'); } }
+        if (viewToggleBtn && productList) { const savedView = localStorage.getItem('productView') || 'two-columns'; if (savedView === 'two-columns') { productList.classList.add('view-two-columns'); viewToggleBtn.classList.remove('list-view-active'); } else { productList.classList.remove('view-two-columns'); viewToggleBtn.classList.add('list-view-active'); } viewToggleBtn.addEventListener('click', () => { productList.classList.toggle('view-two-columns'); const isTwoColumns = productList.classList.contains('view-two-columns'); viewToggleBtn.classList.toggle('list-view-active', !isTwoColumns); localStorage.setItem('productView', isTwoColumns ? 'two-columns' : 'one-column'); }); }
     }
     init();
 });
