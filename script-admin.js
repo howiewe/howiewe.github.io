@@ -46,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cropperStatus = document.getElementById('cropper-status');
     const cropperConfirmBtn = document.getElementById('cropper-confirm-btn');
     const cropperRotateBtn = document.getElementById('cropper-rotate-btn');
-    const cropperCancelBtn = document.getElementById('cropper-cancel-btn');
+    const cropperModalCloseBtn = document.getElementById('cropper-modal-close-btn');
+
 
     // --- Global State ---
     let allProducts = [], allCategories = [];
@@ -70,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildCategoryManagementTree() { /* ... */ const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } function createTreeHTML(nodes) { let html = '<ul>'; for (const node of nodes) { html += `<li><div class="category-item-content"><span class="category-name">${node.name}</span><div class="category-actions"><button data-id="${node.id}" class="action-btn add-child-btn" title="新增子分類">+</button><button data-id="${node.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button><button data-id="${node.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button></div></div>`; if (node.children.length > 0) { html += createTreeHTML(node.children); } html += '</li>'; } return html + '</ul>'; } if (categoryManagementTree) categoryManagementTree.innerHTML = createTreeHTML(tree); }
     async function addCategory(parentId = null) { /* ... */ const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) { await saveCategory({ name: name.trim(), parentId }); } else if (name !== null) { alert('分類名稱不能為空！'); } }
     async function editCategory(id) { /* ... */ const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) { await saveCategory({ id: category.id, name: newName.trim(), parentId: category.parentId }); } else if (newName !== null) { alert('分類名稱不能為空！'); } }
-    
+
     // --- 【修改】Modal & Form Logic ---
     if (form) form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -96,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await Promise.all(uploadPromises);
 
             submitBtn.textContent = '正在儲存資料...';
-            
+
             const finalImageUrls = currentImageItems.map(item => item.url);
 
             const productId = productIdInput.value ? parseInt(productIdInput.value) : null;
@@ -155,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
     function initSortable() { if (sortableInstance) sortableInstance.destroy(); if (thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, filter: '.add-new', onEnd: (evt) => { if (evt.newIndex === currentImageItems.length) return; const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch (e) { console.error("SortableJS init failed:", e); } }
-    
+
     // --- 【全新】圖片 UI 狀態管理 ---
     function updateImageUIState() {
         if (currentImageItems.length === 0) {
@@ -166,10 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
             imageUploadArea.classList.remove('hidden');
         }
     }
-    
+
     function renderAdminImagePreview() {
         if (!mainImagePreview) return;
-        
+
         // 先移除舊的縮圖，但不移除 "+" 按鈕
         thumbnailListAdmin.querySelectorAll('.thumbnail-item:not(.add-new)').forEach(el => el.remove());
 
@@ -177,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mainImagePreview.src = currentImageItems[0].url;
             mainImagePreview.style.display = 'block';
             mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`;
-            
+
             currentImageItems.forEach((item, index) => {
                 const thumb = document.createElement('div');
                 thumb.className = 'thumbnail-item';
@@ -219,22 +220,22 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleFileSelection(files) {
         const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
         if (imageFiles.length === 0) return;
-        
+
         imageProcessingQueue = imageFiles;
         originalQueueLength = imageFiles.length;
         processNextImageInQueue();
     }
-    
+
     async function processNextImageInQueue() {
         if (imageProcessingQueue.length === 0) {
             hideCropperModal();
             return;
         }
-        
+
         const file = imageProcessingQueue.shift(); // 取出佇列中的第一個檔案
         const processedBlob = await createSquareImageBlob(file);
         const url = URL.createObjectURL(processedBlob);
-        
+
         showCropperModal(url);
 
         const currentIndex = originalQueueLength - imageProcessingQueue.length;
@@ -261,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         imageProcessingQueue = [];
         originalQueueLength = 0;
     }
-    
+
     function updateBarcodePreview() { if (!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
     function showToast(message, type = 'info', duration = 3000) { const el = document.getElementById('toast-container'); if (!el) return; const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; el.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
 
@@ -278,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (menuToggleBtn) menuToggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
         if (pageOverlay) pageOverlay.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
         if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const target = e.target.closest('a'); if (target) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); target.classList.add('active'); currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id); renderProducts(); if (window.innerWidth <= 992) document.body.classList.remove('sidebar-open'); } });
-        
+
         // --- 【新】圖片上傳相關事件監聽 ---
         [imageDropzone, addMoreImagesBtn].forEach(el => el.addEventListener('click', () => imageUploadInput.click()));
         if (imageUploadInput) imageUploadInput.addEventListener('change', (e) => { handleFileSelection(e.target.files); e.target.value = ''; });
@@ -290,7 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (cropperConfirmBtn) cropperConfirmBtn.addEventListener('click', () => { if (!cropper) return; cropperConfirmBtn.disabled = true; cropper.getCroppedCanvas({ width: 1024, height: 1024, imageSmoothingQuality: 'high' }).toBlob((blob) => { if (blob) { const previewUrl = URL.createObjectURL(blob); currentImageItems.push({ url: previewUrl, blob, isNew: true }); renderAdminImagePreview(); } else { showToast('裁切失敗', 'error'); } cropperConfirmBtn.disabled = false; processNextImageInQueue(); }, 'image/webp', 0.85); });
         if (cropperRotateBtn) cropperRotateBtn.addEventListener('click', () => { if (cropper) cropper.rotate(90); });
-        if (cropperCancelBtn) cropperCancelBtn.addEventListener('click', hideCropperModal);
+        if (cropperModalCloseBtn) cropperModalCloseBtn.addEventListener('click', hideCropperModal);
+        if (cropperModal) {
+            cropperModal.addEventListener('click', (e) => {
+                if (e.target === cropperModal) {
+                    hideCropperModal(); // 點擊灰色背景時關閉
+                }
+            });
+        }
 
         if (ean13Input) ean13Input.addEventListener('input', updateBarcodePreview);
         if (imageSizeSlider) imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if (mainImagePreview) mainImagePreview.style.transform = `scale(${newSize / 100})`; });

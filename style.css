@@ -771,7 +771,7 @@ form select:focus {
 
 #cropper-modal .button-group.cropper-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr 2fr; /* 響應式按鈕佈局 */
+    grid-template-columns: 1fr 2fr;
     gap: 0.75rem;
     width: 100%;
 }
