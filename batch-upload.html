@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>批次建檔工具</title>
+    <!-- 【新增】引入 Cropper.js 的 CSS 和 JS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="batch-page">
+    <!-- 【新增】Toast 元件，用於顯示提示訊息 -->
+    <div id="toast-container"></div>
+    
     <header>
         <div class="header-content">
             <h1><a href="/admin.html">批次建檔工作台</a></h1>
@@ -23,10 +29,13 @@
     <div class="batch-workspace">
         <!-- 左侧：图片素材库 -->
         <div id="image-panel" class="batch-panel">
-            <h2>1. 上傳圖片素材</h2>
+            <h2>1. 上傳並處理圖片</h2>
             <div id="image-dropzone">將所有產品圖片拖到這裡，或點擊選擇</div>
             <input type="file" id="image-upload-input" multiple accept="image/*" class="hidden">
-            <div id="image-pool"></div>
+            <div id="image-pool">
+                <!-- 【修改】初始提示訊息 -->
+                <p class="empty-message">處理完成的圖片將顯示於此</p>
+            </div>
         </div>
 
         <!-- 右侧：资料对位区 -->
@@ -45,6 +54,22 @@
     
     <div id="final-submit-bar">
         <button id="final-submit-btn" class="btn btn-success" disabled>完成建檔 (0 / 0)</button>
+    </div>
+
+    <!-- 【新增】從 admin.html 複製過來的裁切工作區 Modal -->
+    <div id="cropper-modal" class="modal-container hidden">
+        <div class="cropper-content">
+            <button id="cropper-modal-close-btn" class="close-btn" title="關閉">&times;</button>
+            <h3 id="cropper-title">裁切圖片</h3>
+            <p id="cropper-status">正在處理: 1 / 3</p>
+            <div class="cropper-container">
+                <img id="cropper-image" src="">
+            </div>
+            <div class="button-group cropper-actions">
+                <button type="button" id="cropper-rotate-btn" class="btn btn-secondary">旋轉</button>
+                <button type="button" id="cropper-confirm-btn" class="btn btn-primary">確認此圖</button>
+            </div>
+        </div>
     </div>
 
     <script src="script-batch-upload.js"></script>
