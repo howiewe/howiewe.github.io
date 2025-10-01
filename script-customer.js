@@ -190,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function nextSlide() { showSlide(currentSlideIndex + 1); }
     function prevSlide() { showSlide(currentSlideIndex - 1); }
     function dragStart(e) {
+        e.preventDefault();
         if (totalSlides <= 1) return;
         isDragging = true;
         startPosX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
