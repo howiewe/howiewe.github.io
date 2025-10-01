@@ -1146,70 +1146,76 @@ form select:focus {
     }
 }
 
-@media (max-width: 992px) {
-    .menu-toggle-btn {
-        display: flex;
-    }
-
-    #category-sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        z-index: 1002;
-        transform: translateX(-100%);
-        box-shadow: var(--shadow-lg);
-        border-right: none;
-    }
-
-    body.sidebar-open #category-sidebar {
-        transform: translateX(0);
-    }
-}
-
 @media (max-width: 768px) {
-    header h1 {
-        font-size: 1.25rem;
-    }
+ .menu-toggle-btn {
+ display: flex;
+ }
 
-    .container {
-        padding: 1.5rem 1rem;
-    }
+ #category-sidebar {
+ position: fixed;
+ top: 0;
+ left: 0;
+ height: 100vh;
+ z-index: 1002;
+ transform: translateX(-100%);
+ box-shadow: var(--shadow-lg);
+ border-right: none;
+ }
 
-    .toolbar {
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        row-gap: 1rem;
-    }
+ body.sidebar-open #category-sidebar {
+ transform: translateX(0);
+ }
+ 
+ header h1 {
+ font-size: 1.25rem;
+ }
 
-    #search-box {
-        flex-grow: 1;
-    }
+ .container {
+ padding: 1.5rem 1rem;
+ }
 
-    .toolbar-actions {
-        flex-basis: 100%;
-        display: flex;
-        gap: 0.75rem;
-    }
+ .toolbar {
+ flex-wrap: wrap;
+ align-items: center;
+ justify-content: space-between;
+ row-gap: 1rem;
+ }
 
-    .toolbar-actions .btn {
-        flex: 1;
-    }
+ #search-box {
+ flex-grow: 1;
+ }
 
-    .modal-content {
-        padding: 1.5rem;
-    }
-    
-    #cropper-modal .button-group.cropper-actions {
-        grid-template-columns: 1fr; /* 手機上變為單欄 */
-    }
-}
+ .toolbar-actions {
+ flex-basis: 100%;
+ display: flex;
+ gap: 0.75rem;
+ }
 
-@media (hover: none) {
-    .slider-container .slider-nav-btn {
-        opacity: 0.7;
-    }
+ .toolbar-actions .btn {
+ flex: 1;
+ }
+
+ .modal-content {
+ padding: 1.5rem;
+ }
+ 
+ #cropper-modal .button-group.cropper-actions {
+ grid-template-columns: 1fr; /* 手機上變為單欄 */
+ }
+ 
+ /* --- 針對檢視模式切換的調整 --- */
+ .view-toggle {
+ display: flex;
+ }
+
+ .product-grid {
+ grid-template-columns: 1fr;
+ }
+
+ .product-grid.view-two-columns {
+ grid-template-columns: repeat(2, 1fr);
+ gap: 1rem;
+ }
 }
 
 /* --- 15. 檢視模式切換按鈕 (View Toggle Button) --- */
