@@ -1422,7 +1422,6 @@ form select:focus {
  justify-content: center;
  cursor: pointer;
  opacity: 0;
- pointer-events: none;
  transition: opacity 0.3s ease;
 }
 
