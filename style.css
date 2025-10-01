@@ -1403,3 +1403,46 @@ form select:focus {
  opacity: 1; /* 手機上直接顯示按鈕 */
  }
 }
+/* style.css */
+
+/* (您所有的舊樣式...) */
+
+
+/* --- 16. 全新圖片燈箱預覽 (Image Viewer Lightbox) --- */
+.image-viewer {
+ position: fixed;
+ top: 0;
+ left: 0;
+ width: 100%;
+ height: 100%;
+ background-color: rgba(0, 0, 0, 0.85);
+ backdrop-filter: blur(5px);
+ z-index: 1020; /* 必須比產品詳情 Modal 的 z-index (1010) 更高 */
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ cursor: pointer;
+ opacity: 0;
+ pointer-events: none;
+ transition: opacity 0.3s ease;
+}
+
+.image-viewer:not(.hidden) {
+ opacity: 1;
+ pointer-events: auto;
+}
+
+.image-viewer img {
+ max-width: 90vw;
+ max-height: 90vh;
+ object-fit: contain;
+ cursor: grab;
+ transition: transform 0.1s linear; /* 讓拖曳時更滑順 */
+ transform-origin: center center; /* 縮放中心點 */
+ user-select: none; /* 防止拖曳時選取到圖片 */
+}
+
+/* 當使用者正在拖曳圖片時，改變滑鼠指標 */
+.image-viewer img.panning {
+ cursor: grabbing;
+}
