@@ -1279,19 +1279,28 @@ form select:focus {
 
 .category-manager-header {
  display: flex;
- justify-content: space-between;
  align-items: center;
  padding: 1rem 1.5rem;
  border-bottom: 1px solid var(--border-color);
  flex-shrink: 0;
+ gap: 1rem; /* 在元素之間增加一些間距 */
 }
 
 .category-manager-header h2 {
- margin: 0;
+ margin: 0 auto 0 0; /* 關鍵：讓標題佔據所有可用空間，將右側按鈕推開 */
  font-size: 1.25rem;
  white-space: nowrap;
  overflow: hidden;
  text-overflow: ellipsis;
+}
+
+/* 覆蓋 .close-btn 的絕對定位，讓它回歸正常的 Flexbox 流 */
+.category-manager-header .close-btn {
+ position: static;
+ transform: none;
+ font-size: 1.8rem;
+ /* 透過 order 屬性，讓它在視覺上跑到最後面 */
+ order: 10; 
 }
 
 .category-manager-header .btn {
