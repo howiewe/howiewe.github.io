@@ -193,14 +193,28 @@
         </div>
     </div>
     <!-- ▲▲▲ 全新的裁切工作區 Modal 結束 ▲▲▲ -->
-
-    <!-- 分類管理 Modal 保持不變 -->
-    <div id="category-modal-container" class="modal-container hidden">
+     
+    <!-- 全新設計的分類管理 Modal -->
+    <div id="category-modal-container" class="modal-container category-manager hidden">
         <div class="modal-content">
             <button id="category-modal-close-btn" class="close-btn" title="關閉">&times;</button>
-            <h2>分類管理</h2>
-            <div id="category-management-tree"></div>
-            <div class="button-group"><button id="add-toplevel-category-btn" class="btn btn-primary">新增頂層分類</button>
+
+            <!-- 新增的 Header 區域 -->
+            <div id="category-manager-header" class="category-manager-header">
+                <button id="category-back-btn" class="btn btn-secondary hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                    返回
+                </button>
+                <h2 id="category-manager-title">分類管理</h2>
+                <button id="category-add-btn" class="btn btn-primary">新增分類</button>
+            </div>
+
+            <!-- 列表容器 -->
+            <div id="category-manager-list" class="category-manager-list">
+                <!-- 分類列表將由 JavaScript 動態生成於此 -->
             </div>
         </div>
     </div>
