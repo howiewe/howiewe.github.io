@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let startPosX = 0;
     let currentTranslate = 0;
     let prevTranslate = 0;
+    let isSwiping = false;
 
     // --- 資料載入函式 (*** 核心修正處 ***) ---
     async function loadData() {
@@ -193,13 +194,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function dragStart(e) {
         e.preventDefault();
         if (totalSlides <= 1) return;
+
         isDragging = true;
+        isSwiping = false; // 在每次新的觸控/點擊開始時，重置滑動旗標
         startPosX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
         sliderWrapper.style.transition = 'none';
         prevTranslate = -currentSlideIndex * sliderWrapper.clientWidth;
     }
     function dragMove(e) {
         if (!isDragging) return;
+
+        isSwiping = true; // 只要手指/滑鼠移動了，就認定為滑動
+
         const currentPosition = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
         currentTranslate = prevTranslate + currentPosition - startPosX;
         sliderWrapper.style.transform = `translateX(${currentTranslate}px)`;
@@ -207,10 +213,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function dragEnd() {
         if (!isDragging || totalSlides <= 1) return;
         isDragging = false;
+
         const movedBy = currentTranslate - prevTranslate;
         sliderWrapper.style.transition = 'transform 0.4s ease-in-out';
-        if (movedBy < -50 && currentSlideIndex < totalSlides - 1) currentSlideIndex++;
-        if (movedBy > 50 && currentSlideIndex > 0) currentSlideIndex--;
+
+        // 只有在使用者明確滑動時才切換圖片
+        if (isSwiping) {
+            if (movedBy < -50 && currentSlideIndex < totalSlides - 1) currentSlideIndex++;
+            if (movedBy > 50 && currentSlideIndex > 0) currentSlideIndex--;
+        }
+
+        // 無論是否滑動，最後都回到正確的位置
         showSlide(currentSlideIndex);
     }
 
@@ -239,7 +252,9 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 sliderWrapper.querySelectorAll('.slide img').forEach(img => {
                     img.addEventListener('click', (e) => {
-                        // 阻止事件冒泡，避免觸發輪播的拖曳事件
+                        if (isSwiping) {
+                            return;
+                        }
                         e.stopPropagation();
                         openLightbox(e.target.src);
                     });
