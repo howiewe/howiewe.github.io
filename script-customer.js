@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pointX: 0,
         pointY: 0,
         startX: 0,
-        startY: 0
+        startY: 0,
+        didPan: false
     };
 
     // --- 全域變數 ---
@@ -319,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         if (e.target !== viewerImage) return; // 確保只有點擊圖片才能拖曳
         lightboxState.isPanning = true;
+        lightboxState.didPan = false;
         viewerImage.classList.add('panning');
         lightboxState.startX = e.clientX - lightboxState.pointX;
         lightboxState.startY = e.clientY - lightboxState.pointY;
@@ -328,6 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleMouseMove(e) {
         e.preventDefault();
         if (!lightboxState.isPanning) return;
+        lightboxState.didPan = true;
         lightboxState.pointX = e.clientX - lightboxState.startX;
         lightboxState.pointY = e.clientY - lightboxState.startY;
         applyTransform();
@@ -373,11 +376,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // 監聽圖片上的事件以實現縮放和拖曳
             viewerImage.addEventListener('wheel', handleWheel, { passive: false });
             viewerImage.addEventListener('mousedown', handleMouseDown);
+            viewerImage.addEventListener('click', (e) => {
+                // 如果使用者只是點擊而沒有拖曳圖片，就關閉燈箱
+                if (!lightboxState.didPan) {
+                    closeLightbox();
+                }
+            });
             // 在整個 modal 上監聽 mousemove 和 mouseup，以防止滑鼠移出圖片時拖曳中斷
             imageViewerModal.addEventListener('mousemove', handleMouseMove);
             imageViewerModal.addEventListener('mouseup', handleMouseUp);
             imageViewerModal.addEventListener('mouseleave', handleMouseUp);
+
         }
+
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
 
