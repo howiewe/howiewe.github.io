@@ -386,6 +386,7 @@ body.dark-mode .icon-sun {
     color: var(--text-secondary);
     cursor: pointer;
     transition: color 0.2s ease, transform 0.2s ease;
+    z-index: 10;
 }
 
 .close-btn:hover {
@@ -678,6 +679,7 @@ form select:focus {
     display: grid;
     grid-template-columns: 1fr;
     gap: 2rem;
+    padding-top: 2rem;
 }
 
 /* --- 10. 全新圖片上傳流程樣式 (New Image Upload Flow Styles) --- */
