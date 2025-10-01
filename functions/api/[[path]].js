@@ -73,7 +73,8 @@ async function getAllData(db) {
 }
 
 async function createOrUpdateProduct(db, product) { 
- const { id, sku, name, ean13, price, description, imageUrls, imageSize, categoryId } = product;
+ const { id, name, ean13, price, description, imageUrls, imageSize, categoryId } = product;
+ const finalSku = (product.sku === '' || product.sku === undefined) ? null : product.sku;
  const imageUrlsJson = JSON.stringify(imageUrls || []);
  const now = new Date().toISOString();
  let results;
@@ -81,11 +82,11 @@ async function createOrUpdateProduct(db, product) {
  if (id) {
  ({ results } = await db.prepare(
  `UPDATE products SET sku = ?, name = ?, ean13 = ?, price = ?, description = ?, imageUrls = ?, imageSize = ?, categoryId = ?, updatedAt = ? WHERE id = ? RETURNING *`
- ).bind(sku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId, now, id).run());
+ ).bind(finalSku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId, now, id).run());
  } else {
  ({ results } = await db.prepare(
  `INSERT INTO products (sku, name, ean13, price, description, imageUrls, imageSize, categoryId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
- ).bind(sku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId, now, now).run());
+ ).bind(finalSku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId, now, now).run());
  }
 
  if (!results || results.length === 0) throw new Error("資料庫操作失敗，未返回任何結果。");

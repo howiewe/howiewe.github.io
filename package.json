@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "wrangler": "^4.38.0"
+    "wrangler": "latest"
   },
   "dependencies": {
     "papaparse": "^5.5.3"
