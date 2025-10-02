@@ -241,42 +241,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 const link = e.target.closest('a');
                 if (!link) return; // 如果點的不是連結，就什麼都不做
 
-                // 【核心修正】獲取連結所在的直接父層 <li>
-                const directLi = link.parentElement;
+                // 【核心邏輯】判斷點擊的是否為箭頭圖示區域
+                const iconClicked = e.target.closest('.category-toggle-icon');
 
-                // 【核心修正】判斷式改變：只檢查這個直接的 <li> 是否有 has-children class
-                if (directLi && directLi.classList.contains('has-children')) {
-                    // 如果是，代表點擊的是一個父節點，執行展開/收合
-                    e.preventDefault();
+                // --- 情況一：如果點擊的是箭頭圖示 ---
+                if (iconClicked) {
+                    e.preventDefault(); // 阻止連結的默認跳轉行為
 
-                    // 找到箭頭圖示並切換 'expanded' class
-                    const icon = link.querySelector('.category-toggle-icon');
-                    if (icon) {
-                        icon.classList.toggle('expanded');
-                    }
+                    const parentLi = link.parentElement;
 
-                    // 找到子選單 ul 並切換 'hidden' class
-                    const submenu = directLi.querySelector('ul');
+                    // 執行展開/收合
+                    iconClicked.classList.toggle('expanded');
+                    const submenu = parentLi.querySelector('ul');
                     if (submenu) {
                         if (submenu.classList.contains('hidden')) {
                             submenu.classList.remove('hidden');
                             submenu.style.maxHeight = submenu.scrollHeight + "px";
                         } else {
                             submenu.style.maxHeight = "0";
-                            // 等待動畫結束後再真正加上 hidden class
                             setTimeout(() => {
                                 submenu.classList.add('hidden');
                             }, 400);
                         }
                     }
                 }
-                // 如果點擊的不是父節點，就執行正常的產品篩選
+                // --- 情況二：如果點擊的是連結的其他部分 (例如文字) ---
                 else {
-                    e.preventDefault();
+                    e.preventDefault(); // 同樣阻止連結的默認跳轉行為
+
+                    // 執行篩選產品
                     document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
                     link.classList.add('active');
                     currentCategoryId = link.dataset.id === 'all' ? 'all' : parseInt(link.dataset.id);
                     renderProducts();
+
+                    // 手機版上，點擊篩選後自動關閉側邊欄
                     if (window.innerWidth <= 767) {
                         toggleSidebar();
                     }
