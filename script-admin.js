@@ -145,10 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UI & Rendering Logic (部分保留，部分重寫) ---
     function updateSyncStatus(message, status) { if (syncStatus) { syncStatus.textContent = message; syncStatus.className = `sync-status ${status}`; } }
-    function setUIState(isReady) { if (manageCategoriesBtn) manageCategoriesBtn.disabled = !isReady; if (addNewBtn) addNewBtn.disabled = !isReady; if (searchBox) searchBox.disabled = !isReady; if (isReady) { buildCategoryTree(); currentCategoryId = 'all'; document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); const allLink = document.querySelector('#category-tree a[data-id="all"]'); if (allLink) allLink.classList.add('active'); renderProducts(); } else { if (productList) productList.innerHTML = '<p class="empty-message">正在從雲端載入資料...</p>'; if (categoryTreeContainer) categoryTreeContainer.innerHTML = ''; } }
+    function setUIState(isReady) { if (manageCategoriesBtn) manageCategoriesBtn.disabled = !isReady; if (addNewBtn) addNewBtn.disabled = !isReady; if (searchBox) searchBox.disabled = !isReady; if (isReady) { buildCategoryTree(); populateCategorySelect(); currentCategoryId = 'all'; document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); const allLink = document.querySelector('#category-tree a[data-id="all"]'); if (allLink) allLink.classList.add('active'); renderProducts(); } else { if (productList) productList.innerHTML = '<p class="empty-message">正在從雲端載入資料...</p>'; if (categoryTreeContainer) categoryTreeContainer.innerHTML = ''; } }
 
-    // 【修改】buildCategoryTree 現在只負責左側邊欄和下拉選單
-    // 【全新版本】buildCategoryTree 函數
     function buildCategoryTree() {
         if (!categoryTreeContainer) return;
 
@@ -196,6 +194,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 將遞迴產生的樹狀結構，附加到 categoryTreeContainer
         categoryTreeContainer.innerHTML = html + createTreeHTML(tree);
+    }
+    function populateCategorySelect() {
+        if (!categorySelect) return;
+
+        // 這部分的邏輯和 buildCategoryTree 前半部分一樣，用來建構樹狀結構
+        const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
+        const tree = [];
+        allCategories.forEach(c => {
+            if (c.parentId === null) {
+                tree.push(categoryMap.get(c.id));
+            } else if (categoryMap.has(c.parentId)) {
+                categoryMap.get(c.parentId).children.push(categoryMap.get(c.id));
+            }
+        });
+
+        // 排序最上層節點
+        tree.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+        let selectOptions = '<option value="" disabled selected>請選擇分類</option>';
+
+        // 遞迴函數，用來產生 <option> 字串
+        function createSelectOptions(nodes, depth = 0) {
+            // 對當前層級的節點進行排序
+            nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+            nodes.forEach(node => {
+                selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`;
+                if (node.children.length > 0) {
+                    createSelectOptions(node.children, depth + 1);
+                }
+            });
+        }
+
+        createSelectOptions(tree);
+        categorySelect.innerHTML = selectOptions;
     }
 
     // ... (renderProducts 保持不變)
