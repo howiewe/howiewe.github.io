@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeModal() {
         if (detailModal) detailModal.classList.add('hidden');
-        document.body.classList.add('modal-open');
+        document.body.classList.remove('modal-open'); // <-- 核心修正：從 .add 改為 .remove
     }
 
     // script-customer.js
