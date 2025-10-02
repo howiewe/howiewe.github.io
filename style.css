@@ -761,6 +761,7 @@ form select:focus {
     background-color: var(--bg-color);
     margin-bottom: 1rem;
 }
+
 #cropper-modal .cropper-container img {
     max-height: 100%;
 }
@@ -1148,75 +1149,76 @@ form select:focus {
 }
 
 @media (max-width: 768px) {
- .menu-toggle-btn {
- display: flex;
- }
+    .menu-toggle-btn {
+        display: flex;
+    }
 
- #category-sidebar {
- position: fixed;
- top: 0;
- left: 0;
- height: 100vh;
- z-index: 1002;
- transform: translateX(-100%);
- box-shadow: var(--shadow-lg);
- border-right: none;
- }
+    #category-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 1002;
+        transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
+        border-right: none;
+    }
 
- body.sidebar-open #category-sidebar {
- transform: translateX(0);
- }
- 
- header h1 {
- font-size: 1.25rem;
- }
+    body.sidebar-open #category-sidebar {
+        transform: translateX(0);
+    }
 
- .container {
- padding: 1.5rem 1rem;
- }
+    header h1 {
+        font-size: 1.25rem;
+    }
 
- .toolbar {
- flex-wrap: wrap;
- align-items: center;
- justify-content: space-between;
- row-gap: 1rem;
- }
+    .container {
+        padding: 1.5rem 1rem;
+    }
 
- #search-box {
- flex-grow: 1;
- }
+    .toolbar {
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        row-gap: 1rem;
+    }
 
- .toolbar-actions {
- flex-basis: 100%;
- display: flex;
- gap: 0.75rem;
- }
+    #search-box {
+        flex-grow: 1;
+    }
 
- .toolbar-actions .btn {
- flex: 1;
- }
+    .toolbar-actions {
+        flex-basis: 100%;
+        display: flex;
+        gap: 0.75rem;
+    }
 
- .modal-content {
- padding: 1.5rem;
- }
- 
- #cropper-modal .button-group.cropper-actions {
- grid-template-columns: 1fr; /* 手機上變為單欄 */
- }
- 
- /* --- 針對檢視模式切換的調整 --- */
- .view-toggle {
- display: flex;
- }
+    .toolbar-actions .btn {
+        flex: 1;
+    }
 
- .product-grid {
- grid-template-columns: 1fr;
- }
+    .modal-content {
+        padding: 1.5rem;
+    }
 
- .product-grid.view-two-columns {
- grid-template-columns: repeat(2, 1fr);
- gap: 1rem;
- }
+    #cropper-modal .button-group.cropper-actions {
+        grid-template-columns: 1fr;
+        /* 手機上變為單欄 */
+    }
+
+    /* --- 針對檢視模式切換的調整 --- */
+    .view-toggle {
+        display: flex;
+    }
+
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-grid.view-two-columns {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
 }
 
 /* --- 15. 檢視模式切換按鈕 (View Toggle Button) --- */
@@ -1267,141 +1269,153 @@ form select:focus {
 /* --- 15. 全新分類管理介面 (Category Manager) - 修正滾動問題版 --- */
 
 .modal-container.category-manager .modal-content {
- width: 95%;
- max-width: 720px;
- height: 85vh;
- padding: 0; /* 移除內邊距，由子元素控制 */
- display: flex;
- flex-direction: column;
- overflow: hidden; /* 確保圓角裁切，滾動由子元素處理 */
+    width: 95%;
+    max-width: 720px;
+    height: 85vh;
+    padding: 0;
+    /* 移除內邊距，由子元素控制 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* 確保圓角裁切，滾動由子元素處理 */
 }
 
 .category-manager-header {
- display: flex;
- align-items: center;
- padding: 1rem 1.5rem;
- border-bottom: 1px solid var(--border-color);
- flex-shrink: 0; /* 防止 Header 被壓縮 */
- gap: 1rem;
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    /* 防止 Header 被壓縮 */
+    gap: 1rem;
 }
 
 .category-manager-header h2 {
- margin: 0 auto 0 0;
- font-size: 1.25rem;
- white-space: nowrap;
- overflow: hidden;
- text-overflow: ellipsis;
+    margin: 0 auto 0 0;
+    font-size: 1.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .category-manager-header .btn {
- padding: 0.5rem 1rem;
+    padding: 0.5rem 1rem;
 }
 
 #category-back-btn svg {
- margin-right: 0.25rem;
+    margin-right: 0.25rem;
 }
 
 .category-manager-header .close-btn {
- position: static;
- transform: none;
- font-size: 1.8rem;
- order: 10;
+    position: static;
+    transform: none;
+    font-size: 1.8rem;
+    order: 10;
 }
 
 .category-manager-list {
- flex-grow: 1; /* 佔據所有剩餘空間 */
- overflow-y: auto; /* 【核心修正】只讓這個區域滾動 */
- padding: 1rem;
+    flex-grow: 1;
+    /* 佔據所有剩餘空間 */
+    overflow-y: auto;
+    /* 【核心修正】只讓這個區域滾動 */
+    padding: 1rem;
 }
 
 /* 分類列表項目的樣式 (保持不變) */
 .cm-item {
- display: flex;
- align-items: center;
- padding: 0.75rem;
- border-radius: var(--border-radius-md);
- background-color: var(--surface-color);
- border: 1px solid var(--border-color);
- margin-bottom: 0.75rem;
- box-shadow: var(--shadow-sm);
- transition: background-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: var(--border-radius-md);
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 .cm-item:hover {
- background-color: var(--bg-color);
+    background-color: var(--bg-color);
 }
 
 .cm-drag-handle {
- cursor: grab;
- color: var(--text-secondary);
- margin-right: 1rem;
- opacity: 0.5;
- transition: opacity 0.2s;
+    cursor: grab;
+    color: var(--text-secondary);
+    margin-right: 1rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
 }
 
 .cm-item:hover .cm-drag-handle {
- opacity: 1;
+    opacity: 1;
 }
 
 .cm-name {
- flex-grow: 1;
- font-weight: 500;
- cursor: pointer;
+    flex-grow: 1;
+    font-weight: 500;
+    cursor: pointer;
 }
 
 .cm-actions {
- display: flex;
- gap: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
 }
 
 .cm-actions .action-btn {
- opacity: 0.5;
- transition: opacity 0.2s;
+    opacity: 0.5;
+    transition: opacity 0.2s;
 }
 
 .cm-item:hover .cm-actions .action-btn {
- opacity: 1;
+    opacity: 1;
 }
 
 .cm-item.sortable-ghost {
- background-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
- border-style: dashed;
+    background-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
+    border-style: dashed;
 }
+
 .cm-item.sortable-chosen {
- cursor: grabbing;
- box-shadow: var(--shadow-lg);
+    cursor: grabbing;
+    box-shadow: var(--shadow-lg);
 }
 
 
 /* --- 針對手機版的響應式調整 --- */
 @media (max-width: 768px) {
- .modal-container.category-manager .modal-content {
- /* 核心修改：不再佔滿全螢幕 */
- width: 90%; /* 寬度為螢幕的 90% */
- height: auto; /* 高度由內容決定 */
- max-height: 85vh; /* 最大高度不超過螢幕的 85% */
- 
- /* 恢復圓角和彈出動畫 */
- border-radius: var(--border-radius-lg);
- transform: scale(1) !important; /* 確保動畫效果正確 */
+    .modal-container.category-manager .modal-content {
+        /* 核心修改：不再佔滿全螢幕 */
+        width: 90%;
+        /* 寬度為螢幕的 90% */
+        height: auto;
+        /* 高度由內容決定 */
+        max-height: 85vh;
+        /* 最大高度不超過螢幕的 85% */
 
- /* 讓 Modal 和螢幕頂部保持距離 */
- margin-top: 2rem;
- margin-bottom: 2rem;
- }
+        /* 恢復圓角和彈出動畫 */
+        border-radius: var(--border-radius-lg);
+        transform: scale(1) !important;
+        /* 確保動畫效果正確 */
 
- .category-manager-header {
- padding: 0.75rem 1rem;
- }
+        /* 讓 Modal 和螢幕頂部保持距離 */
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
 
- .category-manager-header h2 {
- font-size: 1.1rem;
- }
- 
- .cm-actions .action-btn {
- opacity: 1; /* 手機上直接顯示按鈕 */
- }
+    .category-manager-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .category-manager-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .cm-actions .action-btn {
+        opacity: 1;
+        /* 手機上直接顯示按鈕 */
+    }
 }
+
 /* style.css */
 
 /* (您所有的舊樣式...) */
@@ -1409,40 +1423,44 @@ form select:focus {
 
 /* --- 16. 全新圖片燈箱預覽 (Image Viewer Lightbox) --- */
 .image-viewer {
- position: fixed;
- top: 0;
- left: 0;
- width: 100%;
- height: 100%;
- background-color: rgba(0, 0, 0, 0.85);
- backdrop-filter: blur(5px);
- z-index: 1020; /* 必須比產品詳情 Modal 的 z-index (1010) 更高 */
- display: flex;
- align-items: center;
- justify-content: center;
- cursor: pointer;
- opacity: 0;
- transition: opacity 0.3s ease;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 1020;
+    /* 必須比產品詳情 Modal 的 z-index (1010) 更高 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .image-viewer:not(.hidden) {
- opacity: 1;
- pointer-events: auto;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .image-viewer img {
- max-width: 90vw;
- max-height: 90vh;
- object-fit: contain;
- cursor: grab;
- transition: transform 0.1s linear; /* 讓拖曳時更滑順 */
- transform-origin: center center; /* 縮放中心點 */
- user-select: none; /* 防止拖曳時選取到圖片 */
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    cursor: grab;
+    transition: transform 0.1s linear;
+    /* 讓拖曳時更滑順 */
+    transform-origin: center center;
+    /* 縮放中心點 */
+    user-select: none;
+    /* 防止拖曳時選取到圖片 */
 }
 
 /* 當使用者正在拖曳圖片時，改變滑鼠指標 */
 .image-viewer img.panning {
- cursor: grabbing;
+    cursor: grabbing;
 }
 
 /* --- 17. 全新 Toolbar & 排序功能樣式 (Toolbar & Sort Additions) --- */
@@ -1495,16 +1513,25 @@ form select:focus {
 
 /* 新增的方形圖示按鈕樣式 */
 .btn.btn-icon {
-    width: 44px; /* 維持與輸入框高度一致 */
+    width: 44px;
+    /* 維持與輸入框高度一致 */
     height: 44px;
     padding: 0;
     flex-shrink: 0;
 }
 
 /* 升降序按鈕圖示切換 */
-#order-toggle-btn .icon-desc { display: none; }
-#order-toggle-btn[data-order="desc"] .icon-asc { display: none; }
-#order-toggle-btn[data-order="desc"] .icon-desc { display: block; }
+#order-toggle-btn .icon-desc {
+    display: none;
+}
+
+#order-toggle-btn[data-order="desc"] .icon-asc {
+    display: none;
+}
+
+#order-toggle-btn[data-order="desc"] .icon-desc {
+    display: block;
+}
 
 /* --- 電腦版 Toolbar 樣式 (大於 768px) --- */
 @media(min-width: 768px) {
@@ -1517,7 +1544,7 @@ form select:focus {
     #category-toggle-btn {
         display: none;
     }
-    
+
     /* 顯示並設定搜尋框樣式 */
     #search-box {
         display: block;
@@ -1533,42 +1560,87 @@ form select:focus {
 
 /* --- 手機版 Toolbar 樣式 (小於 767px) --- */
 @media (max-width: 767px) {
-    
-    /* Toolbar 預設狀態 */
+
+    /* --- Toolbar 預設狀態 --- */
+    .toolbar {
+        display: grid;
+        /* 【核心修改】改用 Grid 佈局 */
+        /* 【核心修改】定義欄位：前後為自動寬度，中間兩欄均分剩餘空間 (1fr) */
+        grid-template-columns: auto 1fr 1fr auto;
+    }
+
     #search-box {
-        display: none; /* 預設隱藏搜尋框 */
+        display: none;
     }
+
     #search-toggle-btn,
-    #category-toggle-btn {
-        display: inline-flex; /* 顯示按鈕 */
-    }
     #category-toggle-btn,
-    .sort-container {
-       flex-grow: 1; /* 讓分類和排序按鈕填滿空間 */
-    }
     #sort-btn {
-       width: 100%;
+        display: inline-flex;
+        width: 100%;
+        /* 讓按鈕填滿其所在的 Grid 欄位 */
     }
-    
-    /* Toolbar 搜尋中狀態 */
+
+    /* --- Toolbar 搜尋中狀態 --- */
+    .toolbar.search-active {
+        /* 在搜尋模式下，改為三欄佈局 */
+        grid-template-columns: 1fr auto auto;
+    }
+
     .toolbar.search-active #search-box {
         display: block;
-        flex-grow: 1; /* 展開搜尋框 */
+        width: 100%;
     }
+
     .toolbar.search-active #search-toggle-btn,
     .toolbar.search-active #category-toggle-btn {
-        display: none; /* 隱藏搜尋和分類按鈕 */
+        display: none;
     }
+
     .toolbar.search-active .sort-container {
-        flex-grow: 0; /* 排序按鈕容器不延展 */
+        width: auto;
+        /* 讓容器寬度自適應按鈕大小 */
     }
+
     .toolbar.search-active #sort-btn {
-        width: 44px; /* 縮小排序按鈕為方形 */
+        width: 44px;
+        /* 縮小排序按鈕為方形 */
         height: 44px;
         padding: 0;
     }
+
     .toolbar.search-active #sort-btn span {
-        display: none; /* 隱藏排序文字 */
+        display: none;
+    }
+
+    /* Toolbar 搜尋中狀態 */
+    .toolbar.search-active #search-box {
+        display: block;
+        flex-grow: 1;
+        /* 展開搜尋框 */
+    }
+
+    .toolbar.search-active #search-toggle-btn,
+    .toolbar.search-active #category-toggle-btn {
+        display: none;
+        /* 隱藏搜尋和分類按鈕 */
+    }
+
+    .toolbar.search-active .sort-container {
+        flex-grow: 0;
+        /* 排序按鈕容器不延展 */
+    }
+
+    .toolbar.search-active #sort-btn {
+        width: 44px;
+        /* 縮小排序按鈕為方形 */
+        height: 44px;
+        padding: 0;
+    }
+
+    .toolbar.search-active #sort-btn span {
+        display: none;
+        /* 隱藏排序文字 */
     }
 
     /* header 中的檢視按鈕原本是 display: none，在手機上要顯示 */
