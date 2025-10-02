@@ -69,25 +69,54 @@ document.addEventListener('DOMContentLoaded', () => {
     // (buildCategoryTree, toggleSidebar, getCategoryIdsWithChildren 保持不變)
     function toggleSidebar() { document.body.classList.toggle('sidebar-open'); }
 
+    // 【全新版本】buildCategoryTree 函數
     function buildCategoryTree() {
         if (!categoryTreeContainer) return;
+
         const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
         const tree = [];
         for (const category of categoryMap.values()) {
             if (category.parentId === null) tree.push(category);
             else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
         }
-        let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`;
-        function createTreeHTML(nodes) {
-            let subHtml = '<ul>';
+
+        // 【修改 A1】將「所有產品」獨立出來，固定在最上方
+        let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li></ul>`;
+
+        // 這是遞迴函數，負責產生每一層的 HTML
+        function createTreeHTML(nodes, depth = 0) {
+            // 先依 sortOrder 排序
+            nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+            // 【修改 B1】如果深度大於等於 1 (即第三層)，預設隱藏
+            let subHtml = `<ul class="${depth >= 1 ? 'hidden' : ''}">`;
+
             for (const node of nodes) {
-                subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`;
-                if (node.children.length > 0) subHtml += createTreeHTML(node.children);
+                const hasChildren = node.children && node.children.length > 0;
+
+                // 【修改 B2】如果項目有子分類，就在 li 上加上 'has-children' class
+                subHtml += `<li class="${hasChildren ? 'has-children' : ''}">`;
+                subHtml += `<a href="#" data-id="${node.id}">`;
+                subHtml += `<span>${node.name}</span>`; // 把文字包在 span 裡
+
+                // 【修改 B2】如果項目有子分類，就加上箭頭圖示
+                if (hasChildren) {
+                    subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
+                }
+
+                subHtml += `</a>`;
+
+                if (hasChildren) {
+                    // 遞迴呼叫，並將深度 +1
+                    subHtml += createTreeHTML(node.children, depth + 1);
+                }
                 subHtml += '</li>';
             }
             return subHtml + '</ul>';
         }
-        categoryTreeContainer.innerHTML = html + createTreeHTML(tree) + '</ul>';
+
+        // 將遞迴產生的樹狀結構，附加到 categoryTreeContainer
+        categoryTreeContainer.innerHTML = html + createTreeHTML(tree);
     }
 
     const getCategoryIdsWithChildren = (startId) => {
@@ -134,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchesSearch = p.name.toLowerCase().includes(searchTerm) || (p.sku && p.sku.toLowerCase().includes(searchTerm));
             return matchesCategory && matchesSearch;
         });
-        
+
         // 3. 渲染 (Render)
         productList.innerHTML = '';
         if (filteredProducts.length === 0) {
@@ -200,13 +229,61 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleMouseDown(e) { e.preventDefault(); e.stopPropagation(); if (e.target !== viewerImage) return; lightboxState.isPanning = true; lightboxState.didPan = false; viewerImage.classList.add('panning'); lightboxState.startX = e.clientX - lightboxState.pointX; lightboxState.startY = e.clientY - lightboxState.pointY; }
     function handleMouseMove(e) { e.preventDefault(); if (!lightboxState.isPanning) return; lightboxState.didPan = true; lightboxState.pointX = e.clientX - lightboxState.startX; lightboxState.pointY = e.clientY - lightboxState.startY; applyTransform(); }
     function handleMouseUp(e) { e.preventDefault(); lightboxState.isPanning = false; viewerImage.classList.remove('panning'); }
-    
+
     // --- 初始化與事件監聽 ---
     function init() {
         // (原有事件監聽...)
         if (themeToggle) themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
         if (searchBox) searchBox.addEventListener('input', renderProducts);
-        if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const targetLink = e.target.closest('a'); if (targetLink) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); targetLink.classList.add('active'); currentCategoryId = targetLink.dataset.id === 'all' ? 'all' : parseInt(targetLink.dataset.id); renderProducts(); if (window.innerWidth <= 767) toggleSidebar(); } });
+        // 【全新版本】分類樹的點擊事件
+        if (categoryTreeContainer) {
+            categoryTreeContainer.addEventListener('click', e => {
+                const link = e.target.closest('a');
+                if (!link) return; // 如果點的不是連結，就什麼都不做
+
+                const parentLi = link.closest('li.has-children');
+
+                // 【修改 B3】如果點擊的是一個有子分類的項目
+                if (parentLi) {
+                    e.preventDefault(); // 阻止頁面跳轉
+
+                    // 找到箭頭圖示並切換 'expanded' class
+                    const icon = parentLi.querySelector('.category-toggle-icon');
+                    if (icon) {
+                        icon.classList.toggle('expanded');
+                    }
+
+                    // 找到子選單 ul 並切換 'hidden' class
+                    const submenu = parentLi.querySelector('ul');
+                    if (submenu) {
+                        // 我們需要手動計算子選單的高度以實現動畫
+                        if (submenu.classList.contains('hidden')) {
+                            submenu.classList.remove('hidden');
+                            // 設定 max-height 為其內容的實際滾動高度
+                            submenu.style.maxHeight = submenu.scrollHeight + "px";
+                        } else {
+                            // 在收合前，先將 max-height 設為0
+                            submenu.style.maxHeight = "0";
+                            // 在動畫結束後再真正加上 hidden class，避免閃爍
+                            setTimeout(() => {
+                                submenu.classList.add('hidden');
+                            }, 400); // 這個時間要和 CSS transition 的時間匹配
+                        }
+                    }
+                }
+                // 如果點擊的是一般連結或「所有產品」
+                else {
+                    e.preventDefault();
+                    document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
+                    link.classList.add('active');
+                    currentCategoryId = link.dataset.id === 'all' ? 'all' : parseInt(link.dataset.id);
+                    renderProducts();
+                    if (window.innerWidth <= 767) {
+                        toggleSidebar();
+                    }
+                }
+            });
+        }
         // (Slider & Modal & Lightbox 事件監聽...)
         if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleSidebar);
         if (pageOverlay) pageOverlay.addEventListener('click', toggleSidebar);
@@ -219,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
         if (detailModal) detailModal.addEventListener('click', e => { if (e.target === detailModal) closeModal(); });
         if (imageViewerModal) { imageViewerModal.addEventListener('click', (e) => { if (e.target !== viewerImage) { closeLightbox(); } }); viewerImage.addEventListener('wheel', handleWheel, { passive: false }); viewerImage.addEventListener('mousedown', handleMouseDown); viewerImage.addEventListener('click', (e) => { if (!lightboxState.didPan) { closeLightbox(); } }); imageViewerModal.addEventListener('mousemove', handleMouseMove); imageViewerModal.addEventListener('mouseup', handleMouseUp); imageViewerModal.addEventListener('mouseleave', handleMouseUp); }
-        
+
         // --- 【全新】Toolbar 事件監聽 ---
 
         // 手機版：搜尋按鈕切換
@@ -237,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        
+
         // 手機版：分類按鈕
         if (categoryToggleBtn) {
             categoryToggleBtn.addEventListener('click', toggleSidebar);
@@ -273,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderProducts();
             });
         }
-        
+
         // 點擊頁面其他地方，隱藏排序選項
         document.addEventListener('click', () => {
             if (sortOptionsContainer && !sortOptionsContainer.classList.contains('hidden')) {
@@ -290,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (viewToggleBtn && productList) {
             const savedView = localStorage.getItem('productView') || 'two-columns';
-            if (savedView === 'two-columns') { productList.classList.add('view-two-columns'); viewToggleBtn.classList.remove('list-view-active'); } 
+            if (savedView === 'two-columns') { productList.classList.add('view-two-columns'); viewToggleBtn.classList.remove('list-view-active'); }
             else { productList.classList.remove('view-two-columns'); viewToggleBtn.classList.add('list-view-active'); }
             viewToggleBtn.addEventListener('click', () => {
                 productList.classList.toggle('view-two-columns');

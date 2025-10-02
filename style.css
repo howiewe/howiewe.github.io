@@ -1687,3 +1687,43 @@ form select:focus {
         opacity: 1;
     }
 }
+
+/* --- 18. 可折疊分類側邊欄樣式 (Collapsible Sidebar Additions) --- */
+
+/* 讓包含子分類的 li 項目，滑鼠移上去時顯示為可點擊的手指 */
+#category-tree li.has-children > a {
+    cursor: pointer;
+}
+
+/* 讓連結和箭頭圖示在同一行內對齊 */
+#category-tree li a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 箭頭圖示的基本樣式 */
+.category-toggle-icon {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    transition: transform 0.3s ease; /* 旋轉動畫 */
+    flex-shrink: 0; /* 防止圖示被壓縮 */
+    margin-left: 0.5rem;
+}
+
+/* 當項目被展開時，箭頭圖示旋轉 90 度 */
+.category-toggle-icon.expanded {
+    transform: rotate(90deg);
+}
+
+/* 子選單 ul 的過渡動畫效果 */
+#category-tree ul {
+    transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    overflow: hidden; /* 這是讓 max-height 生效的關鍵 */
+}
+
+/* 預設被隱藏的子選單狀態 */
+#category-tree ul.hidden {
+    max-height: 0;
+}
