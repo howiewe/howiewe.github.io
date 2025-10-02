@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // 手機版上，點擊篩選後自動關閉側邊欄
                     if (window.innerWidth <= 767) {
-                        toggleSidebar();
+                        document.body.classList.remove('sidebar-open');
                     }
                 }
             });
