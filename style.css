@@ -1435,13 +1435,21 @@ form select:focus {
     background-color: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(5px);
     z-index: 1020;
-    /* 必須比產品詳情 Modal 的 z-index (1010) 更高 */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     opacity: 0;
     transition: opacity 0.3s ease;
+    /* 新增此行：這是專門用來防止滾動穿透的現代 CSS 屬性 */
+    overscroll-behavior: contain;
+}
+
+/* 【本次核心修正】在 body.lightbox-open 中新增 touch-action，禁止背景的觸控反應 */
+body.lightbox-open {
+    overflow: hidden;
+    /* 新增此行：禁止頁面因觸控而平移或縮放 */
+    touch-action: none;
 }
 
 .image-viewer:not(.hidden) {

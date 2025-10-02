@@ -293,7 +293,32 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('keydown', e => { if (detailModal && !detailModal.classList.contains('hidden')) { if (e.key === 'ArrowLeft') prevSlide(); if (e.key === 'ArrowRight') nextSlide(); } });
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
         if (detailModal) detailModal.addEventListener('click', e => { if (e.target === detailModal) closeModal(); });
-        if (imageViewerModal) { imageViewerModal.addEventListener('click', (e) => { if (e.target !== viewerImage) { closeLightbox(); } }); viewerImage.addEventListener('wheel', handleWheel, { passive: false }); viewerImage.addEventListener('mousedown', handleMouseDown); viewerImage.addEventListener('click', (e) => { if (!lightboxState.didPan) { closeLightbox(); } }); imageViewerModal.addEventListener('mousemove', handleMouseMove); imageViewerModal.addEventListener('mouseup', handleMouseUp); imageViewerModal.addEventListener('mouseleave', handleMouseUp); }
+        if (imageViewerModal) {
+            imageViewerModal.addEventListener('click', (e) => {
+                if (e.target !== viewerImage) {
+                    closeLightbox();
+                }
+            });
+            viewerImage.addEventListener('wheel', handleWheel, { passive: false });
+            viewerImage.addEventListener('mousedown', handleMouseDown);
+            viewerImage.addEventListener('click', (e) => {
+                if (!lightboxState.didPan) {
+                    closeLightbox();
+                }
+            });
+            imageViewerModal.addEventListener('mousemove', handleMouseMove);
+            imageViewerModal.addEventListener('mouseup', handleMouseUp);
+            imageViewerModal.addEventListener('mouseleave', handleMouseUp);
+
+            // 【全新增修】主動攔截多指觸控事件以防止頁面縮放
+            imageViewerModal.addEventListener('touchmove', (e) => {
+                // 如果偵測到是多於一根手指的操作（通常是縮放手勢）
+                if (e.touches.length > 1) {
+                    // 就阻止這個事件的預設行為（即頁面縮放）
+                    e.preventDefault();
+                }
+            }, { passive: false }); // passive: false 是讓 preventDefault() 生效的關鍵
+        }
 
         // --- 【全新】Toolbar 事件監聽 ---
 
