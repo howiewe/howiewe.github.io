@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
             // 【修改 B1】如果深度大於等於 1 (即第三層)，預設隱藏
-            let subHtml = `<ul class="${depth >= 1 ? 'hidden' : ''}">`;
+            let subHtml = `<ul class="${depth >= 2 ? 'hidden' : ''}">`;
 
             for (const node of nodes) {
                 const hasChildren = node.children && node.children.length > 0;

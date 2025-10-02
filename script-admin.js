@@ -148,39 +148,54 @@ document.addEventListener('DOMContentLoaded', () => {
     function setUIState(isReady) { if (manageCategoriesBtn) manageCategoriesBtn.disabled = !isReady; if (addNewBtn) addNewBtn.disabled = !isReady; if (searchBox) searchBox.disabled = !isReady; if (isReady) { buildCategoryTree(); currentCategoryId = 'all'; document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); const allLink = document.querySelector('#category-tree a[data-id="all"]'); if (allLink) allLink.classList.add('active'); renderProducts(); } else { if (productList) productList.innerHTML = '<p class="empty-message">正在從雲端載入資料...</p>'; if (categoryTreeContainer) categoryTreeContainer.innerHTML = ''; } }
 
     // 【修改】buildCategoryTree 現在只負責左側邊欄和下拉選單
+    // 【全新版本】buildCategoryTree 函數
     function buildCategoryTree() {
+        if (!categoryTreeContainer) return;
+
         const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
         const tree = [];
-        allCategories.forEach(c => {
-            if (c.parentId === null) tree.push(categoryMap.get(c.id));
-            else if (categoryMap.has(c.parentId)) categoryMap.get(c.parentId).children.push(categoryMap.get(c.id));
-        });
+        for (const category of categoryMap.values()) {
+            if (category.parentId === null) tree.push(category);
+            else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
+        }
 
-        const sortNodes = (nodes) => nodes.sort((a, b) => a.sortOrder - b.sortOrder);
-        sortNodes(tree);
-        tree.forEach(node => sortNodes(node.children));
+        // 【修改 A1】將「所有產品」獨立出來，固定在最上方
+        let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li></ul>`;
 
-        let treeHtml = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li>`;
-        function createTreeHTML(nodes) {
-            let subHtml = '<ul>';
-            sortNodes(nodes).forEach(node => {
-                subHtml += `<li><a href="#" data-id="${node.id}">${node.name}</a>`;
-                if (node.children.length > 0) subHtml += createTreeHTML(node.children);
+        // 這是遞迴函數，負責產生每一層的 HTML
+        function createTreeHTML(nodes, depth = 0) {
+            // 先依 sortOrder 排序
+            nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+            // 【修改 B1】如果深度大於等於 1 (即第三層)，預設隱藏
+            let subHtml = `<ul class="${depth >= 2 ? 'hidden' : ''}">`;
+
+            for (const node of nodes) {
+                const hasChildren = node.children && node.children.length > 0;
+
+                // 【修改 B2】如果項目有子分類，就在 li 上加上 'has-children' class
+                subHtml += `<li class="${hasChildren ? 'has-children' : ''}">`;
+                subHtml += `<a href="#" data-id="${node.id}">`;
+                subHtml += `<span>${node.name}</span>`; // 把文字包在 span 裡
+
+                // 【修改 B2】如果項目有子分類，就加上箭頭圖示
+                if (hasChildren) {
+                    subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
+                }
+
+                subHtml += `</a>`;
+
+                if (hasChildren) {
+                    // 遞迴呼叫，並將深度 +1
+                    subHtml += createTreeHTML(node.children, depth + 1);
+                }
                 subHtml += '</li>';
-            });
+            }
             return subHtml + '</ul>';
         }
-        if (categoryTreeContainer) categoryTreeContainer.innerHTML = treeHtml + createTreeHTML(tree) + '</ul>';
 
-        let selectOptions = '<option value="" disabled selected>請選擇分類</option>';
-        function createSelectOptions(nodes, depth = 0) {
-            sortNodes(nodes).forEach(node => {
-                selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`;
-                if (node.children.length > 0) createSelectOptions(node.children, depth + 1);
-            });
-        }
-        createSelectOptions(tree);
-        if (categorySelect) categorySelect.innerHTML = selectOptions;
+        // 將遞迴產生的樹狀結構，附加到 categoryTreeContainer
+        categoryTreeContainer.innerHTML = html + createTreeHTML(tree);
     }
 
     // ... (renderProducts 保持不變)
@@ -348,7 +363,54 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchBox) searchBox.addEventListener('input', renderProducts);
         if (menuToggleBtn) menuToggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
         if (pageOverlay) pageOverlay.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
-        if (categoryTreeContainer) categoryTreeContainer.addEventListener('click', e => { e.preventDefault(); const target = e.target.closest('a'); if (target) { document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); target.classList.add('active'); currentCategoryId = target.dataset.id === 'all' ? 'all' : parseInt(target.dataset.id); renderProducts(); if (window.innerWidth <= 768) document.body.classList.remove('sidebar-open'); } });
+        if (categoryTreeContainer) {
+            categoryTreeContainer.addEventListener('click', e => {
+                const link = e.target.closest('a');
+                if (!link) return; // 如果點的不是連結，就什麼都不做
+
+                const parentLi = link.closest('li.has-children');
+
+                // 【修改 B3】如果點擊的是一個有子分類的項目
+                if (parentLi) {
+                    e.preventDefault(); // 阻止頁面跳轉
+
+                    // 找到箭頭圖示並切換 'expanded' class
+                    const icon = parentLi.querySelector('.category-toggle-icon');
+                    if (icon) {
+                        icon.classList.toggle('expanded');
+                    }
+
+                    // 找到子選單 ul 並切換 'hidden' class
+                    const submenu = parentLi.querySelector('ul');
+                    if (submenu) {
+                        // 我們需要手動計算子選單的高度以實現動畫
+                        if (submenu.classList.contains('hidden')) {
+                            submenu.classList.remove('hidden');
+                            // 設定 max-height 為其內容的實際滾動高度
+                            submenu.style.maxHeight = submenu.scrollHeight + "px";
+                        } else {
+                            // 在收合前，先將 max-height 設為0
+                            submenu.style.maxHeight = "0";
+                            // 在動畫結束後再真正加上 hidden class，避免閃爍
+                            setTimeout(() => {
+                                submenu.classList.add('hidden');
+                            }, 400); // 這個時間要和 CSS transition 的時間匹配
+                        }
+                    }
+                }
+                // 如果點擊的是一般連結或「所有產品」
+                else {
+                    e.preventDefault();
+                    document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
+                    link.classList.add('active');
+                    currentCategoryId = link.dataset.id === 'all' ? 'all' : parseInt(link.dataset.id);
+                    renderProducts();
+                    if (window.innerWidth <= 767) {
+                        toggleSidebar();
+                    }
+                }
+            });
+        }
         // (圖片上傳相關的舊有事件監聽...)
         [imageDropzone, addMoreImagesBtn].forEach(el => el.addEventListener('click', () => imageUploadInput.click()));
         if (imageUploadInput) imageUploadInput.addEventListener('change', (e) => { handleFileSelection(e.target.files); e.target.value = ''; });
