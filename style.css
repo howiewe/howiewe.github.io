@@ -63,8 +63,9 @@ body {
     overflow: hidden;
 }
 
-body.modal-open main {
-    overflow-y: hidden;
+html.modal-open,
+html.modal-open body {
+    overflow: hidden;
 }
 
 .container {

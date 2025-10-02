@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
 
         if (detailModal) detailModal.classList.remove('hidden');
-        document.body.classList.add('modal-open');
+        document.documentElement.classList.add('modal-open');
 
         if (product.ean13) {
             setTimeout(() => {
@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeModal() {
         if (detailModal) detailModal.classList.add('hidden');
-        document.body.classList.remove('modal-open'); // <-- 核心修正：從 .add 改為 .remove
+        document.documentElement.classList.remove('modal-open'); // <-- 核心修正：從 .add 改為 .remove
     }
 
     // script-customer.js
