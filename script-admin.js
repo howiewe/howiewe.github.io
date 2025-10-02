@@ -272,7 +272,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Modal & Form Logic (保持不變) ---
     if (form) form.addEventListener('submit', async (e) => { e.preventDefault(); const submitBtn = form.querySelector('button[type="submit"]'); submitBtn.disabled = true; submitBtn.textContent = '處理中...'; try { const imagesToUpload = currentImageItems.filter(item => item.isNew && item.blob); let uploadedCount = 0; const uploadPromises = imagesToUpload.map(async item => { const ext = item.blob.type.split('/')[1] || 'webp'; const tempId = productIdInput.value || `new_${Date.now()}`; const fileName = `product-${tempId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`; const uploadedUrl = await uploadImage(item.blob, fileName); uploadedCount++; submitBtn.textContent = `上傳圖片 (${uploadedCount}/${imagesToUpload.length})...`; item.url = uploadedUrl; return uploadedUrl; }); await Promise.all(uploadPromises); submitBtn.textContent = '正在儲存資料...'; const finalImageUrls = currentImageItems.map(item => item.url); const productId = productIdInput.value ? parseInt(productIdInput.value) : null; const data = { id: productId, name: document.getElementById('product-name').value, sku: document.getElementById('product-sku').value, ean13: ean13Input.value, price: parseFloat(document.getElementById('product-price').value), description: document.getElementById('product-description').value, imageUrls: finalImageUrls, imageSize: parseInt(imageSizeSlider.value), categoryId: parseInt(categorySelect.value) }; if (!data.categoryId) { alert("請選擇分類！"); return; } await saveProduct(data); closeModal(editModal); } finally { submitBtn.disabled = false; submitBtn.textContent = '儲存變更'; } });
-    function openProductModal(product = null) { resetForm(); if (product) { formTitle.textContent = '編輯產品'; productIdInput.value = product.id; document.getElementById('product-name').value = product.name; document.getElementById('product-sku').value = product.sku; ean13Input.value = product.ean13; document.getElementById('product-price').value = product.price; document.getElementById('product-description').value = product.description; categorySelect.value = product.categoryId; currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url, isNew: false, blob: null })) : []; const size = product.imageSize || 90; imageSizeSlider.value = size; imageSizeValue.textContent = size; deleteBtn.classList.remove('hidden'); deleteBtn.onclick = () => deleteProductApi(product.id); } else { formTitle.textContent = '新增產品'; } updateImageUIState(); renderAdminImagePreview(); updateBarcodePreview(); openModal(editModal); initSortable(); }
+    function openProductModal(product = null) {
+        resetForm();
+        if (product) {
+            formTitle.textContent = '編輯產品';
+            productIdInput.value = product.id;
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-sku').value = product.sku;
+            ean13Input.value = product.ean13;
+            document.getElementById('product-price').value = product.price;
+            document.getElementById('product-description').value = product.description;
+            categorySelect.value = product.categoryId;
+            currentImageItems = product.imageUrls ? product.imageUrls.map(url => ({ url, isNew: false, blob: null })) : [];
+            const size = product.imageSize || 90;
+            imageSizeSlider.value = size;
+            imageSizeValue.textContent = size;
+            deleteBtn.classList.remove('hidden');
+            deleteBtn.onclick = () => deleteProductApi(product.id);
+        } else {
+            formTitle.textContent = '新增產品';
+
+            // --- 【核心新增邏輯】 ---
+            // 檢查當前選擇的分類是否是「所有產品」
+            if (currentCategoryId !== 'all' && currentCategoryId !== null) {
+                // 如果不是，就將下拉選單的值自動設為當前分類
+                categorySelect.value = currentCategoryId;
+            }
+            // 如果是「所有產品」，則不做任何事，讓使用者手動選擇
+        }
+        updateImageUIState();
+        renderAdminImagePreview();
+        updateBarcodePreview();
+        openModal(editModal);
+        initSortable();
+    }
     function resetForm() { if (form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if (i.url && i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; imageSizeSlider.value = 90; imageSizeValue.textContent = 90; mainImagePreview.style.transform = 'scale(1)'; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropperModal(); }
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
