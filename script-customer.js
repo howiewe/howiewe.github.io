@@ -241,37 +241,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 const link = e.target.closest('a');
                 if (!link) return; // 如果點的不是連結，就什麼都不做
 
-                const parentLi = link.closest('li.has-children');
+                // 【核心修正】獲取連結所在的直接父層 <li>
+                const directLi = link.parentElement;
 
-                // 【修改 B3】如果點擊的是一個有子分類的項目
-                if (parentLi) {
-                    e.preventDefault(); // 阻止頁面跳轉
+                // 【核心修正】判斷式改變：只檢查這個直接的 <li> 是否有 has-children class
+                if (directLi && directLi.classList.contains('has-children')) {
+                    // 如果是，代表點擊的是一個父節點，執行展開/收合
+                    e.preventDefault();
 
                     // 找到箭頭圖示並切換 'expanded' class
-                    const icon = parentLi.querySelector('.category-toggle-icon');
+                    const icon = link.querySelector('.category-toggle-icon');
                     if (icon) {
                         icon.classList.toggle('expanded');
                     }
 
                     // 找到子選單 ul 並切換 'hidden' class
-                    const submenu = parentLi.querySelector('ul');
+                    const submenu = directLi.querySelector('ul');
                     if (submenu) {
-                        // 我們需要手動計算子選單的高度以實現動畫
                         if (submenu.classList.contains('hidden')) {
                             submenu.classList.remove('hidden');
-                            // 設定 max-height 為其內容的實際滾動高度
                             submenu.style.maxHeight = submenu.scrollHeight + "px";
                         } else {
-                            // 在收合前，先將 max-height 設為0
                             submenu.style.maxHeight = "0";
-                            // 在動畫結束後再真正加上 hidden class，避免閃爍
+                            // 等待動畫結束後再真正加上 hidden class
                             setTimeout(() => {
                                 submenu.classList.add('hidden');
-                            }, 400); // 這個時間要和 CSS transition 的時間匹配
+                            }, 400);
                         }
                     }
                 }
-                // 如果點擊的是一般連結或「所有產品」
+                // 如果點擊的不是父節點，就執行正常的產品篩選
                 else {
                     e.preventDefault();
                     document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
