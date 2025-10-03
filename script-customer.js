@@ -198,12 +198,56 @@ document.addEventListener('DOMContentLoaded', () => {
     function dragEnd() { if (!isDragging || totalSlides <= 1) return; isDragging = false; const movedBy = currentTranslate - prevTranslate; sliderWrapper.style.transition = 'transform 0.4s ease-in-out'; if (isSwiping) { if (movedBy < -50 && currentSlideIndex < totalSlides - 1) currentSlideIndex++; if (movedBy > 50 && currentSlideIndex > 0) currentSlideIndex--; } showSlide(currentSlideIndex); }
 
     function openDetailModal(product) {
-        if (!product || !detailInfo || !sliderWrapper || !detailThumbnailList || !sliderDots) return; const category = allCategories.find(c => c.id === product.categoryId);
+        if (!product || !detailInfo || !sliderWrapper || !detailThumbnailList || !sliderDots) return;
+        const category = allCategories.find(c => c.id === product.categoryId);
         detailInfo.innerHTML = ` <h2>${product.name}</h2> <p class="price">$${product.price}</p> <p class="product-description-display">${product.description || ''}</p> <dl class="details-grid"> <dt>分類</dt><dd>${category ? category.name : '未分類'}</dd> <dt>編號</dt><dd>${product.sku || 'N/A'}</dd> <dt>EAN-13</dt><dd>${product.ean13 || 'N/A'}</dd> </dl> ${product.ean13 ? `<div class="barcode-display"><svg id="detail-barcode"></svg></div>` : ''} `;
-        sliderWrapper.innerHTML = ''; detailThumbnailList.innerHTML = ''; sliderDots.innerHTML = ''; const imageUrls = product.imageUrls || []; totalSlides = imageUrls.length; currentSlideIndex = 0;
-        if (totalSlides > 0) { imageUrls.forEach((url, index) => { sliderWrapper.innerHTML += `<div class="slide"><img src="${url}" alt="${product.name} - 圖片 ${index + 1}"></div>`; detailThumbnailList.innerHTML += `<div class="thumbnail-item"><img src="${url}" data-index="${index}" alt="產品縮圖 ${index + 1}"></div>`; sliderDots.innerHTML += `<div class="dot" data-index="${index}"></div>`; }); setTimeout(() => { sliderWrapper.querySelectorAll('.slide img').forEach(img => { img.addEventListener('click', (e) => { if (isSwiping) return; e.stopPropagation(); openLightbox(e.target.src); }); }); }, 0); } else { sliderWrapper.innerHTML = `<div class="slide"><img src="" alt="無圖片"></div>`; totalSlides = 1; }
-        sliderWrapper.style.transform = 'translateX(0px)'; updateUI(); if (detailModal) detailModal.classList.remove('hidden'); document.body.classList.add('modal-open');
-        if (product.ean13) { setTimeout(() => { const barcodeElement = document.getElementById('detail-barcode'); if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) { console.error('JsBarcode error:', e); } }, 0); }
+
+        sliderWrapper.innerHTML = '';
+        detailThumbnailList.innerHTML = '';
+        sliderDots.innerHTML = '';
+
+        const imageUrls = product.imageUrls || [];
+        totalSlides = imageUrls.length;
+        currentSlideIndex = 0;
+
+        if (totalSlides > 0) {
+            // ▼▼▼ *** 核心修正 *** ▼▼▼
+            // 迴圈中的變數從 url 改為 item，因為現在陣列裡的是物件
+            imageUrls.forEach((item, index) => {
+                // 從 item 物件中提取 .url 屬性給 src
+                sliderWrapper.innerHTML += `<div class="slide"><img src="${item.url}" alt="${product.name} - 圖片 ${index + 1}"></div>`;
+                detailThumbnailList.innerHTML += `<div class="thumbnail-item"><img src="${item.url}" data-index="${index}" alt="產品縮圖 ${index + 1}"></div>`;
+                sliderDots.innerHTML += `<div class="dot" data-index="${index}"></div>`;
+            });
+            // ▲▲▲ *** 修正結束 *** ▲▲▲
+
+            setTimeout(() => {
+                sliderWrapper.querySelectorAll('.slide img').forEach(img => {
+                    img.addEventListener('click', (e) => {
+                        if (isSwiping) return;
+                        e.stopPropagation();
+                        openLightbox(e.target.src);
+                    });
+                });
+            }, 0);
+        } else {
+            sliderWrapper.innerHTML = `<div class="slide"><img src="" alt="無圖片"></div>`;
+            totalSlides = 1;
+        }
+
+        sliderWrapper.style.transform = 'translateX(0px)';
+        updateUI();
+        if (detailModal) detailModal.classList.remove('hidden');
+        document.body.classList.add('modal-open');
+
+        if (product.ean13) {
+            setTimeout(() => {
+                const barcodeElement = document.getElementById('detail-barcode');
+                if (barcodeElement) try {
+                    JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 });
+                } catch (e) { console.error('JsBarcode error:', e); }
+            }, 0);
+        }
     }
 
     function closeModal() { if (detailModal) detailModal.classList.add('hidden'); document.body.classList.remove('modal-open'); }

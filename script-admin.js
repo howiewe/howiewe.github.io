@@ -355,7 +355,41 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
     function initSortable() { if (sortableInstance) sortableInstance.destroy(); if (thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, filter: '.add-new', onEnd: (evt) => { if (evt.newIndex === currentImageItems.length) return; const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch (e) { console.error("SortableJS init failed:", e); } }
     function updateImageUIState() { const imageEmptyState = document.getElementById('image-empty-state'); if (currentImageItems.length === 0) { imageEmptyState.classList.remove('hidden'); imageUploadArea.classList.add('hidden'); } else { imageEmptyState.classList.add('hidden'); imageUploadArea.classList.remove('hidden'); } }
-    function renderAdminImagePreview() { if (!mainImagePreview) return; thumbnailListAdmin.querySelectorAll('.thumbnail-item:not(.add-new)').forEach(el => el.remove()); if (currentImageItems.length > 0) { mainImagePreview.src = currentImageItems[0].url; mainImagePreview.style.display = 'block'; mainImagePreview.style.transform = `scale(${imageSizeSlider.value / 100})`; currentImageItems.forEach((item, index) => { const thumb = document.createElement('div'); thumb.className = 'thumbnail-item'; if (index === 0) thumb.classList.add('active'); thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`; thumbnailListAdmin.insertBefore(thumb, addMoreImagesBtn); }); } else { mainImagePreview.src = ''; mainImagePreview.style.display = 'none'; } updateImageUIState(); }
+    function renderAdminImagePreview() {
+        if (!mainImagePreview) return;
+        thumbnailListAdmin.querySelectorAll('.thumbnail-item:not(.add-new)').forEach(el => el.remove());
+
+        if (currentImageItems.length > 0) {
+            let activeIndex = currentImageItems.findIndex(item => item.isActive);
+            if (activeIndex === -1) {
+                activeIndex = 0;
+                currentImageItems.forEach((item, index) => item.isActive = (index === 0));
+            }
+
+            const activeItem = currentImageItems[activeIndex];
+
+            // ▼▼▼ *** 核心驗證與修正 *** ▼▼▼
+            mainImagePreview.src = activeItem.url; // <-- 確保使用 .url
+            mainImagePreview.style.display = 'block';
+            mainImagePreview.style.transform = `scale(${activeItem.size / 100})`;
+
+            imageSizeSlider.value = activeItem.size;
+            imageSizeValue.textContent = activeItem.size;
+
+            currentImageItems.forEach((item, index) => {
+                const thumb = document.createElement('div');
+                thumb.className = 'thumbnail-item';
+                if (index === activeIndex) thumb.classList.add('active');
+                thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`; // <-- 確保使用 .url
+                thumbnailListAdmin.insertBefore(thumb, addMoreImagesBtn);
+            });
+            // ▲▲▲ *** 修正結束 *** ▲▲▲
+        } else {
+            mainImagePreview.src = '';
+            mainImagePreview.style.display = 'none';
+        }
+        updateImageUIState();
+    }
     function createSquareImageBlob(imageFile) { return new Promise((resolve, reject) => { const url = URL.createObjectURL(imageFile); const img = new Image(); img.onload = () => { const size = Math.max(img.naturalWidth, img.naturalHeight); const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); const x = (size - img.naturalWidth) / 2; const y = (size - img.naturalHeight) / 2; ctx.drawImage(img, x, y); URL.revokeObjectURL(url); canvas.toBlob(blob => { if (blob) resolve(blob); else reject(new Error('Canvas to Blob failed.')); }, 'image/png'); }; img.onerror = (err) => { URL.revokeObjectURL(url); reject(err); }; img.src = url; }); }
     async function handleFileSelection(files) { const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/')); if (imageFiles.length === 0) return; imageProcessingQueue = imageFiles; originalQueueLength = imageFiles.length; processNextImageInQueue(); }
     async function processNextImageInQueue() { if (imageProcessingQueue.length === 0) { hideCropperModal(); return; } const file = imageProcessingQueue.shift(); const processedBlob = await createSquareImageBlob(file); const url = URL.createObjectURL(processedBlob); showCropperModal(url); const currentIndex = originalQueueLength - imageProcessingQueue.length; cropperStatus.textContent = `正在處理: ${currentIndex} / ${originalQueueLength}`; cropperConfirmBtn.textContent = imageProcessingQueue.length > 0 ? '確認並處理下一張' : '完成裁切'; }
@@ -382,7 +416,44 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cropperModal) cropperModal.addEventListener('click', (e) => { if (e.target === cropperModal) hideCropperModal(); });
     if (ean13Input) ean13Input.addEventListener('input', updateBarcodePreview);
     if (imageSizeSlider) imageSizeSlider.addEventListener('input', () => { const newSize = imageSizeSlider.value; imageSizeValue.textContent = newSize; if (mainImagePreview) mainImagePreview.style.transform = `scale(${newSize / 100})`; });
-    if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', e => { const target = e.target.closest('button.delete-thumb-btn, img'); if (!target) return; if (target.classList.contains('delete-thumb-btn')) { const index = parseInt(target.dataset.index); const item = currentImageItems[index]; if (item?.url.startsWith('blob:')) URL.revokeObjectURL(item.url); currentImageItems.splice(index, 1); renderAdminImagePreview(); } if (target.tagName === 'IMG') { const index = parseInt(target.dataset.index); mainImagePreview.src = currentImageItems[index].url; document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(i => i.classList.remove('active')); target.closest('.thumbnail-item').classList.add('active'); } });
+    if (thumbnailListAdmin) thumbnailListAdmin.addEventListener('click', e => {
+        const target = e.target.closest('button.delete-thumb-btn, img');
+        if (!target) return;
+
+        if (target.classList.contains('delete-thumb-btn')) {
+            const indexToDelete = parseInt(target.dataset.index);
+            const item = currentImageItems[indexToDelete];
+            if (item?.url.startsWith('blob:')) URL.revokeObjectURL(item.url);
+
+            const wasActive = item.isActive;
+            currentImageItems.splice(indexToDelete, 1);
+
+            if (wasActive && currentImageItems.length > 0) {
+                currentImageItems.forEach(i => i.isActive = false);
+                currentImageItems[0].isActive = true;
+            }
+
+            renderAdminImagePreview();
+        }
+
+        if (target.tagName === 'IMG') {
+            const index = parseInt(target.dataset.index);
+            currentImageItems.forEach((item, i) => item.isActive = (i === index));
+
+            const selectedItem = currentImageItems[index];
+
+            // ▼▼▼ *** 核心修正 *** ▼▼▼
+            mainImagePreview.src = selectedItem.url; // <-- 確保使用 .url
+            // ▲▲▲ *** 修正結束 *** ▲▲▲
+
+            mainImagePreview.style.transform = `scale(${selectedItem.size / 100})`;
+            imageSizeSlider.value = selectedItem.size;
+            imageSizeValue.textContent = selectedItem.size;
+
+            document.querySelectorAll('#thumbnail-list-admin .thumbnail-item').forEach(i => i.classList.remove('active'));
+            target.closest('.thumbnail-item').classList.add('active');
+        }
+    });
     if (manageCategoriesBtn) manageCategoriesBtn.addEventListener('click', () => { categoryManagerHistory = []; renderCategoryManager(null); openModal(categoryModal); });
     if (categoryModalCloseBtn) categoryModalCloseBtn.addEventListener('click', () => closeModal(categoryModal));
     if (categoryBackBtn) categoryBackBtn.addEventListener('click', () => { const lastParentId = categoryManagerHistory.pop(); renderCategoryManager(lastParentId, false); });
