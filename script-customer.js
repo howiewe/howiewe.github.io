@@ -156,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (product.ean13) { setTimeout(() => { const barcodeElement = document.getElementById('detail-barcode'); if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) { console.error('JsBarcode error:', e); } }, 0); }
     }
     function closeModal() { if (detailModal) detailModal.classList.add('hidden'); document.body.classList.remove('modal-open'); }
-    // --- Lightbox Zoom & Pan Logic (支援觸控手勢的全新版本) ---
 
     function applyTransform() {
         if (viewerImage) {
@@ -172,9 +171,11 @@ document.addEventListener('DOMContentLoaded', () => {
             isPanning: false,
             pointX: 0,
             pointY: 0,
-            startX: 0,
-            startY: 0,
-            didPan: false, // 【關鍵】用來判斷是否發生過拖曳/縮放
+            startX: 0, // 互動開始時的游標/觸點 X 座標
+            startY: 0, // 互動開始時的游標/觸點 Y 座標
+            startPointX: 0, // 互動開始時的圖片 X 位置
+            startPointY: 0, // 互動開始時的圖片 Y 位置
+            didPan: false, // 是否發生過有效移動
             initialPinchDistance: 0
         };
         applyTransform();
@@ -203,38 +204,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function interactionStart(e) {
         e.preventDefault();
-        // 在每次新的互動開始時，重置 didPan 狀態
         lightboxState.didPan = false;
 
         if (e.type === 'mousedown') {
             lightboxState.isPanning = true;
-            lightboxState.startX = e.clientX - lightboxState.pointX;
-            lightboxState.startY = e.clientY - lightboxState.pointY;
+            lightboxState.startX = e.clientX;
+            lightboxState.startY = e.clientY;
         } else if (e.type === 'touchstart') {
             if (e.touches.length === 1) {
                 lightboxState.isPanning = true;
-                lightboxState.startX = e.touches[0].clientX - lightboxState.pointX;
-                lightboxState.startY = e.touches[0].clientY - lightboxState.pointY;
+                lightboxState.startX = e.touches[0].clientX;
+                lightboxState.startY = e.touches[0].clientY;
             } else if (e.touches.length >= 2) {
-                lightboxState.isPanning = false;
+                lightboxState.isPanning = false; // 雙指縮放時，禁用單指的 panning 邏輯
                 lightboxState.initialPinchDistance = getDistance(e.touches);
             }
         }
+
+        // 記錄互動開始時圖片的初始位置
+        lightboxState.startPointX = lightboxState.pointX;
+        lightboxState.startPointY = lightboxState.pointY;
+
         if (viewerImage) viewerImage.classList.add('panning');
     }
 
     function interactionMove(e) {
         e.preventDefault();
-        // 只要觸發了 move 事件，就代表使用者正在拖曳或縮放
-        lightboxState.didPan = true;
 
         if (lightboxState.isPanning) { // 處理拖曳 (滑鼠或單指)
             const currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
             const currentY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
-            lightboxState.pointX = currentX - lightboxState.startX;
-            lightboxState.pointY = currentY - lightboxState.startY;
+
+            const deltaX = currentX - lightboxState.startX;
+            const deltaY = currentY - lightboxState.startY;
+
+            // 【核心修正】只有移動超過 5px 才算是有效拖曳
+            if (!lightboxState.didPan && Math.sqrt(deltaX * deltaX + deltaY * deltaY) > 5) {
+                lightboxState.didPan = true;
+            }
+
+            // 即使是微小移動，也要更新畫面，讓圖片跟手
+            lightboxState.pointX = lightboxState.startPointX + deltaX;
+            lightboxState.pointY = lightboxState.startPointY + deltaY;
             applyTransform();
+
         } else if (e.type === 'touchmove' && e.touches.length >= 2) { // 處理縮放 (雙指)
+            lightboxState.didPan = true; // 只要是雙指縮放，就一定是有效操作
             const newPinchDistance = getDistance(e.touches);
             const scaleMultiplier = newPinchDistance / lightboxState.initialPinchDistance;
             const newScale = lightboxState.scale * scaleMultiplier;
@@ -253,18 +268,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function interactionEnd(e) {
         e.preventDefault();
-        lightboxState.isPanning = false;
-        lightboxState.initialPinchDistance = 0;
-        if (viewerImage) viewerImage.classList.remove('panning');
 
-        // 【核心修正】只有在互動過程中從未發生過拖曳或縮放 (didPan 為 false) 的情況下，才關閉燈箱
+        // 【核心修正】現在 didPan 只有在移動超過閥值後才會是 true
         if (!lightboxState.didPan) {
             closeLightbox();
         }
+
+        lightboxState.isPanning = false;
+        lightboxState.initialPinchDistance = 0;
+        if (viewerImage) viewerImage.classList.remove('panning');
     }
 
     function handleWheel(e) {
         e.preventDefault();
+        lightboxState.didPan = true; // 滾輪滾動也是有效操作
         const xs = (e.clientX - lightboxState.pointX) / lightboxState.scale;
         const ys = (e.clientY - lightboxState.pointY) / lightboxState.scale;
         const delta = -e.deltaY;
