@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lightboxState.startPointX = lightboxState.pointX;
         lightboxState.startPointY = lightboxState.pointY;
 
-        if (viewerImage) viewerImage.classList.add('panning');
+        if (imageViewerModal) imageViewerModal.classList.add('panning');
     }
 
     function interactionMove(e) {
@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         lightboxState.isPanning = false;
         lightboxState.initialPinchDistance = 0;
-        if (viewerImage) viewerImage.classList.remove('panning');
+        if (imageViewerModal) imageViewerModal.classList.remove('panning');
     }
 
     function handleWheel(e) {
@@ -331,20 +331,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (detailModal) detailModal.addEventListener('click', e => { if (e.target === detailModal) closeModal(); });
 
         if (imageViewerModal) {
-            // 輕觸背景以關閉
-            imageViewerModal.addEventListener('click', interactionEnd);
+            // --- 將所有互動事件統一綁定到整個燈箱容器 ---
 
             // 滾輪縮放 (桌面版)
-            viewerImage.addEventListener('wheel', handleWheel, { passive: false });
+            imageViewerModal.addEventListener('wheel', handleWheel, { passive: false });
 
             // 滑鼠拖曳
-            viewerImage.addEventListener('mousedown', interactionStart);
+            imageViewerModal.addEventListener('mousedown', interactionStart);
             imageViewerModal.addEventListener('mousemove', interactionMove);
             imageViewerModal.addEventListener('mouseup', interactionEnd);
             imageViewerModal.addEventListener('mouseleave', interactionEnd);
 
             // 觸控拖曳與縮放
-            viewerImage.addEventListener('touchstart', interactionStart, { passive: false });
+            imageViewerModal.addEventListener('touchstart', interactionStart, { passive: false });
             imageViewerModal.addEventListener('touchmove', interactionMove, { passive: false });
             imageViewerModal.addEventListener('touchend', interactionEnd);
         }
