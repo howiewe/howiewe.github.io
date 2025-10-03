@@ -792,6 +792,12 @@ form select:focus {
     margin-bottom: 1rem;
 }
 
+.product-description-display {
+    white-space: pre-wrap; /* 核心：告訴瀏覽器保留換行符和空格 */
+    word-wrap: break-word; /* 輔助：當遇到超長單字時強制換行，避免排版錯亂 */
+    color: var(--text-secondary); /* 讓描述文字顏色和次要文字一致，視覺更和諧 */
+}
+
 #product-detail-info .details-grid {
     display: grid;
     grid-template-columns: auto 1fr;
