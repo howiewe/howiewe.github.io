@@ -156,37 +156,123 @@ document.addEventListener('DOMContentLoaded', () => {
         if (product.ean13) { setTimeout(() => { const barcodeElement = document.getElementById('detail-barcode'); if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) { console.error('JsBarcode error:', e); } }, 0); }
     }
     function closeModal() { if (detailModal) detailModal.classList.add('hidden'); document.body.classList.remove('modal-open'); }
-    function applyTransform() { if (viewerImage) { viewerImage.style.transform = `translate(${lightboxState.pointX}px, ${lightboxState.pointY}px) scale(${lightboxState.scale})`; } }
-    function resetLightbox() { lightboxState = { scale: 1, isPanning: false, pointX: 0, pointY: 0, startX: 0, startY: 0, didPan: false }; applyTransform(); }
-    
-    // 【本次核心修改處】
+    // --- Lightbox Zoom & Pan Logic (支援觸控手勢的全新版本) ---
+    function applyTransform() {
+        if (viewerImage) {
+            // 使用 requestAnimationFrame 讓動畫更流暢
+            window.requestAnimationFrame(() => {
+                viewerImage.style.transform = `translate(${lightboxState.pointX}px, ${lightboxState.pointY}px) scale(${lightboxState.scale})`;
+            });
+        }
+    }
+
+    function resetLightbox() {
+        lightboxState = {
+            scale: 1,
+            isPanning: false,
+            pointX: 0,
+            pointY: 0,
+            startX: 0,
+            startY: 0,
+            didPan: false,
+            initialPinchDistance: 0 // 新增：用於觸控縮放
+        };
+        applyTransform();
+    }
+
     function openLightbox(url) {
         if (!imageViewerModal || !viewerImage) return;
         viewerImage.setAttribute('src', url);
         imageViewerModal.classList.remove('hidden');
         document.body.classList.add('lightbox-open');
-        // 直接修改 meta 標籤，禁止頁面縮放
-        if (viewportMeta) {
-            viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-        }
+        // 註：不再需要修改 viewport meta 標籤
     }
 
-    // 【本次核心修改處】
     function closeLightbox() {
         if (!imageViewerModal) return;
         imageViewerModal.classList.add('hidden');
         resetLightbox();
         document.body.classList.remove('lightbox-open');
-        // 恢復 meta 標籤到原始狀態，允許頁面縮放
-        if (viewportMeta) {
-            viewportMeta.setAttribute('content', originalViewportContent);
+        // 註：不再需要恢復 viewport meta 標籤
+    }
+
+    // 計算兩指之間的距離
+    function getDistance(touches) {
+        return Math.sqrt(
+            Math.pow(touches[0].clientX - touches[1].clientX, 2) +
+            Math.pow(touches[0].clientY - touches[1].clientY, 2)
+        );
+    }
+
+    // --- 整合的互動處理函式 ---
+    function interactionStart(e) {
+        e.preventDefault();
+
+        if (e.type === 'mousedown') { // 滑鼠按下
+            lightboxState.isPanning = true;
+            lightboxState.startX = e.clientX - lightboxState.pointX;
+            lightboxState.startY = e.clientY - lightboxState.pointY;
+        } else if (e.type === 'touchstart') { // 觸控開始
+            if (e.touches.length === 1) { // 單指拖曳
+                lightboxState.isPanning = true;
+                lightboxState.startX = e.touches[0].clientX - lightboxState.pointX;
+                lightboxState.startY = e.touches[0].clientY - lightboxState.pointY;
+            } else if (e.touches.length === 2) { // 雙指縮放
+                lightboxState.isPanning = false;
+                lightboxState.initialPinchDistance = getDistance(e.touches);
+            }
+        }
+
+        lightboxState.didPan = false;
+        if (viewerImage) viewerImage.classList.add('panning');
+    }
+
+    function interactionMove(e) {
+        e.preventDefault();
+
+        if (lightboxState.isPanning) { // 處理拖曳 (滑鼠或單指)
+            lightboxState.didPan = true;
+            const currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+            const currentY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
+            lightboxState.pointX = currentX - lightboxState.startX;
+            lightboxState.pointY = currentY - lightboxState.startY;
+            applyTransform();
+        } else if (e.type === 'touchmove' && e.touches.length === 2) { // 處理縮放 (雙指)
+            lightboxState.didPan = true;
+            const newPinchDistance = getDistance(e.touches);
+            const scaleMultiplier = newPinchDistance / lightboxState.initialPinchDistance;
+            const newScale = lightboxState.scale * scaleMultiplier;
+
+            // 限制縮放比例在 1x 到 5x 之間
+            const clampedScale = Math.max(1, Math.min(newScale, 5));
+
+            // 讓縮放中心點在兩指之間
+            const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            const xs = (midX - lightboxState.pointX) / lightboxState.scale;
+            const ys = (midY - lightboxState.pointY) / lightboxState.scale;
+
+            lightboxState.scale = clampedScale;
+            lightboxState.pointX = midX - xs * lightboxState.scale;
+            lightboxState.pointY = midY - ys * lightboxState.scale;
+
+            applyTransform();
+            lightboxState.initialPinchDistance = newPinchDistance; // 更新距離以利下次計算
+        }
+    }
+
+    function interactionEnd(e) {
+        lightboxState.isPanning = false;
+        lightboxState.initialPinchDistance = 0;
+        if (viewerImage) viewerImage.classList.remove('panning');
+
+        // 如果只是輕觸 (沒有拖曳或縮放)，就關閉燈箱
+        if (!lightboxState.didPan && e.target !== viewerImage) {
+            closeLightbox();
         }
     }
 
     function handleWheel(e) { e.preventDefault(); const xs = (e.clientX - lightboxState.pointX) / lightboxState.scale; const ys = (e.clientY - lightboxState.pointY) / lightboxState.scale; const delta = -e.deltaY; const newScale = lightboxState.scale * (delta > 0 ? 1.2 : 1 / 1.2); lightboxState.scale = Math.max(1, Math.min(newScale, 5)); lightboxState.pointX = e.clientX - xs * lightboxState.scale; lightboxState.pointY = e.clientY - ys * lightboxState.scale; applyTransform(); }
-    function handleMouseDown(e) { e.preventDefault(); e.stopPropagation(); if (e.target !== viewerImage) return; lightboxState.isPanning = true; lightboxState.didPan = false; viewerImage.classList.add('panning'); lightboxState.startX = e.clientX - lightboxState.pointX; lightboxState.startY = e.clientY - lightboxState.pointY; }
-    function handleMouseMove(e) { e.preventDefault(); if (!isDragging) return; isSwiping = true; const currentPosition = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX; currentTranslate = prevTranslate + currentPosition - startPosX; sliderWrapper.style.transform = `translateX(${currentTranslate}px)`; }
-    function handleMouseUp(e) { e.preventDefault(); lightboxState.isPanning = false; viewerImage.classList.remove('panning'); }
 
     // --- 初始化與事件監聽 ---
     function init() {
@@ -225,16 +311,24 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('keydown', e => { if (detailModal && !detailModal.classList.contains('hidden')) { if (e.key === 'ArrowLeft') prevSlide(); if (e.key === 'ArrowRight') nextSlide(); } });
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
         if (detailModal) detailModal.addEventListener('click', e => { if (e.target === detailModal) closeModal(); });
-        
-        // 這一段不再需要複雜的觸控攔截，因為 meta 標籤已經解決了根本問題
+
         if (imageViewerModal) {
-            imageViewerModal.addEventListener('click', (e) => { if (e.target !== viewerImage) closeLightbox(); });
-            viewerImage.addEventListener('click', (e) => { if (!lightboxState.didPan) closeLightbox(); });
+            // 輕觸背景以關閉
+            imageViewerModal.addEventListener('click', interactionEnd);
+
+            // 滾輪縮放 (桌面版)
             viewerImage.addEventListener('wheel', handleWheel, { passive: false });
-            viewerImage.addEventListener('mousedown', handleMouseDown);
-            imageViewerModal.addEventListener('mousemove', handleMouseMove);
-            imageViewerModal.addEventListener('mouseup', handleMouseUp);
-            imageViewerModal.addEventListener('mouseleave', handleMouseUp);
+            
+            // 滑鼠拖曳
+            viewerImage.addEventListener('mousedown', interactionStart);
+            imageViewerModal.addEventListener('mousemove', interactionMove);
+            imageViewerModal.addEventListener('mouseup', interactionEnd);
+            imageViewerModal.addEventListener('mouseleave', interactionEnd);
+
+            // 觸控拖曳與縮放
+            viewerImage.addEventListener('touchstart', interactionStart, { passive: false });
+            imageViewerModal.addEventListener('touchmove', interactionMove, { passive: false });
+            imageViewerModal.addEventListener('touchend', interactionEnd);
         }
 
         if (searchToggleBtn) { searchToggleBtn.addEventListener('click', () => { toolbar.classList.add('search-active'); searchBox.focus(); }); }

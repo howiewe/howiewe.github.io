@@ -1422,8 +1422,6 @@ form select:focus {
 
 /* style.css */
 
-/* (您所有的舊樣式...) */
-
 
 /* --- 16. 全新圖片燈箱預覽 (Image Viewer Lightbox) --- */
 .image-viewer {
@@ -1467,6 +1465,7 @@ body.lightbox-open {
     /* 縮放中心點 */
     user-select: none;
     /* 防止拖曳時選取到圖片 */
+    touch-action: pan-x pan-y;
 }
 
 /* 當使用者正在拖曳圖片時，改變滑鼠指標 */
