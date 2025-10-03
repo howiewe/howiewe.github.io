@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!productList) return;
         productList.innerHTML = '<p class="empty-message">正在載入產品資料...</p>';
         if (paginationControls) paginationControls.innerHTML = '';
-        
+
         const params = new URLSearchParams({
             page: state.currentPage,
             limit: 24,
@@ -69,11 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/products?${params.toString()}`);
             if (!response.ok) throw new Error(`網路回應不正常: ${response.statusText}`);
             const data = await response.json();
-            
+
             currentProducts = data.products;
             state.totalPages = data.pagination.totalPages;
             state.currentPage = data.pagination.currentPage;
-            
+
             renderProducts();
             renderPagination();
 
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             productList.innerHTML = `<p class="empty-message">無法載入產品資料。<br>請稍後再試。</p>`;
         }
     }
-    
+
     async function loadInitialData() {
         try {
             const response = await fetch('/api/all-data?t=' + new Date().getTime());
@@ -93,10 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchProducts();
         } catch (err) {
             console.error("無法載入分類:", err);
-            if(categoryTreeContainer) categoryTreeContainer.innerHTML = '分類載入失敗';
+            if (categoryTreeContainer) categoryTreeContainer.innerHTML = '分類載入失敗';
         }
     }
-    
+
     // --- 渲染函式 ---
     function renderProducts() {
         if (!productList) return;
@@ -109,8 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'product-card';
             card.onclick = () => openDetailModal(product);
-            const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : '';
-            card.innerHTML = `<div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${(product.imageSize || 90) / 100});"></div><div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>`;
+
+            // ▼▼▼ *** 核心修正 *** ▼▼▼
+            // 1. 取得第一張圖片的物件
+            const firstImageObject = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : null;
+            // 2. 從物件中分別取出 url 和 size，如果物件不存在則提供預設值
+            const imageUrl = firstImageObject ? firstImageObject.url : ''; // <-- 修正點：使用 .url
+            const imageSize = firstImageObject ? firstImageObject.size : 90;
+            // ▲▲▲ *** 修正結束 *** ▲▲▲
+
+            card.innerHTML = `<div class="image-container"><img src="${imageUrl}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${imageSize / 100});"></div><div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>`;
             productList.appendChild(card);
         });
     }
@@ -119,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!paginationControls) return;
         paginationControls.innerHTML = ''; // 清空舊的分頁
         if (state.totalPages <= 1) return;
-        
+
         const prevBtn = document.createElement('button');
         prevBtn.className = 'btn btn-secondary';
         prevBtn.innerHTML = '&#10094;';
@@ -131,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchProducts();
             }
         });
-        
+
         const pageInfo = document.createElement('div');
         pageInfo.className = 'page-info';
         pageInfo.textContent = `${state.currentPage} / ${state.totalPages}`;
@@ -150,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         paginationControls.append(prevBtn, pageInfo, nextBtn);
     }
-    
+
     function buildCategoryTree() {
         if (!categoryTreeContainer) return;
         const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
@@ -188,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function dragStart(e) { e.preventDefault(); if (totalSlides <= 1) return; isDragging = true; isSwiping = false; startPosX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX; sliderWrapper.style.transition = 'none'; prevTranslate = -currentSlideIndex * sliderWrapper.clientWidth; }
     function dragMove(e) { if (!isDragging) return; isSwiping = true; const currentPosition = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX; currentTranslate = prevTranslate + currentPosition - startPosX; sliderWrapper.style.transform = `translateX(${currentTranslate}px)`; }
     function dragEnd() { if (!isDragging || totalSlides <= 1) return; isDragging = false; const movedBy = currentTranslate - prevTranslate; sliderWrapper.style.transition = 'transform 0.4s ease-in-out'; if (isSwiping) { if (movedBy < -50 && currentSlideIndex < totalSlides - 1) currentSlideIndex++; if (movedBy > 50 && currentSlideIndex > 0) currentSlideIndex--; } showSlide(currentSlideIndex); }
-    
+
     function openDetailModal(product) {
         if (!product || !detailInfo || !sliderWrapper || !detailThumbnailList || !sliderDots) return; const category = allCategories.find(c => c.id === product.categoryId);
         detailInfo.innerHTML = ` <h2>${product.name}</h2> <p class="price">$${product.price}</p> <p class="product-description-display">${product.description || ''}</p> <dl class="details-grid"> <dt>分類</dt><dd>${category ? category.name : '未分類'}</dd> <dt>編號</dt><dd>${product.sku || 'N/A'}</dd> <dt>EAN-13</dt><dd>${product.ean13 || 'N/A'}</dd> </dl> ${product.ean13 ? `<div class="barcode-display"><svg id="detail-barcode"></svg></div>` : ''} `;
@@ -197,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sliderWrapper.style.transform = 'translateX(0px)'; updateUI(); if (detailModal) detailModal.classList.remove('hidden'); document.body.classList.add('modal-open');
         if (product.ean13) { setTimeout(() => { const barcodeElement = document.getElementById('detail-barcode'); if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) { console.error('JsBarcode error:', e); } }, 0); }
     }
-    
+
     function closeModal() { if (detailModal) detailModal.classList.add('hidden'); document.body.classList.remove('modal-open'); }
 
     function applyTransform() { if (viewerImage) window.requestAnimationFrame(() => { viewerImage.style.transform = `translate(${lightboxState.pointX}px, ${lightboxState.pointY}px) scale(${lightboxState.scale})`; }); }
@@ -219,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             categoryTreeContainer.addEventListener('click', e => {
                 const link = e.target.closest('a'); if (!link) return;
                 const iconClicked = e.target.closest('.category-toggle-icon');
-                if (iconClicked) { e.preventDefault(); const parentLi = link.parentElement; iconClicked.classList.toggle('expanded'); const submenu = parentLi.querySelector('ul'); if (submenu) { if (submenu.classList.contains('hidden')) { submenu.classList.remove('hidden'); submenu.style.maxHeight = submenu.scrollHeight + "px"; } else { submenu.style.maxHeight = "0"; setTimeout(() => { submenu.classList.add('hidden'); }, 400); } } } 
+                if (iconClicked) { e.preventDefault(); const parentLi = link.parentElement; iconClicked.classList.toggle('expanded'); const submenu = parentLi.querySelector('ul'); if (submenu) { if (submenu.classList.contains('hidden')) { submenu.classList.remove('hidden'); submenu.style.maxHeight = submenu.scrollHeight + "px"; } else { submenu.style.maxHeight = "0"; setTimeout(() => { submenu.classList.add('hidden'); }, 400); } } }
                 else { e.preventDefault(); document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); link.classList.add('active'); state.categoryId = link.dataset.id === 'all' ? 'all' : parseInt(link.dataset.id); state.currentPage = 1; fetchProducts(); if (window.innerWidth <= 767) { document.body.classList.remove('sidebar-open'); } }
             });
         }
@@ -248,6 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // 啟動頁面
         loadInitialData();
     }
-    
+
     init();
 });
