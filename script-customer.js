@@ -157,9 +157,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function closeModal() { if (detailModal) detailModal.classList.add('hidden'); document.body.classList.remove('modal-open'); }
     // --- Lightbox Zoom & Pan Logic (支援觸控手勢的全新版本) ---
+
     function applyTransform() {
         if (viewerImage) {
-            // 使用 requestAnimationFrame 讓動畫更流暢
             window.requestAnimationFrame(() => {
                 viewerImage.style.transform = `translate(${lightboxState.pointX}px, ${lightboxState.pointY}px) scale(${lightboxState.scale})`;
             });
@@ -174,8 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
             pointY: 0,
             startX: 0,
             startY: 0,
-            didPan: false,
-            initialPinchDistance: 0 // 新增：用於觸控縮放
+            didPan: false, // 【關鍵】用來判斷是否發生過拖曳/縮放
+            initialPinchDistance: 0
         };
         applyTransform();
     }
@@ -185,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         viewerImage.setAttribute('src', url);
         imageViewerModal.classList.remove('hidden');
         document.body.classList.add('lightbox-open');
-        // 註：不再需要修改 viewport meta 標籤
     }
 
     function closeLightbox() {
@@ -193,10 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
         imageViewerModal.classList.add('hidden');
         resetLightbox();
         document.body.classList.remove('lightbox-open');
-        // 註：不再需要恢復 viewport meta 標籤
     }
 
-    // 計算兩指之間的距離
     function getDistance(touches) {
         return Math.sqrt(
             Math.pow(touches[0].clientX - touches[1].clientX, 2) +
@@ -204,75 +201,79 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
-    // --- 整合的互動處理函式 ---
     function interactionStart(e) {
         e.preventDefault();
+        // 在每次新的互動開始時，重置 didPan 狀態
+        lightboxState.didPan = false;
 
-        if (e.type === 'mousedown') { // 滑鼠按下
+        if (e.type === 'mousedown') {
             lightboxState.isPanning = true;
             lightboxState.startX = e.clientX - lightboxState.pointX;
             lightboxState.startY = e.clientY - lightboxState.pointY;
-        } else if (e.type === 'touchstart') { // 觸控開始
-            if (e.touches.length === 1) { // 單指拖曳
+        } else if (e.type === 'touchstart') {
+            if (e.touches.length === 1) {
                 lightboxState.isPanning = true;
                 lightboxState.startX = e.touches[0].clientX - lightboxState.pointX;
                 lightboxState.startY = e.touches[0].clientY - lightboxState.pointY;
-            } else if (e.touches.length === 2) { // 雙指縮放
+            } else if (e.touches.length >= 2) {
                 lightboxState.isPanning = false;
                 lightboxState.initialPinchDistance = getDistance(e.touches);
             }
         }
-
-        lightboxState.didPan = false;
         if (viewerImage) viewerImage.classList.add('panning');
     }
 
     function interactionMove(e) {
         e.preventDefault();
+        // 只要觸發了 move 事件，就代表使用者正在拖曳或縮放
+        lightboxState.didPan = true;
 
         if (lightboxState.isPanning) { // 處理拖曳 (滑鼠或單指)
-            lightboxState.didPan = true;
             const currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
             const currentY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
             lightboxState.pointX = currentX - lightboxState.startX;
             lightboxState.pointY = currentY - lightboxState.startY;
             applyTransform();
-        } else if (e.type === 'touchmove' && e.touches.length === 2) { // 處理縮放 (雙指)
-            lightboxState.didPan = true;
+        } else if (e.type === 'touchmove' && e.touches.length >= 2) { // 處理縮放 (雙指)
             const newPinchDistance = getDistance(e.touches);
             const scaleMultiplier = newPinchDistance / lightboxState.initialPinchDistance;
             const newScale = lightboxState.scale * scaleMultiplier;
-
-            // 限制縮放比例在 1x 到 5x 之間
             const clampedScale = Math.max(1, Math.min(newScale, 5));
-
-            // 讓縮放中心點在兩指之間
             const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
             const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
             const xs = (midX - lightboxState.pointX) / lightboxState.scale;
             const ys = (midY - lightboxState.pointY) / lightboxState.scale;
-
             lightboxState.scale = clampedScale;
             lightboxState.pointX = midX - xs * lightboxState.scale;
             lightboxState.pointY = midY - ys * lightboxState.scale;
-
             applyTransform();
-            lightboxState.initialPinchDistance = newPinchDistance; // 更新距離以利下次計算
+            lightboxState.initialPinchDistance = newPinchDistance;
         }
     }
 
     function interactionEnd(e) {
+        e.preventDefault();
         lightboxState.isPanning = false;
         lightboxState.initialPinchDistance = 0;
         if (viewerImage) viewerImage.classList.remove('panning');
 
-        // 如果只是輕觸 (沒有拖曳或縮放)，就關閉燈箱
-        if (!lightboxState.didPan && e.target !== viewerImage) {
+        // 【核心修正】只有在互動過程中從未發生過拖曳或縮放 (didPan 為 false) 的情況下，才關閉燈箱
+        if (!lightboxState.didPan) {
             closeLightbox();
         }
     }
 
-    function handleWheel(e) { e.preventDefault(); const xs = (e.clientX - lightboxState.pointX) / lightboxState.scale; const ys = (e.clientY - lightboxState.pointY) / lightboxState.scale; const delta = -e.deltaY; const newScale = lightboxState.scale * (delta > 0 ? 1.2 : 1 / 1.2); lightboxState.scale = Math.max(1, Math.min(newScale, 5)); lightboxState.pointX = e.clientX - xs * lightboxState.scale; lightboxState.pointY = e.clientY - ys * lightboxState.scale; applyTransform(); }
+    function handleWheel(e) {
+        e.preventDefault();
+        const xs = (e.clientX - lightboxState.pointX) / lightboxState.scale;
+        const ys = (e.clientY - lightboxState.pointY) / lightboxState.scale;
+        const delta = -e.deltaY;
+        const newScale = lightboxState.scale * (delta > 0 ? 1.2 : 1 / 1.2);
+        lightboxState.scale = Math.max(1, Math.min(newScale, 5));
+        lightboxState.pointX = e.clientX - xs * lightboxState.scale;
+        lightboxState.pointY = e.clientY - ys * lightboxState.scale;
+        applyTransform();
+    }
 
     // --- 初始化與事件監聽 ---
     function init() {
@@ -318,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 滾輪縮放 (桌面版)
             viewerImage.addEventListener('wheel', handleWheel, { passive: false });
-            
+
             // 滑鼠拖曳
             viewerImage.addEventListener('mousedown', interactionStart);
             imageViewerModal.addEventListener('mousemove', interactionMove);
