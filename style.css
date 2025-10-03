@@ -1748,3 +1748,30 @@ body.lightbox-open {
 #category-tree ul.hidden {
     max-height: 0;
 }
+
+/* --- 19. 分頁控制項樣式 (Pagination Controls) --- */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2.5rem;
+}
+
+.pagination-container .btn,
+.pagination-container .page-info {
+    padding: 0.5rem 1rem;
+    min-width: 44px;
+    height: 44px;
+}
+
+.pagination-container .page-info {
+    font-weight: 500;
+    color: var(--text-secondary);
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}

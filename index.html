@@ -29,17 +29,17 @@
             <!-- ▼▼▼ 【核心修改】將檢視和主題按鈕移到 Header 右側 ▼▼▼ -->
             <div class="header-actions">
                 <button id="view-toggle-btn" class="btn view-toggle" title="切換檢視模式">
-                    <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"></rect>
                         <rect x="14" y="3" width="7" height="7"></rect>
                         <rect x="14" y="14" width="7" height="7"></rect>
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
-                    <svg class="icon-list" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
+                    <svg class="icon-list" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <line x1="8" y1="6" x2="21" y2="6"></line>
                         <line x1="8" y1="12" x2="21" y2="12"></line>
                         <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -83,21 +83,34 @@
                 <div class="toolbar" id="toolbar">
                     <!-- 手機版：搜尋按鈕 -->
                     <button id="search-toggle-btn" class="btn btn-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
                     </button>
                     <!-- 電腦版/手機搜尋模式：搜尋框 -->
                     <input type="search" id="search-box" placeholder="搜尋產品名稱...">
-                    
+
                     <!-- 手機版：分類按鈕 -->
                     <button id="category-toggle-btn" class="btn">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
                         <span>分類</span>
                     </button>
 
                     <!-- 排序按鈕與下拉選單 -->
                     <div class="sort-container">
                         <button id="sort-btn" class="btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18M3 10h12M3 16h6"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M3 4h18M3 10h12M3 16h6" />
+                            </svg>
                             <span id="sort-btn-text">依價格</span>
                         </button>
                         <div id="sort-options" class="sort-options hidden">
@@ -107,16 +120,27 @@
                             <a href="#" data-value="createdAt">依上架時間</a>
                         </div>
                     </div>
-                    
+
                     <!-- 升降序按鈕 -->
                     <button id="order-toggle-btn" class="btn btn-icon" data-order="asc">
-                         <svg class="icon-asc" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l-7 7h14z"/></svg>
-                         <svg class="icon-desc" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l-7-7h14z"/></svg>
+                        <svg class="icon-asc" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5l-7 7h14z" />
+                        </svg>
+                        <svg class="icon-desc" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 19l-7-7h14z" />
+                        </svg>
                     </button>
                 </div>
                 <!-- ▲▲▲ 修改結束 ▲▲▲ -->
 
                 <div id="product-list" class="product-grid"></div>
+                <div id="pagination-controls" class="pagination-container">
+                    <!-- JS 會動態生成分頁按鈕於此 -->
+                </div>
             </div>
         </main>
     </div>
@@ -139,7 +163,7 @@
             </div>
         </div>
     </div>
-    
+
     <div id="image-viewer-modal" class="image-viewer hidden">
         <img id="viewer-image" src="" alt="產品大圖預覽">
     </div>
