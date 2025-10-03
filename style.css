@@ -1203,6 +1203,11 @@ form select:focus {
 
     .modal-content {
         padding: 1.5rem;
+        height: auto;
+        max-height: 85vh;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        transform: scale(1) !important;
     }
 
     #cropper-modal .button-group.cropper-actions {
