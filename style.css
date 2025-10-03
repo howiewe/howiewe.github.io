@@ -1443,6 +1443,7 @@ form select:focus {
     transition: opacity 0.3s ease;
     /* 新增此行：這是專門用來防止滾動穿透的現代 CSS 屬性 */
     overscroll-behavior: contain;
+    touch-action: none;
 }
 
 /* 【本次核心修正】在 body.lightbox-open 中新增 touch-action，禁止背景的觸控反應 */
