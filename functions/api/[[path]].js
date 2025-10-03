@@ -1,4 +1,4 @@
-// functions/api/[[path]].js (效能優化版 - 伺服器端分頁、篩選、排序)
+// functions/api/[[path]].js (純淨版 - 無需向下相容)
 
 // --- 統一的 API 響應格式 ---
 const response = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -22,11 +22,9 @@ export async function onRequest(context) {
     try {
         const db = env.D1_DB;
         switch (resource) {
-            // 【修改】/all-data 現在只回傳分類，用於建構側邊欄
             case 'all-data':
                 if (method === 'GET') return await getCategoriesOnly(db);
                 break;
-            // 【修改】/products 端點現在是核心
             case 'products':
                 if (method === 'GET') return await getPaginatedProducts(db, url.searchParams);
                 if (method === 'POST') return await createOrUpdateProduct(db, await request.json());
@@ -55,33 +53,26 @@ export async function onRequest(context) {
 
 // --- 資料庫與 R2 操作函式 ---
 
-// 【新增】只獲取所有分類資料的函式
 async function getCategoriesOnly(db) {
     const categoriesQuery = db.prepare("SELECT * FROM categories ORDER BY parentId, sortOrder ASC");
     const { results } = await categoriesQuery.run();
     return response({ categories: results || [] });
 }
 
-// 【全新核心函式】處理產品的分頁、篩選、搜尋與排序
+// 【全新簡潔版】getPaginatedProducts
 async function getPaginatedProducts(db, params) {
-    // 1. 解析查詢參數並設定預設值
+    // 參數解析和 SQL 查詢部分不變
     const page = parseInt(params.get('page')) || 1;
     const limit = parseInt(params.get('limit')) || 24;
     const categoryId = params.get('categoryId') ? parseInt(params.get('categoryId')) : null;
     const searchTerm = params.get('search') || '';
-    
-    // 安全性：白名單排序欄位與順序
     const validSortBy = ['price', 'name', 'createdAt', 'updatedAt'];
     const sortBy = validSortBy.includes(params.get('sortBy')) ? params.get('sortBy') : 'updatedAt';
     const order = params.get('order')?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-
     const offset = (page - 1) * limit;
 
-    // 2. 準備動態 SQL 查詢
     let whereClauses = [];
     let bindings = [];
-
-    // 處理分類篩選 (包含子分類)
     if (categoryId) {
         const { results: allCategories } = await db.prepare("SELECT id, parentId FROM categories").run();
         const getSubCategoryIds = (startId) => {
@@ -90,10 +81,7 @@ async function getPaginatedProducts(db, params) {
             while (queue.length > 0) {
                 const currentId = queue.shift();
                 const children = allCategories.filter(c => c.parentId === currentId);
-                for (const child of children) {
-                    ids.add(child.id);
-                    queue.push(child.id);
-                }
+                for (const child of children) { ids.add(child.id); queue.push(child.id); }
             }
             return Array.from(ids);
         };
@@ -101,27 +89,23 @@ async function getPaginatedProducts(db, params) {
         whereClauses.push(`categoryId IN (${categoryIds.map(() => '?').join(',')})`);
         bindings.push(...categoryIds);
     }
-
-    // 處理搜尋
     if (searchTerm) {
         whereClauses.push(`(name LIKE ? OR sku LIKE ?)`);
         bindings.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
-
     const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-    // 3. 建立兩個查詢：一個用於獲取總數，一個用於獲取當前頁的資料
     const countQueryString = `SELECT COUNT(*) as total FROM products ${whereString}`;
     const dataQueryString = `SELECT * FROM products ${whereString} ORDER BY ${sortBy} ${order} LIMIT ? OFFSET ?`;
-    
     const countQuery = db.prepare(countQueryString).bind(...bindings);
     const dataQuery = db.prepare(dataQueryString).bind(...bindings, limit, offset);
 
-    // 4. 執行查詢
     const [countResult, dataResult] = await db.batch([countQuery, dataQuery]);
     
     const totalProducts = countResult.results[0].total;
     const totalPages = Math.ceil(totalProducts / limit);
+
+    // ▼▼▼ *** 簡化後的邏輯 *** ▼▼▼
+    // 直接解析 imageUrls，不再需要檢查格式
     const products = (dataResult.results || []).map(p => {
         try {
             return { ...p, imageUrls: p.imageUrls ? JSON.parse(p.imageUrls) : [] };
@@ -129,44 +113,41 @@ async function getPaginatedProducts(db, params) {
             return { ...p, imageUrls: [] }; // 解析失敗時返回空陣列
         }
     });
+    // ▲▲▲ *** 簡化結束 *** ▲▲▲
 
-    // 5. 回傳包含分頁元數據的結果
     return response({
         products,
-        pagination: {
-            currentPage: page,
-            totalPages,
-            totalProducts,
-            limit
-        }
+        pagination: { currentPage: page, totalPages, totalProducts, limit }
     });
 }
 
-
-// 其他函式 (createOrUpdateProduct, deleteProduct, createOrUpdateCategory 等) 保持不變...
-// ... (此處省略未變更的程式碼，請保留您檔案中原有的)
+// 【全新簡潔版】createOrUpdateProduct
 async function createOrUpdateProduct(db, product) { 
- const { id, name, ean13, price, description, imageUrls, imageSize, categoryId } = product;
+ const { id, name, ean13, price, description, imageUrls, categoryId } = product;
  const finalSku = (product.sku === '' || product.sku === undefined) ? null : product.sku;
+ // 直接儲存包含 url 和 size 的物件陣列
  const imageUrlsJson = JSON.stringify(imageUrls || []);
  const now = new Date().toISOString();
  let results;
 
  if (id) {
- ({ results } = await db.prepare(
- `UPDATE products SET sku = ?, name = ?, ean13 = ?, price = ?, description = ?, imageUrls = ?, imageSize = ?, categoryId = ?, updatedAt = ? WHERE id = ? RETURNING *`
- ).bind(finalSku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId, now, id).run());
+  // 不再包含 imageSize 欄位
+  ({ results } = await db.prepare(
+  `UPDATE products SET sku = ?, name = ?, ean13 = ?, price = ?, description = ?, imageUrls = ?, categoryId = ?, updatedAt = ? WHERE id = ? RETURNING *`
+  ).bind(finalSku, name, ean13, price, description, imageUrlsJson, categoryId, now, id).run());
  } else {
- ({ results } = await db.prepare(
- `INSERT INTO products (sku, name, ean13, price, description, imageUrls, imageSize, categoryId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
- ).bind(finalSku, name, ean13, price, description, imageUrlsJson, imageSize, categoryId, now, now).run());
+  // 不再包含 imageSize 欄位
+  ({ results } = await db.prepare(
+  `INSERT INTO products (sku, name, ean13, price, description, imageUrls, categoryId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
+  ).bind(finalSku, name, ean13, price, description, imageUrlsJson, categoryId, now, now).run());
  }
 
  if (!results || results.length === 0) throw new Error("資料庫操作失敗，未返回任何結果。");
- const finalProduct = { ...results[0], imageUrls: JSON.parse(results[0].imageUrls) };
+ const finalProduct = { ...results[0], imageUrls: JSON.parse(results[0].imageUrls || '[]') };
  return response(finalProduct, id ? 200 : 201);
 }
 
+// ... 此處省略的其他後端函式 (deleteProduct, handleCategoryReorder 等) 保持不變 ...
 async function deleteProduct(context, id) {
  const { env } = context;
  const { D1_DB, IMAGE_BUCKET, R2_PUBLIC_URL } = env;
@@ -178,8 +159,9 @@ async function deleteProduct(context, id) {
  console.error(`無法解析產品 ${id} 的 imageUrls JSON 字串:`, product.imageUrls);
  return response({ message: '產品已刪除，但其圖片連結格式錯誤，無法清理 R2 檔案。' });
  }
+ // 新的 imageUrls 格式是物件陣列，需要提取 url 屬性
  if (imageUrls && imageUrls.length > 0) {
- const keysToDelete = imageUrls.map(url => { if (url.startsWith(R2_PUBLIC_URL)) { return url.substring(R2_PUBLIC_URL.length + 1); } return null; }).filter(key => key);
+ const keysToDelete = imageUrls.map(item => item.url).filter(Boolean).map(url => { if (url.startsWith(R2_PUBLIC_URL)) { return url.substring(R2_PUBLIC_URL.length + 1); } return null; }).filter(key => key);
  if (keysToDelete.length > 0) { await IMAGE_BUCKET.delete(keysToDelete); }
  }
  return response({ message: '產品及其相關圖片已成功刪除' });
@@ -271,13 +253,15 @@ async function handleBatchCreateV2(db, { products: newProducts }) {
  const nowForProducts = new Date().toISOString();
  for (const p of newProducts) {
  const categoryId = await getCategoryId(p.category);
+ // 為批次上傳的圖片加上預設 size
+ const imageUrlsWithDefaultSize = (p.imageUrls || []).map(url => ({ url, size: 90 }));
  productStatements.push(
  db.prepare(
- `INSERT INTO products (sku, name, price, ean13, description, imageUrls, categoryId, imageSize, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+ `INSERT INTO products (sku, name, price, ean13, description, imageUrls, categoryId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
  ).bind(
  p.sku || null, p.name, parseFloat(p.price) || 0, p.ean13 || null, 
- p.description || '', JSON.stringify(p.imageUrls || []), 
- categoryId, 90, nowForProducts, nowForProducts
+ p.description || '', JSON.stringify(imageUrlsWithDefaultSize), 
+ categoryId, nowForProducts, nowForProducts
  )
  );
  }
