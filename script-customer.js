@@ -294,30 +294,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
         if (detailModal) detailModal.addEventListener('click', e => { if (e.target === detailModal) closeModal(); });
         if (imageViewerModal) {
+            // 點擊背景關閉燈箱 (保持不變)
             imageViewerModal.addEventListener('click', (e) => {
-                if (e.target !== viewerImage) {
-                    closeLightbox();
-                }
+                if (e.target !== viewerImage) closeLightbox();
             });
-            viewerImage.addEventListener('wheel', handleWheel, { passive: false });
-            viewerImage.addEventListener('mousedown', handleMouseDown);
+
+            // 點擊圖片本身，如果沒有拖曳就關閉 (保持不變)
             viewerImage.addEventListener('click', (e) => {
-                if (!lightboxState.didPan) {
-                    closeLightbox();
-                }
+                if (!lightboxState.didPan) closeLightbox();
             });
+
+            // 桌面端：滾輪縮放 (保持不變)
+            viewerImage.addEventListener('wheel', handleWheel, { passive: false });
+
+            // 桌面端：滑鼠拖曳平移 (保持不變)
+            viewerImage.addEventListener('mousedown', handleMouseDown);
             imageViewerModal.addEventListener('mousemove', handleMouseMove);
             imageViewerModal.addEventListener('mouseup', handleMouseUp);
             imageViewerModal.addEventListener('mouseleave', handleMouseUp);
 
-            // 【全新增修】主動攔截多指觸控事件以防止頁面縮放
+            // 【全新增修的核心邏輯】
+            // 智慧型地處理行動裝置的觸控事件
             imageViewerModal.addEventListener('touchmove', (e) => {
-                // 如果偵測到是多於一根手指的操作（通常是縮放手勢）
-                if (e.touches.length > 1) {
-                    // 就阻止這個事件的預設行為（即頁面縮放）
+                // 只有當觸控事件的目標是灰色背景 (而不是圖片本身) 時，
+                // 才阻止瀏覽器的預設行為（例如頁面捲動或縮放）。
+                if (e.target !== viewerImage) {
                     e.preventDefault();
                 }
-            }, { passive: false }); // passive: false 是讓 preventDefault() 生效的關鍵
+                // 如果事件發生在圖片上，我們就不做任何事，
+                // 讓瀏覽器可以自由地執行原生的雙指縮放和平移功能。
+            }, { passive: false });
         }
 
         // --- 【全新】Toolbar 事件監聽 ---

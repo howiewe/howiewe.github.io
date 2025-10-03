@@ -1448,8 +1448,6 @@ form select:focus {
 /* 【本次核心修正】在 body.lightbox-open 中新增 touch-action，禁止背景的觸控反應 */
 body.lightbox-open {
     overflow: hidden;
-    /* 新增此行：禁止頁面因觸控而平移或縮放 */
-    touch-action: none;
 }
 
 .image-viewer:not(.hidden) {
