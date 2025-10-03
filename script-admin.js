@@ -1,4 +1,3 @@
-// script-admin.js (效能優化版 - 按需載入 - 完整功能)
 document.addEventListener('DOMContentLoaded', () => {
     // --- IndexedDB (只快取分類) ---
     const dbName = 'ProductCatalogDB_CF';
@@ -12,9 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchBox = document.getElementById('search-box');
     const categoryTreeContainer = document.getElementById('category-tree');
     const addNewBtn = document.getElementById('add-new-btn');
-    const syncStatus = document.getElementById('sync-status');
     const paginationControls = document.getElementById('pagination-controls');
-    // ... 其他所有 Modal、表單、圖片上傳等 DOM 元素宣告保持不變 ...
+    // 【新增】Toolbar 相關元素
+    const sortBtn = document.getElementById('sort-btn');
+    const sortBtnText = document.getElementById('sort-btn-text');
+    const sortOptionsContainer = document.getElementById('sort-options');
+    const orderToggleBtn = document.getElementById('order-toggle-btn');
+    // ... 其他所有 DOM 元素宣告保持不變 ...
     const viewToggleBtn = document.getElementById('view-toggle-btn');
     const form = document.getElementById('product-form');
     const formTitle = document.getElementById('form-title');
@@ -52,26 +55,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Global State ---
     let allCategories = [];
-    let currentProducts = []; // 【修改】不再儲存所有產品，只儲存當前頁的
+    let currentProducts = [];
     let state = {
         currentPage: 1,
         totalPages: 1,
         categoryId: 'all',
         searchTerm: '',
-        // 管理後台預設依更新時間排序
         sortBy: 'updatedAt',
         order: 'desc'
     };
     let searchDebounceTimer;
 
-    // --- 既有但獨立的狀態變數 ---
     let cropper, currentImageItems = [], sortableInstance = null, categorySortableInstance = null;
     let imageProcessingQueue = [];
     let originalQueueLength = 0;
     let categoryManagerHistory = [];
     let currentCategoryManagerParentId = null;
 
-    // --- API Logic (重構) ---
+    // --- API Logic ---
     async function fetchProducts() {
         if (!productList) return;
         productList.innerHTML = '<p class="empty-message">正在載入產品...</p>';
@@ -79,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const params = new URLSearchParams({
             page: state.currentPage,
-            limit: 20, // 管理後台每頁顯示20個
+            limit: 20,
             sortBy: state.sortBy,
             order: state.order
         });
@@ -91,15 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            updateSyncStatus('正在拉取產品...', 'syncing');
             const response = await fetch(`/api/products?${params.toString()}`);
             if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
             const data = await response.json();
 
-            // 如果刪除了最後一頁的最後一個項目，自動跳回前一頁
             if (data.products.length === 0 && data.pagination.currentPage > 1) {
                 state.currentPage--;
-                fetchProducts(); // 重新請求前一頁
+                fetchProducts();
                 return;
             }
             
@@ -109,47 +108,35 @@ document.addEventListener('DOMContentLoaded', () => {
             
             renderProducts();
             renderPagination();
-            updateSyncStatus('產品已同步', 'synced');
         } catch (error) {
             console.error('Fetch products failed:', error);
-            updateSyncStatus('產品同步失敗', 'error');
             showToast(`拉取產品資料失敗: ${error.message}`, 'error');
             productList.innerHTML = '<p class="empty-message">產品載入失敗</p>';
         }
     }
 
-    async function fetchCategories(showSyncing = true) {
+    async function fetchCategories(showToastOnError = true) {
         try {
-            if (showSyncing) updateSyncStatus('正在拉取分類...', 'syncing');
             const response = await fetch('/api/all-data?t=' + new Date().getTime());
             if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
             const data = await response.json();
             allCategories = data.categories || [];
             await writeData('categories', allCategories);
-            if (showSyncing) updateSyncStatus('分類已同步', 'synced');
             return true;
         } catch (error) {
             console.error('Fetch categories failed:', error);
-            if (showSyncing) updateSyncStatus('分類同步失敗', 'error');
-            showToast(`拉取分類資料失敗: ${error.message}`, 'error');
+            if(showToastOnError) showToast(`拉取分類資料失敗: ${error.message}`, 'error');
             return false;
         }
     }
 
-    // --- 所有寫入型 API 保持不變，但在成功後的回呼中改為呼叫 fetchProducts() ---
     async function saveProduct(productData) {
         try {
-            updateSyncStatus('正在儲存產品...', 'syncing');
             const response = await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) });
             if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`);
-            
-            // 【修改】成功後不再操作本地陣列，而是重新從伺服器獲取當前頁
-            await fetchProducts(); 
-            
-            updateSyncStatus('儲存成功', 'synced');
+            await fetchProducts();
             showToast('產品儲存成功', 'success');
         } catch (error) {
-            updateSyncStatus('儲存失敗', 'error');
             showToast(`儲存產品失敗: ${error.message}`, 'error');
             console.error(error);
         }
@@ -158,59 +145,43 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteProductApi(id) {
         if (!confirm('您確定要刪除這個產品嗎？')) return;
         try {
-            updateSyncStatus('正在刪除產品...', 'syncing');
             const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`);
-
-            // 【修改】成功後重新獲取資料
             await fetchProducts();
-
             closeModal(editModal);
-            updateSyncStatus('刪除成功', 'synced');
             showToast('產品已刪除', 'info');
         } catch (error) {
-            updateSyncStatus('刪除失敗', 'error');
             showToast(`刪除產品失敗: ${error.message}`, 'error');
         }
     }
     
     async function saveCategory(categoryData) {
         try {
-            updateSyncStatus('儲存分類中...', 'syncing');
             const response = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(categoryData) });
             if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).error || response.statusText}`);
             
-            // 【修改】操作成功後，刷新分類和產品列表
             await fetchCategories(false);
             buildCategoryTree();
             populateCategorySelect();
             renderCategoryManager(currentCategoryManagerParentId, false);
             await fetchProducts();
-
-            updateSyncStatus('儲存成功', 'synced');
         } catch (error) {
             showToast(`儲存分類失敗: ${error.message}`, 'error');
-            updateSyncStatus('儲存失敗', 'error');
         }
     }
 
     async function reorderCategories(reorderData) {
         try {
-            updateSyncStatus('正在儲存順序...', 'syncing');
             const response = await fetch('/api/reorder-categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reorderData) });
             if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).error || response.statusText}`);
             
-            // 【修改】成功後刷新所有相關UI
             await fetchCategories(false);
             buildCategoryTree();
             populateCategorySelect();
             await fetchProducts();
-
             showToast('順序已儲存', 'success');
-            updateSyncStatus('儲存成功', 'synced');
         } catch (error) {
             showToast(`儲存順序失敗: ${error.message}`, 'error');
-            updateSyncStatus('儲存失敗', 'error');
             renderCategoryManager(currentCategoryManagerParentId, false);
         }
     }
@@ -220,13 +191,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
             if (!response.ok) { const errData = await response.json(); throw new Error(errData.error || '刪除失敗'); }
             
-            // 【修改】成功後刷新所有相關UI
             await fetchCategories(false);
             buildCategoryTree();
             populateCategorySelect();
             renderCategoryManager(currentCategoryManagerParentId, false);
             await fetchProducts();
-            
         } catch (error) {
             alert(error.message);
         }
@@ -243,7 +212,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentProducts.forEach(product => {
             const card = document.createElement('div');
             card.className = 'product-card';
-            // 【修改】點擊卡片時，直接傳遞 product 物件
             card.onclick = () => openProductModal(product);
             const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : '';
             card.innerHTML = `<div class="image-container"><img src="${firstImage}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${(product.imageSize || 90) / 100});"></div><div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>`;
@@ -251,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 【新增】渲染分頁控制項
     function renderPagination() {
         if (!paginationControls) return;
         paginationControls.innerHTML = '';
@@ -278,11 +245,9 @@ document.addEventListener('DOMContentLoaded', () => {
         paginationControls.append(prevBtn, pageInfo, nextBtn);
     }
     
-    // 【修改】openProductModal 現在直接接收 product 物件
     function openProductModal(product = null) {
         resetForm();
         if (product) {
-            // 編輯模式
             formTitle.textContent = '編輯產品';
             productIdInput.value = product.id;
             document.getElementById('product-name').value = product.name;
@@ -298,7 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteBtn.classList.remove('hidden');
             deleteBtn.onclick = () => deleteProductApi(product.id);
         } else {
-            // 新增模式
             formTitle.textContent = '新增產品';
             if (state.categoryId !== 'all' && state.categoryId !== null) {
                 categorySelect.value = state.categoryId;
@@ -311,99 +275,68 @@ document.addEventListener('DOMContentLoaded', () => {
         initSortable();
     }
     
-    // --- 頁面初始化與事件監聽 ---
+    // --- Initialization & Event Listeners ---
     async function init() {
-        // ... (大部分既有的事件監聽器保持不變) ...
-
-        // 【修改】搜尋框事件，加入 debounce
-        if (searchBox) {
-            searchBox.addEventListener('input', () => {
-                clearTimeout(searchDebounceTimer);
-                searchDebounceTimer = setTimeout(() => {
-                    state.searchTerm = searchBox.value.trim();
-                    state.currentPage = 1; // 搜尋時重置到第一頁
-                    fetchProducts();
-                }, 300);
-            });
-        }
-        
-        // 【修改】分類樹點擊事件
+        if (searchBox) { searchBox.addEventListener('input', () => { clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(() => { state.searchTerm = searchBox.value.trim(); state.currentPage = 1; fetchProducts(); }, 300); }); }
         if (categoryTreeContainer) {
             categoryTreeContainer.addEventListener('click', e => {
                 const link = e.target.closest('a'); if (!link) return;
                 const iconClicked = e.target.closest('.category-toggle-icon');
                 if (iconClicked) {
                     e.preventDefault();
-                    // (折疊邏輯不變)
-                    const parentLi = link.parentElement;
-                    iconClicked.classList.toggle('expanded');
-                    const submenu = parentLi.querySelector('ul');
-                    if (submenu) {
-                        if (submenu.classList.contains('hidden')) {
-                            submenu.classList.remove('hidden');
-                            submenu.style.maxHeight = submenu.scrollHeight + "px";
-                        } else {
-                            submenu.style.maxHeight = "0";
-                            setTimeout(() => { submenu.classList.add('hidden'); }, 400);
-                        }
-                    }
+                    const parentLi = link.parentElement; iconClicked.classList.toggle('expanded'); const submenu = parentLi.querySelector('ul');
+                    if (submenu) { if (submenu.classList.contains('hidden')) { submenu.classList.remove('hidden'); submenu.style.maxHeight = submenu.scrollHeight + "px"; } else { submenu.style.maxHeight = "0"; setTimeout(() => { submenu.classList.add('hidden'); }, 400); } }
                 } else {
                     e.preventDefault();
                     document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active'));
                     link.classList.add('active');
-                    
-                    // 更新 state 並重新獲取產品
                     state.categoryId = link.dataset.id === 'all' ? 'all' : parseInt(link.dataset.id);
                     state.currentPage = 1;
                     fetchProducts();
-
-                    if (window.innerWidth <= 767) {
-                        document.body.classList.remove('sidebar-open');
-                    }
+                    if (window.innerWidth <= 767) { document.body.classList.remove('sidebar-open'); }
                 }
             });
         }
+        // 【新增】排序功能事件監聽
+        if (sortBtn) { sortBtn.addEventListener('click', (e) => { e.stopPropagation(); sortOptionsContainer.classList.toggle('hidden'); }); }
+        if (sortOptionsContainer) { sortOptionsContainer.addEventListener('click', (e) => { e.preventDefault(); const target = e.target.closest('a'); if (target) { state.sortBy = target.dataset.value; state.currentPage = 1; sortBtnText.textContent = target.textContent; sortOptionsContainer.classList.add('hidden'); fetchProducts(); } }); }
+        if (orderToggleBtn) { orderToggleBtn.addEventListener('click', () => { state.order = (state.order === 'asc') ? 'desc' : 'asc'; state.currentPage = 1; orderToggleBtn.dataset.order = state.order; fetchProducts(); }); }
+        document.addEventListener('click', () => { if (sortOptionsContainer && !sortOptionsContainer.classList.contains('hidden')) { sortOptionsContainer.classList.add('hidden'); } });
         
         // --- 頁面載入流程 ---
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         
-        updateSyncStatus('正在初始化...', 'syncing');
         addNewBtn.disabled = true;
         manageCategoriesBtn.disabled = true;
 
         if (await fetchCategories()) {
             buildCategoryTree();
             populateCategorySelect();
-            await fetchProducts(); // 獲取分類後，再獲取第一頁產品
+            await fetchProducts();
         } else {
-            // 嘗試從快取載入分類
             try {
                 const localCategories = await readData('categories');
                 if (localCategories && localCategories.length > 0) {
                     allCategories = localCategories;
                     buildCategoryTree();
                     populateCategorySelect();
-                    await fetchProducts(); // 即使分類來自快取，產品仍需從網路獲取
-                    updateSyncStatus('雲端分類連接失敗，已載入本地快取', 'error');
+                    await fetchProducts();
+                    showToast('雲端分類連接失敗，已載入本地快取', 'error');
                 } else {
-                    updateSyncStatus('雲端及本地分類均載入失敗', 'error');
+                    showToast('雲端及本地分類均載入失敗', 'error');
                 }
             } catch(e) {
-                 updateSyncStatus('載入分類失敗', 'error');
+                 showToast('載入分類失敗', 'error');
             }
         }
         addNewBtn.disabled = false;
         manageCategoriesBtn.disabled = false;
         
-        // 舊有的檢視模式切換 (保持不變)
         if (viewToggleBtn && productList) { const savedView = localStorage.getItem('productView') || 'two-columns'; if (savedView === 'two-columns') { productList.classList.add('view-two-columns'); viewToggleBtn.classList.remove('list-view-active'); } else { productList.classList.remove('view-two-columns'); viewToggleBtn.classList.add('list-view-active'); } viewToggleBtn.addEventListener('click', () => { productList.classList.toggle('view-two-columns'); const isTwoColumns = productList.classList.contains('view-two-columns'); viewToggleBtn.classList.toggle('list-view-active', !isTwoColumns); localStorage.setItem('productView', isTwoColumns ? 'two-columns' : 'one-column'); }); }
     }
 
-    // --- 所有未變更的函式 (helper functions, UI interactions, etc.) ---
-    // 為了完整性，將所有其他函式複製於此，它們的內部邏輯大多不變
-    
-    function updateSyncStatus(message, status) { if (syncStatus) { syncStatus.textContent = message; syncStatus.className = `sync-status ${status}`; } }
+    // --- 所有未變更的函式 ---
     function showToast(message, type = 'info', duration = 3000) { const el = document.getElementById('toast-container'); if (!el) return; const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; el.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
     function buildCategoryTree() { if (!categoryTreeContainer) return; const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li></ul>`; function createTreeHTML(nodes, depth = 0) { nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); let subHtml = `<ul class="${depth >= 2 ? 'hidden' : ''}">`; for (const node of nodes) { const hasChildren = node.children && node.children.length > 0; subHtml += `<li class="${hasChildren ? 'has-children' : ''}">`; subHtml += `<a href="#" data-id="${node.id}">`; subHtml += `<span>${node.name}</span>`; if (hasChildren) { subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`; } subHtml += `</a>`; if (hasChildren) { subHtml += createTreeHTML(node.children, depth + 1); } subHtml += '</li>'; } return subHtml + '</ul>'; } categoryTreeContainer.innerHTML = html + createTreeHTML(tree); }
     function populateCategorySelect() { if (!categorySelect) return; const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; allCategories.forEach(c => { if (c.parentId === null) { tree.push(categoryMap.get(c.id)); } else if (categoryMap.has(c.parentId)) { categoryMap.get(c.parentId).children.push(categoryMap.get(c.id)); } }); tree.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); let selectOptions = '<option value="" disabled selected>請選擇分類</option>'; function createSelectOptions(nodes, depth = 0) { nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); nodes.forEach(node => { selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; if (node.children.length > 0) { createSelectOptions(node.children, depth + 1); } }); } createSelectOptions(tree); categorySelect.innerHTML = selectOptions; }
@@ -447,8 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (categoryModalCloseBtn) categoryModalCloseBtn.addEventListener('click', () => closeModal(categoryModal));
     if (categoryBackBtn) categoryBackBtn.addEventListener('click', () => { const lastParentId = categoryManagerHistory.pop(); renderCategoryManager(lastParentId, false); });
     if (categoryAddBtn) categoryAddBtn.addEventListener('click', addCategory);
-    if (categoryManagerList) categoryManagerList.addEventListener('click', (e) => { const target = e.target; const catItem = target.closest('.cm-item'); if (!catItem) return; const id = parseInt(catItem.dataset.id); if (target.classList.contains('cm-name')) { renderCategoryManager(id); } else if (target.closest('.edit-cat-btn')) { editCategory(id); } else if (target.closest('.delete-cat-btn')) { if (confirm('您確定要刪除這個分類嗎？')) removeCategory(id); } });
+    if (categoryManagerList) categoryManagerList.addEventListener('click', (e) => { const target = e.target; const catItem = target.closest('.cm-item'); if (!catItem) return; const id = parseInt(catItem.dataset.id); if (target.classList.contains('cm-name')) { renderCategoryManager(id); } else if (target.closest('.edit-cat-btn')) { editCategory(id); } else if (target.closest('.delete-cat-btn')) { if (confirm('您確定要刪除這個分類嗎？相關產品將變為「未分類」。')) removeCategory(id); } });
 
-    // 啟動應用
     init();
 });

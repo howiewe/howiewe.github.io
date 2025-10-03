@@ -1775,3 +1775,62 @@ body.lightbox-open {
     align-items: center;
     justify-content: center;
 }
+
+/* --- 20. Admin Toolbar 佈局微調 --- */
+
+/* 電腦版 (大於 768px) */
+@media(min-width: 768px) {
+    .toolbar {
+        display: grid;
+        grid-template-columns: minmax(200px, 1fr) auto auto auto; /* 搜尋框自適應，按鈕固定寬度 */
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    /* 讓管理/新增按鈕的容器填滿可用空間 */
+    .toolbar .toolbar-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 兩個按鈕平均分配 */
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    #search-box {
+        max-width: none; /* 取消最大寬度限制 */
+    }
+}
+
+
+/* 手機版 (小於 768px) */
+@media (max-width: 768px) {
+    /* 讓 toolbar-actions 裡的按鈕在手機上也是平均分配 */
+    .toolbar-actions {
+        grid-column: 1 / -1; /* 讓這個容器橫跨所有網格欄 */
+        order: 2; /* 把它放到搜尋框下面 */
+    }
+
+    #search-box {
+        grid-column: 1 / -1; /* 讓搜尋框橫跨所有網格欄 */
+        order: 1;
+        display: block; /* 確保它總是顯示 */
+    }
+
+    /* 隱藏手機版專用的搜尋觸發按鈕 */
+    #search-toggle-btn {
+        display: none !important;
+    }
+    
+    /* 排序相關按鈕放到最下面 */
+    .sort-container {
+        order: 3;
+    }
+    #order-toggle-btn {
+        order: 4;
+    }
+    
+    /* 調整 grid 佈局以適應新的排列 */
+    .toolbar {
+        grid-template-columns: 1fr auto; /* 左邊自適應，右邊按鈕固定 */
+        row-gap: 1rem;
+    }
+}
