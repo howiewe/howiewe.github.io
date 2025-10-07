@@ -45,6 +45,39 @@ document.addEventListener('DOMContentLoaded', () => {
     let lightboxState = { scale: 1, isPanning: false, pointX: 0, pointY: 0, startX: 0, startY: 0, didPan: false };
     let currentSlideIndex = 0, totalSlides = 0, isDragging = false, startPosX = 0, currentTranslate = 0, prevTranslate = 0, isSwiping = false;
 
+    function handleRouteChange() {
+        const path = window.location.pathname;
+        let categoryId = 'all'; // 預設為 "所有產品"
+
+        // 檢查路徑是否以 '/category/' 開頭
+        if (path.startsWith('/category/')) {
+            const pathParts = path.split('/');
+            // pathParts 範例: ["", "category", "5", "跳繩"]
+            // 我們需要第三個部分，也就是 ID
+            if (pathParts.length > 2 && !isNaN(parseInt(pathParts[2]))) {
+                categoryId = parseInt(pathParts[2]);
+            }
+        }
+
+        // 如果當前頁面的分類和從 URL 解析出的分類不同，就更新頁面
+        if (state.categoryId !== categoryId) {
+            state.categoryId = categoryId;
+            state.currentPage = 1; // 切換分類時，重置到第一頁
+            fetchProducts(); // 呼叫 API 重新獲取產品
+
+            // 更新側邊欄的 'active' 樣式，讓使用者知道現在在哪個分類
+            document.querySelectorAll('#category-tree a').forEach(a => {
+                const linkPath = a.getAttribute('href');
+                const linkId = linkPath.split('/')[2]; // 從 href="/category/5/..." 中取出 5
+
+                if (String(state.categoryId) === linkId || (state.categoryId === 'all' && linkPath === '/')) {
+                    a.classList.add('active');
+                } else {
+                    a.classList.remove('active');
+                }
+            });
+        }
+    }
 
     // --- 核心資料獲取函式 ---
     async function fetchProducts() {
@@ -167,13 +200,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (category.parentId === null) tree.push(category);
             else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
         }
-        let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li></ul>`;
+
+        // 【修改】"所有產品" 的連結指向根目錄 "/"
+        let html = `<ul><li><a href="/" class="active">所有產品</a></li></ul>`;
+
         function createTreeHTML(nodes, depth = 0) {
             nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
             let subHtml = `<ul class="${depth >= 2 ? 'hidden' : ''}">`;
             for (const node of nodes) {
                 const hasChildren = node.children && node.children.length > 0;
-                subHtml += `<li class="${hasChildren ? 'has-children' : ''}"><a href="#" data-id="${node.id}"><span>${node.name}</span>`;
+
+                // 【修改】產生新的 URL 格式: /category/ID/名稱
+                const categoryUrlName = encodeURIComponent(node.name);
+                subHtml += `<li class="${hasChildren ? 'has-children' : ''}">
+                          <a href="/category/${node.id}/${categoryUrlName}">
+                              <span>${node.name}</span>`;
+
                 if (hasChildren) {
                     subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
                 }
@@ -267,14 +309,43 @@ document.addEventListener('DOMContentLoaded', () => {
     function init() {
         if (themeToggle) themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
         if (searchBox) { searchBox.addEventListener('input', () => { clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(() => { state.searchTerm = searchBox.value.trim(); state.currentPage = 1; fetchProducts(); }, 300); }); }
+
         if (categoryTreeContainer) {
             categoryTreeContainer.addEventListener('click', e => {
-                const link = e.target.closest('a'); if (!link) return;
+                const link = e.target.closest('a');
+                if (!link) return;
+
                 const iconClicked = e.target.closest('.category-toggle-icon');
-                if (iconClicked) { e.preventDefault(); const parentLi = link.parentElement; iconClicked.classList.toggle('expanded'); const submenu = parentLi.querySelector('ul'); if (submenu) { if (submenu.classList.contains('hidden')) { submenu.classList.remove('hidden'); submenu.style.maxHeight = submenu.scrollHeight + "px"; } else { submenu.style.maxHeight = "0"; setTimeout(() => { submenu.classList.add('hidden'); }, 400); } } }
-                else { e.preventDefault(); document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); link.classList.add('active'); state.categoryId = link.dataset.id === 'all' ? 'all' : parseInt(link.dataset.id); state.currentPage = 1; fetchProducts(); if (window.innerWidth <= 767) { document.body.classList.remove('sidebar-open'); } }
+                if (iconClicked) {
+                    e.preventDefault();
+                    const parentLi = link.parentElement;
+                    iconClicked.classList.toggle('expanded');
+                    const submenu = parentLi.querySelector('ul');
+                    if (submenu) {
+                        if (submenu.classList.contains('hidden')) {
+                            submenu.classList.remove('hidden');
+                            submenu.style.maxHeight = submenu.scrollHeight + "px";
+                        } else {
+                            submenu.style.maxHeight = "0";
+                            setTimeout(() => { submenu.classList.add('hidden'); }, 400);
+                        }
+                    }
+                } else {
+                    e.preventDefault();
+                    const href = link.getAttribute('href');
+                    if (window.location.pathname !== href) {
+                        history.pushState({ path: href }, '', href);
+                        handleRouteChange();
+                    }
+                    if (window.innerWidth <= 767) {
+                        document.body.classList.remove('sidebar-open');
+                    }
+                }
             });
         }
+
+        window.addEventListener('popstate', handleRouteChange);
+
         if (menuToggleBtn) menuToggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
         if (pageOverlay) pageOverlay.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
         if (prevSlideBtn) prevSlideBtn.addEventListener('click', prevSlide);
@@ -297,8 +368,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         if (viewToggleBtn && productList) { const savedView = localStorage.getItem('productView') || 'two-columns'; if (savedView === 'two-columns') { productList.classList.add('view-two-columns'); viewToggleBtn.classList.remove('list-view-active'); } else { productList.classList.remove('view-two-columns'); viewToggleBtn.classList.add('list-view-active'); } viewToggleBtn.addEventListener('click', () => { productList.classList.toggle('view-two-columns'); const isTwoColumns = productList.classList.contains('view-two-columns'); viewToggleBtn.classList.toggle('list-view-active', !isTwoColumns); localStorage.setItem('productView', isTwoColumns ? 'two-columns' : 'one-column'); }); }
 
-        // 啟動頁面
-        loadInitialData();
+        loadInitialData().then(() => {
+            handleRouteChange();
+        });
     }
 
     init();
