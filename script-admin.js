@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             productList.innerHTML = '<p class="empty-message">產品載入失敗</p>';
         }
     }
-    async function fetchCategories(showToastOnError = true) { try { const response = await fetch('/api/all-data?t=' + new Date().getTime()); if (!response.ok) throw new Error(`Server Error: ${response.statusText}`); const data = await response.json(); allCategories = data.categories || []; await writeData('categories', allCategories); return true; } catch (error) { console.error('Fetch categories failed:', error); if(showToastOnError) showToast(`拉取分類資料失敗: ${error.message}`, 'error'); return false; } }
+    async function fetchCategories(showToastOnError = true) { try { const response = await fetch('/api/all-data?t=' + new Date().getTime()); if (!response.ok) throw new Error(`Server Error: ${response.statusText}`); const data = await response.json(); allCategories = data.categories || []; await writeData('categories', allCategories); return true; } catch (error) { console.error('Fetch categories failed:', error); if (showToastOnError) showToast(`拉取分類資料失敗: ${error.message}`, 'error'); return false; } }
     async function saveProduct(productData) { try { const response = await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`); await fetchProducts(); showToast('產品儲存成功', 'success'); } catch (error) { showToast(`儲存產品失敗: ${error.message}`, 'error'); console.error(error); } }
     async function deleteProductApi(id) { if (!confirm('您確定要刪除這個產品嗎？')) return; try { const response = await fetch(`/api/products/${id}`, { method: 'DELETE' }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`); await fetchProducts(); closeModal(editModal); showToast('產品已刪除', 'info'); } catch (error) { showToast(`刪除產品失敗: ${error.message}`, 'error'); } }
     async function saveCategory(categoryData) { try { const response = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(categoryData) }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).error || response.statusText}`); await fetchCategories(false); buildCategoryTree(); populateCategorySelect(); renderCategoryManager(currentCategoryManagerParentId, false); await fetchProducts(); } catch (error) { showToast(`儲存分類失敗: ${error.message}`, 'error'); } }
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPagination() {
         if (!paginationControls) return;
         paginationControls.innerHTML = '';
-        if(state.totalPages <= 1) return;
+        if (state.totalPages <= 1) return;
         const prevBtn = document.createElement('button');
         prevBtn.className = 'btn btn-secondary';
         prevBtn.innerHTML = '&#10094;';
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         nextBtn.addEventListener('click', () => { if (state.currentPage < state.totalPages) { state.currentPage++; fetchProducts(); } });
         paginationControls.append(prevBtn, pageInfo, nextBtn);
     }
-    
+
     // ▼▼▼ *** 核心修正函式 1: openProductModal *** ▼▼▼
     function openProductModal(product = null) {
         resetForm();
@@ -144,13 +144,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('product-price').value = product.price;
             document.getElementById('product-description').value = product.description;
             categorySelect.value = product.categoryId;
-            
+
             // *** 正確處理傳入的 imageUrls 物件陣列 ***
             // 為每個從後端來的圖片物件，加上前端操作所需的 isNew 和 blob 屬性
-            currentImageItems = product.imageUrls ? product.imageUrls.map(item => ({ 
+            currentImageItems = product.imageUrls ? product.imageUrls.map(item => ({
                 ...item, // 展開 {url, size}
-                isNew: false, 
-                blob: null 
+                isNew: false,
+                blob: null
             })) : [];
 
             deleteBtn.classList.remove('hidden');
@@ -212,14 +212,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateImageUIState() { const imageEmptyState = document.getElementById('image-empty-state'); if (currentImageItems.length === 0) { imageEmptyState.classList.remove('hidden'); imageUploadArea.classList.add('hidden'); } else { imageEmptyState.classList.add('hidden'); imageUploadArea.classList.remove('hidden'); } }
     function createSquareImageBlob(imageFile) { return new Promise((resolve, reject) => { const url = URL.createObjectURL(imageFile); const img = new Image(); img.onload = () => { const size = Math.max(img.naturalWidth, img.naturalHeight); const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); const x = (size - img.naturalWidth) / 2; const y = (size - img.naturalHeight) / 2; ctx.drawImage(img, x, y); URL.revokeObjectURL(url); canvas.toBlob(blob => { if (blob) resolve(blob); else reject(new Error('Canvas to Blob failed.')); }, 'image/png'); }; img.onerror = (err) => { URL.revokeObjectURL(url); reject(err); }; img.src = url; }); }
     async function handleFileSelection(files) { const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/')); if (imageFiles.length === 0) return; imageProcessingQueue = imageFiles; originalQueueLength = imageFiles.length; processNextImageInQueue(); }
-    async function processNextImageInQueue() { if (imageProcessingQueue.length === 0) { hideCropperModal(); return; } const file = imageProcessingQueue.shift(); try { const processedBlob = await createSquareImageBlob(file); const url = URL.createObjectURL(processedBlob); showCropperModal(url); const currentIndex = originalQueueLength - imageProcessingQueue.length; cropperStatus.textContent = `正在處理: ${currentIndex} / ${originalQueueLength}`; cropperConfirmBtn.textContent = imageProcessingQueue.length > 0 ? '確認並處理下一張' : '完成裁切'; } catch(e) { showToast('圖片處理失敗，已跳過', 'error'); processNextImageInQueue(); } }
+    async function processNextImageInQueue() { if (imageProcessingQueue.length === 0) { hideCropperModal(); return; } const file = imageProcessingQueue.shift(); try { const processedBlob = await createSquareImageBlob(file); const url = URL.createObjectURL(processedBlob); showCropperModal(url); const currentIndex = originalQueueLength - imageProcessingQueue.length; cropperStatus.textContent = `正在處理: ${currentIndex} / ${originalQueueLength}`; cropperConfirmBtn.textContent = imageProcessingQueue.length > 0 ? '確認並處理下一張' : '完成裁切'; } catch (e) { showToast('圖片處理失敗，已跳過', 'error'); processNextImageInQueue(); } }
     function showCropperModal(imageUrl) { openModal(cropperModal); cropperImage.src = imageUrl; if (cropper) cropper.destroy(); cropper = new Cropper(cropperImage, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false, dragMode: 'move', movable: true }); }
     function hideCropperModal() { closeModal(cropperModal); if (cropper) { const url = cropperImage.src; cropper.destroy(); cropper = null; if (url.startsWith('blob:')) URL.revokeObjectURL(url); cropperImage.src = ''; } imageProcessingQueue = []; originalQueueLength = 0; }
     function updateBarcodePreview() { if (!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
     async function uploadImage(blob, fileName) { try { const response = await fetch(`/api/upload/${fileName}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob }); if (!response.ok) throw new Error(`圖片上傳失敗: ${response.statusText}`); const result = await response.json(); return result.url; } catch (error) { console.error('上傳圖片失敗:', error); showToast(`圖片上傳失敗: ${error.message}`, 'error'); return null; } }
 
     // --- Event Listeners ---
-    
+
     // ▼▼▼ *** 核心修正事件 1: form.submit *** ▼▼▼
     if (form) form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await Promise.all(uploadPromises);
 
             submitBtn.textContent = '正在儲存資料...';
-            
+
             // *** 正確打包要儲存的 imageUrls 格式 ***
             const finalImageUrls = currentImageItems.map(item => ({
                 url: item.url,
@@ -271,10 +271,8 @@ document.addEventListener('DOMContentLoaded', () => {
             await saveProduct(data);
             closeModal(editModal);
         } finally {
-            if (!editModal.classList.contains('hidden')) { // 只有在 modal 沒關閉時才恢復按鈕 (例如發生錯誤)
-                 submitBtn.disabled = false;
-                 submitBtn.textContent = '儲存變更';
-            }
+            submitBtn.disabled = false;
+            submitBtn.textContent = '儲存變更';
         }
     });
     // ▲▲▲ *** 修正結束 *** ▲▲▲
@@ -287,10 +285,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (blob) {
                 const previewUrl = URL.createObjectURL(blob);
                 // *** 新增圖片時，建立包含預設 size 的完整物件 ***
-                currentImageItems.push({ 
-                    url: previewUrl, 
-                    blob, 
-                    isNew: true, 
+                currentImageItems.push({
+                    url: previewUrl,
+                    blob,
+                    isNew: true,
                     size: 90 // 預設大小
                 });
                 renderAdminImagePreview();
@@ -353,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         addNewBtn.disabled = true;
         manageCategoriesBtn.disabled = true;
-        if (await fetchCategories()) { buildCategoryTree(); populateCategorySelect(); await fetchProducts(); } else { try { const localCategories = await readData('categories'); if (localCategories && localCategories.length > 0) { allCategories = localCategories; buildCategoryTree(); populateCategorySelect(); await fetchProducts(); showToast('雲端分類連接失敗，已載入本地快取', 'error'); } else { showToast('雲端及本地分類均載入失敗', 'error'); } } catch(e) { showToast('載入分類失敗', 'error'); } }
+        if (await fetchCategories()) { buildCategoryTree(); populateCategorySelect(); await fetchProducts(); } else { try { const localCategories = await readData('categories'); if (localCategories && localCategories.length > 0) { allCategories = localCategories; buildCategoryTree(); populateCategorySelect(); await fetchProducts(); showToast('雲端分類連接失敗，已載入本地快取', 'error'); } else { showToast('雲端及本地分類均載入失敗', 'error'); } } catch (e) { showToast('載入分類失敗', 'error'); } }
         addNewBtn.disabled = false;
         manageCategoriesBtn.disabled = false;
         if (viewToggleBtn && productList) { const savedView = localStorage.getItem('productView') || 'two-columns'; if (savedView === 'two-columns') { productList.classList.add('view-two-columns'); viewToggleBtn.classList.remove('list-view-active'); } else { productList.classList.remove('view-two-columns'); viewToggleBtn.classList.add('list-view-active'); } viewToggleBtn.addEventListener('click', () => { productList.classList.toggle('view-two-columns'); const isTwoColumns = productList.classList.contains('view-two-columns'); viewToggleBtn.classList.toggle('list-view-active', !isTwoColumns); localStorage.setItem('productView', isTwoColumns ? 'two-columns' : 'one-column'); }); }
