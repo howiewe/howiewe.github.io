@@ -31,9 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let imageProcessingQueue = [];
     let originalQueueLength = 0;
 
-    const PAPAPARSE_URL = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js';
-    let papaParseLoaded = false;
-    function loadPapaParse(callback) { if (papaParseLoaded) { callback(); return; } const script = document.createElement('script'); script.src = PAPAPARSE_URL; script.onload = () => { papaParseLoaded = true; callback(); }; document.head.appendChild(script); }
+    
 
     // --- Rendering Functions ---
     function render() {
@@ -191,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleFileSelection(e.dataTransfer.files); // 【修改】觸發新的裁切流程
     });
     uploadCsvBtn.addEventListener('click', () => csvUploadInput.click());
-    csvUploadInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; loadPapaParse(() => { Papa.parse(file, { header: true, skipEmptyLines: true, encoding: "UTF-8", complete: (results) => { state.products = results.data.map((row, index) => ({ id: `prod_${Date.now()}_${index}`, data: row, status: 'pending', assignedImageIds: [] })); render(); } }); }); e.target.value = ''; });
+    csvUploadInput.addEventListener('change', (e) => { const file = e.target.files[0]; if (!file) return; Papa.parse(file, { header: true, skipEmptyLines: true, encoding: "UTF-8", complete: (results) => { state.products = results.data.map((row, index) => ({ id: `prod_${Date.now()}_${index}`, data: row, status: 'pending', assignedImageIds: [] })); render(); } }); e.target.value = ''; });
 
     // --- Final Submit Logic (*** 核心修正處 ***) ---
     finalSubmitBtn.addEventListener('click', async () => {
