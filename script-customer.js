@@ -301,9 +301,52 @@ document.addEventListener('DOMContentLoaded', () => {
     function getDistance(touches) { return Math.sqrt(Math.pow(touches[0].clientX - touches[1].clientX, 2) + Math.pow(touches[0].clientY - touches[1].clientY, 2)); }
 
     function interactionStart(e) { e.preventDefault(); lightboxState.didPan = false; if (e.type === 'mousedown') { lightboxState.isPanning = true; lightboxState.startX = e.clientX; lightboxState.startY = e.clientY; } else if (e.type === 'touchstart') { if (e.touches.length === 1) { lightboxState.isPanning = true; lightboxState.startX = e.touches[0].clientX; lightboxState.startY = e.touches[0].clientY; } else if (e.touches.length >= 2) { lightboxState.isPanning = false; lightboxState.initialPinchDistance = getDistance(e.touches); } } lightboxState.startPointX = lightboxState.pointX; lightboxState.startPointY = lightboxState.pointY; if (imageViewerModal) imageViewerModal.classList.add('panning'); }
-    function interactionMove(e) { e.preventDefault(); if (lightboxState.isPanning) { const currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX; const currentY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY; const deltaX = currentX - lightboxState.startX; const deltaY = currentY - lightboxState.startY; if (!lightboxState.didPan && Math.sqrt(deltaX * deltaX + deltaY * deltaY) > 5) lightboxState.didPan = true; lightboxState.pointX = lightboxState.startPointX + deltaX; lightboxState.pointY = lightboxState.startPointY + deltaY; applyTransform(); } else if (e.type === 'touchmove' && e.touches.length >= 2) { lightboxState.didPan = true; const newPinchDistance = getDistance(e.touches); const scaleMultiplier = newPinchDistance / lightboxState.initialPinchDistance; const newScale = lightboxState.scale * scaleMultiplier; const clampedScale = Math.max(1, Math.min(newScale, 5)); const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2; const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2; const xs = (midX - lightboxState.pointX) / lightboxState.scale; const ys = (midY - lightboxState.pointY) / lightboxState.scale; lightboxState.scale = clampedScale; lightboxState.pointX = midX - xs * lightboxState.scale; lightboxState.pointY = midY - ys * lightboxState.scale; applyTransform(); lightboxState.initialPinchDistance = newPinchDistance; } }
+    function interactionMove(e) {
+        e.preventDefault();
+        if (lightboxState.isPanning) {
+            // 單指拖曳平移的邏輯 (保持不變)
+            const currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+            const currentY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY;
+            const deltaX = currentX - lightboxState.startX;
+            const deltaY = currentY - lightboxState.startY;
+            if (!lightboxState.didPan && Math.sqrt(deltaX * deltaX + deltaY * deltaY) > 5) lightboxState.didPan = true;
+            lightboxState.pointX = lightboxState.startPointX + deltaX;
+            lightboxState.pointY = lightboxState.startPointY + deltaY;
+            applyTransform();
+        } else if (e.type === 'touchmove' && e.touches.length >= 2) {
+            // 【核心修改】雙指縮放的邏輯
+            lightboxState.didPan = true;
+            const newPinchDistance = getDistance(e.touches);
+            const scaleMultiplier = newPinchDistance / lightboxState.initialPinchDistance;
+            const newScale = lightboxState.scale * scaleMultiplier;
+
+            // 更新縮放比例，並限制在 1倍 到 5倍 之間
+            lightboxState.scale = Math.max(1, Math.min(newScale, 5));
+
+            // 同樣地，不再計算雙指的中點來移動圖片，只更新縮放
+            applyTransform();
+
+            // 更新初始距離以進行下一次計算
+            lightboxState.initialPinchDistance = newPinchDistance;
+        }
+    }
     function interactionEnd(e) { e.preventDefault(); if (!lightboxState.didPan) closeLightbox(); lightboxState.isPanning = false; lightboxState.initialPinchDistance = 0; if (imageViewerModal) imageViewerModal.classList.remove('panning'); }
-    function handleWheel(e) { e.preventDefault(); lightboxState.didPan = true; const xs = (e.clientX - lightboxState.pointX) / lightboxState.scale; const ys = (e.clientY - lightboxState.pointY) / lightboxState.scale; const delta = -e.deltaY; const newScale = lightboxState.scale * (delta > 0 ? 1.2 : 1 / 1.2); lightboxState.scale = Math.max(1, Math.min(newScale, 5)); lightboxState.pointX = e.clientX - xs * lightboxState.scale; lightboxState.pointY = e.clientY - ys * lightboxState.scale; applyTransform(); }
+    function handleWheel(e) {
+        e.preventDefault();
+        lightboxState.didPan = true;
+        const delta = -e.deltaY; // 獲取滾動方向
+
+        // 計算新的縮放比例
+        const newScale = lightboxState.scale * (delta > 0 ? 1.2 : 1 / 1.2);
+
+        // 將縮放比例限制在 1倍 到 5倍 之間
+        lightboxState.scale = Math.max(1, Math.min(newScale, 5));
+
+        // 【核心修改】不再計算滑鼠位置，直接套用新的縮放比例。
+        // 圖片的平移位置 (pointX, pointY) 在縮放時保持不變。
+        // 真正的縮放原點將由 CSS 的 transform-origin: center center; 決定。
+        applyTransform();
+    }
 
     // --- 初始化與事件監聽 ---
     function init() {
