@@ -27,7 +27,7 @@ export async function onRequest(context) {
                 break;
             case 'products':
                 if (method === 'GET') return await getPaginatedProducts(db, url.searchParams);
-                if (method === 'POST') return await createOrUpdateProduct(db, await request.json());
+                if (method === 'POST') return await createOrUpdateProduct(context, await request.json());
                 if (method === 'DELETE' && id) return await deleteProduct(context, id);
                 break;
             case 'categories':
@@ -121,33 +121,84 @@ async function getPaginatedProducts(db, params) {
     });
 }
 
-// 【全新簡潔版】createOrUpdateProduct
-async function createOrUpdateProduct(db, product) {
-    const { id, name, ean13, price, description, imageUrls, categoryId } = product;
-    const finalSku = (product.sku === '' || product.sku === undefined) ? null : product.sku;
-    // 直接儲存包含 url 和 size 的物件陣列
+async function createOrUpdateProduct(context, product) {
+    const { env } = context;
+    const { D1_DB, IMAGE_BUCKET, R2_PUBLIC_URL } = env;
+
+    // 從產品資料中解構所需欄位
+    const { id, name, sku, ean13, price, description, imageUrls, categoryId } = product;
+
+    // 準備要存入資料庫的資料
+    const finalSku = (sku === '' || sku === undefined) ? null : sku;
+    // 將包含 url 和 size 的物件陣列直接轉換為 JSON 字串儲存
     const imageUrlsJson = JSON.stringify(imageUrls || []);
     const now = new Date().toISOString();
     let results;
 
     if (id) {
-        // 不再包含 imageSize 欄位
-        ({ results } = await db.prepare(
+        // --- 更新 (UPDATE) 邏輯 ---
+
+        // 1. 從資料庫撈出舊的圖片資料，以便比對
+        const oldProduct = await D1_DB.prepare("SELECT imageUrls FROM products WHERE id = ?").bind(id).first();
+        let oldUrls = [];
+        if (oldProduct && oldProduct.imageUrls) {
+            try {
+                // 從舊的 JSON 物件陣列中僅提取 url 屬性
+                oldUrls = JSON.parse(oldProduct.imageUrls).map(item => item.url);
+            } catch (e) {
+                console.error(`無法解析產品 ${id} 的舊 imageUrls JSON 字串:`, oldProduct.imageUrls);
+            }
+        }
+
+        // 2. 找出在新列表中不存在的舊 URL (這些就是要被刪除的孤兒檔案)
+        const newUrls = (imageUrls || []).map(item => item.url);
+        const urlsToDelete = oldUrls.filter(url => url && !newUrls.includes(url));
+
+        // 3. 將要刪除的 URL 轉換為 R2 物件的 Key
+        const keysToDelete = urlsToDelete.map(url => {
+            if (url.startsWith(R2_PUBLIC_URL)) {
+                // 移除 public URL 前綴，得到 R2 的 key
+                return url.substring(R2_PUBLIC_URL.length + 1);
+            }
+            return null;
+        }).filter(key => key); // 過濾掉 null 的結果
+
+        // 4. 執行資料庫更新
+        ({ results } = await D1_DB.prepare(
             `UPDATE products SET sku = ?, name = ?, ean13 = ?, price = ?, description = ?, imageUrls = ?, categoryId = ?, updatedAt = ? WHERE id = ? RETURNING *`
         ).bind(finalSku, name, ean13, price, description, imageUrlsJson, categoryId, now, id).run());
+
+        // 5. 【關鍵步驟】在資料庫成功更新後，才從 R2 刪除孤兒檔案
+        if (keysToDelete.length > 0) {
+            try {
+                // 這個操作是 "fire and forget" (發射後不管)，即使 R2 刪除失敗也不應阻斷整個 API 回應
+                // 失敗的檔案可以交由定期的 Cron 清理任務來處理
+                await IMAGE_BUCKET.delete(keysToDelete);
+            } catch (r2Error) {
+                console.error(`清理 R2 孤兒檔案失敗 (產品 ID: ${id}):`, r2Error);
+                // 不拋出錯誤，確保使用者能收到成功的資料庫更新回應
+            }
+        }
     } else {
-        // 不再包含 imageSize 欄位
-        ({ results } = await db.prepare(
+        // --- 新增 (INSERT) 邏輯 ---
+        ({ results } = await D1_DB.prepare(
             `INSERT INTO products (sku, name, ean13, price, description, imageUrls, categoryId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
         ).bind(finalSku, name, ean13, price, description, imageUrlsJson, categoryId, now, now).run());
     }
 
-    if (!results || results.length === 0) throw new Error("資料庫操作失敗，未返回任何結果。");
+    // 統一處理回傳結果
+    if (!results || results.length === 0) {
+        throw new Error("資料庫操作失敗，未返回任何結果。");
+    }
+
+    // 將從資料庫取回的產品資料中的 imageUrls 字串解析回物件陣列後再回傳
     const finalProduct = { ...results[0], imageUrls: JSON.parse(results[0].imageUrls || '[]') };
+
+    // 如果是新增操作，回傳 201 Created；如果是更新，回傳 200 OK
     return response(finalProduct, id ? 200 : 201);
 }
 
-// ... 此處省略的其他後端函式 (deleteProduct, handleCategoryReorder 等) 保持不變 ...
+
 async function deleteProduct(context, id) {
     const { env } = context;
     const { D1_DB, IMAGE_BUCKET, R2_PUBLIC_URL } = env;
