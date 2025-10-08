@@ -22,16 +22,40 @@
 
     <header>
         <div class="header-content">
-            <button id="menu-toggle-btn" class="menu-toggle-btn" title="分類選單"><svg xmlns="http://www.w3.org/2000/svg"
-                    width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg></button>
+            <!-- ▼▼▼ 新增開始：左側按鈕容器 ▼▼▼ -->
+            <div class="header-actions-left" style="display: flex; align-items: center; gap: 0.5rem;">
+                <button id="menu-toggle-btn" class="menu-toggle-btn" title="分類選單"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg></button>
+
+                <!-- 手機版 Home 按鈕 (漢堡右邊) -->
+                <a href="/" id="home-btn-mobile" class="btn btn-icon" title="返回前台">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </a>
+            </div>
+            <!-- ▲▲▲ 新增結束：左側按鈕容器 ▲▲▲ -->
+
             <h1>產品管理</h1>
-            <!-- ▼▼▼ 【核心修改】調整 Header 右側按鈕順序 ▼▼▼ -->
+
             <div class="header-actions">
+                <!-- ▼▼▼ 新增開始：電腦版 Home 按鈕 (黑暗模式左邊) ▼▼▼ -->
+                <a href="/" id="home-btn-desktop" class="btn btn-icon" title="返回前台">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </a>
+                <!-- ▲▲▲ 新增結束 ▲▲▲ -->
+
                 <button id="view-toggle-btn" class="btn view-toggle" title="切換檢視模式">
                     <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -73,7 +97,6 @@
                     </svg>
                 </button>
             </div>
-            <!-- ▲▲▲ 修改結束 (移除了 sync-status) ▲▲▲ -->
         </div>
     </header>
 

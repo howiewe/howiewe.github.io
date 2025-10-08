@@ -1835,3 +1835,27 @@ body.lightbox-open {
         row-gap: 1rem;
     }
 }
+
+/* --- 21. Admin Home 按鈕響應式樣式 --- */
+
+/* 預設 (手機版) 狀態 */
+/* 顯示手機版 Home 按鈕 */
+#home-btn-mobile {
+    display: inline-flex; 
+}
+/* 隱藏電腦版 Home 按鈕 */
+#home-btn-desktop {
+    display: none;
+}
+
+/* 電腦版 (大於 768px) 狀態 */
+@media(min-width: 768px) {
+    /* 隱藏手機版 Home 按鈕 */
+    #home-btn-mobile {
+        display: none;
+    }
+    /* 顯示電腦版 Home 按鈕 */
+    #home-btn-desktop {
+        display: inline-flex;
+    }
+}
