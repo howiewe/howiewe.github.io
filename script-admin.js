@@ -212,7 +212,27 @@ document.addEventListener('DOMContentLoaded', () => {
     async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) await saveCategory({ id: category.id, name: newName.trim(), parentId: category.parentId }); else if (newName !== null) alert('分類名稱不能為空！'); }
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
-    function initSortable() { if (sortableInstance) sortableInstance.destroy(); if (thumbnailListAdmin) try { sortableInstance = new Sortable(thumbnailListAdmin, { animation: 150, filter: '.add-new', onEnd: (evt) => { if (evt.newIndex === currentImageItems.length) return; const item = currentImageItems.splice(evt.oldIndex, 1)[0]; currentImageItems.splice(evt.newIndex, 0, item); renderAdminImagePreview(); } }); } catch (e) { console.error("SortableJS init failed:", e); } }
+    function initSortable() {
+        if (sortableInstance) sortableInstance.destroy();
+        if (thumbnailListAdmin) try {
+            sortableInstance = new Sortable(thumbnailListAdmin, {
+                animation: 150,
+                // 【核心修正】使用 'draggable' 選項明確指定哪些元素是可拖曳的，
+                // 這樣 Sortable.js 會完全忽略 '.add-new' 按鈕，使其無法成為放置目標。
+                draggable: '.thumbnail-item:not(.add-new)',
+                onEnd: (evt) => {
+                    // 因為 Sortable.js 現在只管理有效的圖片項目，
+                    // 其回傳的索引值 (oldIndex, newIndex) 會與我們的 currentImageItems 陣列完全對應，
+                    // 不再需要額外的索引檢查，可以直接安全地更新陣列順序。
+                    const item = currentImageItems.splice(evt.oldIndex, 1)[0];
+                    currentImageItems.splice(evt.newIndex, 0, item);
+                    renderAdminImagePreview();
+                }
+            });
+        } catch (e) {
+            console.error("SortableJS init failed:", e);
+        }
+    }
     function updateImageUIState() { const imageEmptyState = document.getElementById('image-empty-state'); if (currentImageItems.length === 0) { imageEmptyState.classList.remove('hidden'); imageUploadArea.classList.add('hidden'); } else { imageEmptyState.classList.add('hidden'); imageUploadArea.classList.remove('hidden'); } }
     function createSquareImageBlob(imageFile) { return new Promise((resolve, reject) => { const url = URL.createObjectURL(imageFile); const img = new Image(); img.onload = () => { const size = Math.max(img.naturalWidth, img.naturalHeight); const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); const x = (size - img.naturalWidth) / 2; const y = (size - img.naturalHeight) / 2; ctx.drawImage(img, x, y); URL.revokeObjectURL(url); canvas.toBlob(blob => { if (blob) resolve(blob); else reject(new Error('Canvas to Blob failed.')); }, 'image/png'); }; img.onerror = (err) => { URL.revokeObjectURL(url); reject(err); }; img.src = url; }); }
     async function handleFileSelection(files) { const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/')); if (imageFiles.length === 0) return; imageProcessingQueue = imageFiles; originalQueueLength = imageFiles.length; processNextImageInQueue(); }
