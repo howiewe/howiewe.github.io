@@ -151,7 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const imageSize = firstImageObject ? firstImageObject.size : 90;
             // ▲▲▲ *** 修正結束 *** ▲▲▲
 
-            card.innerHTML = `<div class="image-container"><img src="${imageUrl}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${imageSize / 100});"></div><div class="product-info"><h3>${product.name}</h3><p class="price">$${product.price}</p></div>`;
+            const priceHtml = (product.price !== null && product.price !== undefined)
+                ? `<p class="price">$${product.price}</p>`
+                : `<p class="price price-empty">&nbsp;</p>`; // 如果沒有價格，產生一個帶有特殊 class 的空元素
+
+            card.innerHTML = `<div class="image-container"><img src="${imageUrl}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${imageSize / 100});"></div><div class="product-info"><h3>${product.name}</h3>${priceHtml}</div>`;
             productList.appendChild(card);
         });
     }

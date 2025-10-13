@@ -339,6 +339,10 @@ body.dark-mode .icon-sun {
     margin: 0;
 }
 
+.product-card .price.price-empty {
+    visibility: hidden;
+}
+
 /* --- 7. Modal & 表單 (Modal & Form) --- */
 .modal-container {
     position: fixed;
