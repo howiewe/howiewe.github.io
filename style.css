@@ -1856,16 +1856,17 @@ body.lightbox-open {
     }
 }
 
-/* --- 22. 手機雙欄檢視下，無價格產品標題最多顯示兩行 --- */
+/* --- 22. 手機雙欄檢視下，無價格產品標題最多顯示兩行 (兼容性強化版) --- */
 @media (max-width: 768px) {
   .product-grid.view-two-columns .product-card:has(.price.price-empty) h3 {
     /* 步驟 1: 覆蓋掉預設的強制單行，允許文字可以自然換行 */
     white-space: initial;
 
-    /* 步驟 2: 應用 Webkit 的 line-clamp 技術來實現最多兩行的截斷 */
+    /* 步驟 2: 應用 line-clamp 技術來實現最多兩行的截斷 */
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2; /* 核心：設定最大行數為 2 */
+    -webkit-line-clamp: 2; /* 舊版/Webkit 瀏覽器 fallback */
+    line-clamp: 2;         /* 【新增】標準屬性，為了未來的兼容性 */
   }
 }
