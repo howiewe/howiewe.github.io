@@ -1234,10 +1234,6 @@ form select:focus {
         grid-template-columns: 1fr;
     }
 
-    .product-grid.view-two-columns {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
 }
 
 /* --- 15. 檢視模式切換按鈕 (View Toggle Button) --- */
@@ -1279,10 +1275,6 @@ form select:focus {
         grid-template-columns: 1fr;
     }
 
-    .product-grid.view-two-columns {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
 }
 
 /* --- 15. 全新分類管理介面 (Category Manager) - 修正滾動問題版 --- */
@@ -1686,7 +1678,7 @@ body.lightbox-open {
 
     .product-grid.view-two-columns {
         grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        gap: 0.5rem;
     }
     
     /* 針對分類管理 Modal 的響應式調整 */
