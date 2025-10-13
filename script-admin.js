@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     url: previewUrl,
                     blob,
                     isNew: true,
-                    size: 90 // 預設大小
+                    size: 100 // 預設大小
                 });
                 renderAdminImagePreview();
             } else {
