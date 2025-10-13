@@ -1867,6 +1867,12 @@ body.lightbox-open {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2; /* 舊版/Webkit 瀏覽器 fallback */
-    line-clamp: 2;         /* 【新增】標準屬性，為了未來的兼容性 */
+    line-clamp: 2;         /* 標準屬性，為了未來的兼容性 */
   }
+
+  /* --- 新增開始：徹底隱藏價格元素及其佔位 --- */
+  .product-grid.view-two-columns .product-card:has(.price.price-empty) .price {
+    display: none; /* 讓價格元素連同其空間一起消失 */
+  }
+  /* --- 新增結束 --- */
 }
