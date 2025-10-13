@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // ▲▲▲ *** 修正結束 *** ▲▲▲
 
-    function resetForm() { if (form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if (i.url && i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; imageSizeSlider.value = 90; imageSizeValue.textContent = 90; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropperModal(); }
+    function resetForm() { if (form) form.reset(); productIdInput.value = ''; currentImageItems.forEach(i => { if (i.url && i.url.startsWith('blob:')) URL.revokeObjectURL(i.url); }); currentImageItems = []; imageSizeSlider.value = 100; imageSizeValue.textContent = 90; deleteBtn.classList.add('hidden'); categorySelect.selectedIndex = 0; updateBarcodePreview(); hideCropperModal(); }
     function renderAdminImagePreview() {
         if (!mainImagePreview) return;
         thumbnailListAdmin.querySelectorAll('.thumbnail-item:not(.add-new)').forEach(el => el.remove());
