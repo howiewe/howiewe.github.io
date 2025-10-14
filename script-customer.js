@@ -214,63 +214,60 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryTreeContainer.innerHTML = html + createTreeHTML(tree);
     }
 
-    // --- 路由處理函式 (*** 核心修改區域 ***) ---
-
-    /**
-     * @description 網站的中央路由器。它會檢查瀏覽器的 URL，並決定要顯示什麼內容。
-     *              無論是初次載入、點擊連結、或按上下一頁，都會觸發此函式。
-     */
     async function handleRouteChange() {
         const path = window.location.pathname;
+        const isProductPath = path.startsWith('/product/');
+        const isModalOpen = !detailModal.classList.contains('hidden');
 
-        // 【路由邏輯 1】: 檢查 URL 是否為產品詳情頁 (例如 /product/123/...)
-        if (path.startsWith('/product/')) {
+        // 【核心修正邏輯】
+        // 1. 首先，處理 UI 狀態：如果彈窗是開著的，但我們的新網址不是產品頁，
+        //    那就代表使用者按了「返回」，我們必須無條件先關閉彈窗。
+        if (isModalOpen && !isProductPath) {
+            closeModal(false); // 傳入 false 代表不要去更動 history，因為瀏覽器已經處理好了
+        }
+
+        // 2. 接著，處理資料載入邏輯
+        if (isProductPath) {
+            // 如果目標是產品頁 (例如直接貼上網址，或按「下一頁」回到產品頁)
             const pathParts = path.split('/');
             const productId = parseInt(pathParts[2]);
 
             if (!isNaN(productId)) {
-                if (!detailModal.classList.contains('hidden')) {
-                    closeModal(false);
-                }
-                productList.innerHTML = '<p class="empty-message">正在載入產品...</p>';
-
-                const product = await fetchProductById(productId);
-
-                if (product) {
-                    await fetchProducts();
-                    openDetailModal(product);
-                } else {
-                    history.replaceState({}, '產品展示', '/');
-                    await fetchProducts();
+                // 只有在彈窗還沒開的情況下，才去抓資料並打開它
+                if (!isModalOpen) {
+                    productList.innerHTML = '<p class="empty-message">正在載入產品...</p>';
+                    const product = await fetchProductById(productId);
+                    if (product) {
+                        await fetchProducts(); // 載入背景列表
+                        openDetailModal(product); // 開啟彈窗
+                    } else {
+                        history.replaceState({}, '產品展示', '/');
+                        await fetchProducts();
+                    }
                 }
             }
-        }
-        // 【路由邏輯 2】: 檢查 URL 是否為分類頁 (例如 /category/5/...)
-        else if (path.startsWith('/category/')) {
+        } else if (path.startsWith('/category/')) {
+            // 如果目標是分類頁
             const pathParts = path.split('/');
             const newCategoryId = parseInt(pathParts[2]) || 'all';
 
+            // 只有在分類改變時，才重新載入產品列表
             if (state.categoryId !== newCategoryId) {
-                closeModal(false);
                 state.categoryId = newCategoryId;
                 state.currentPage = 1;
                 await fetchProducts();
             }
-        }
-        // 【路由邏輯 3】: 如果以上都不是，則視為首頁
-        else {
-            // 【核心修正】新增 `|| currentProducts.length === 0` 條件
-            // 這個條件確保了：無論是從其他分類切換回來，或是網站首次載入 (此時產品陣列為空)，
-            // 都會觸發載入「所有產品」。
+        } else {
+            // 如果目標是首頁 ("所有產品")
+            // 只有在分類不是 'all' 或 產品列表是空的 (首次載入) 時，才重新載入
             if (state.categoryId !== 'all' || currentProducts.length === 0) {
-                closeModal(false);
                 state.categoryId = 'all';
                 state.currentPage = 1;
                 await fetchProducts();
             }
         }
 
-        // 最後，同步側邊欄的 'active' 樣式
+        // 3. 最後，無論如何都同步一次側邊欄的 active 狀態
         updateSidebarActiveState();
     }
 
