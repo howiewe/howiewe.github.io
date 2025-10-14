@@ -381,7 +381,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchBox) { searchBox.addEventListener('input', () => { clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(() => { state.searchTerm = searchBox.value.trim(); state.currentPage = 1; fetchProducts(); }, 300); }); }
         if (categoryTreeContainer) { categoryTreeContainer.addEventListener('click', e => { const link = e.target.closest('a'); if (!link) return; const iconClicked = e.target.closest('.category-toggle-icon'); if (iconClicked) { e.preventDefault(); const parentLi = link.parentElement; iconClicked.classList.toggle('expanded'); const submenu = parentLi.querySelector('ul'); if (submenu) { if (submenu.classList.contains('hidden')) { submenu.classList.remove('hidden'); submenu.style.maxHeight = submenu.scrollHeight + "px"; } else { submenu.style.maxHeight = "0"; setTimeout(() => { submenu.classList.add('hidden'); }, 400); } } } else { e.preventDefault(); document.querySelectorAll('#category-tree a').forEach(a => a.classList.remove('active')); link.classList.add('active'); state.categoryId = link.dataset.id === 'all' ? 'all' : parseInt(link.dataset.id); state.currentPage = 1; fetchProducts(); if (window.innerWidth <= 767) { document.body.classList.remove('sidebar-open'); } } }); }
         if (sortBtn) { sortBtn.addEventListener('click', (e) => { e.stopPropagation(); sortOptionsContainer.classList.toggle('hidden'); }); }
-        if (sortOptionsContainer) { sortOptionsContainer.addEventListener('click', (e) => { e.preventDefault(); const target = e.target.closest('a'); if (target) { state.sortBy = target.dataset.value; state.currentPage = 1; sortBtnText.textContent = target.textContent; sortOptionsContainer.classList.add('hidden'); fetchProducts(); } }); }
+        if (sortOptionsContainer) {
+            sortOptionsContainer.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('a');
+                if (target) {
+                    const newSortBy = target.dataset.value;
+
+                    // 如果點擊的選項和目前一樣，就只關閉選單，不重新整理
+                    if (state.sortBy === newSortBy) {
+                        sortOptionsContainer.classList.add('hidden');
+                        return;
+                    }
+
+                    // 更新排序欄位
+                    state.sortBy = newSortBy;
+
+                    // ▼▼▼ 【核心修改】根據新的排序欄位，設定預設的排序方向 ▼▼▼
+                    if (newSortBy === 'updatedAt' || newSortBy === 'createdAt') {
+                        // 如果是時間相關的排序，預設為由新到舊 (desc)
+                        state.order = 'desc';
+                    } else {
+                        // 如果是價格或名稱排序，預設為由小到大 (asc)
+                        state.order = 'asc';
+                    }
+                    // ▲▲▲ 【修改結束】 ▲▲▲
+
+                    // 【重要】同步更新升降序按鈕的 UI 狀態
+                    orderToggleBtn.dataset.order = state.order;
+
+                    // 更新 UI 文字並重置頁碼
+                    sortBtnText.textContent = target.textContent;
+                    state.currentPage = 1;
+                    sortOptionsContainer.classList.add('hidden');
+
+                    // 使用新的排序狀態重新拉取產品資料
+                    fetchProducts();
+                }
+            });
+        }
         if (orderToggleBtn) { orderToggleBtn.addEventListener('click', () => { state.order = (state.order === 'asc') ? 'desc' : 'asc'; state.currentPage = 1; orderToggleBtn.dataset.order = state.order; fetchProducts(); }); }
         document.addEventListener('click', () => { if (sortOptionsContainer && !sortOptionsContainer.classList.contains('hidden')) { sortOptionsContainer.classList.add('hidden'); } });
         const currentTheme = localStorage.getItem('theme');
