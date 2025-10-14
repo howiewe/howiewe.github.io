@@ -251,24 +251,40 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = true;
         submitBtn.textContent = '處理中...';
         try {
+            // ▼▼▼ 【核心修改】將分類驗證移至所有操作的最前方 ▼▼▼
+            const categoryIdValue = parseInt(categorySelect.value);
+            // 檢查是否為 NaN (未選擇) 或 0
+            if (!categoryIdValue) {
+                alert("請選擇一個產品分類！");
+                // 恢復按鈕狀態並立即停止後續所有操作
+                submitBtn.disabled = false;
+                submitBtn.textContent = '儲存變更';
+                return; // 終止函式執行，不進行任何圖片上傳
+            }
+            // ▲▲▲ 【修改結束】 ▲▲▲
+
+            // --- 只有在分類驗證通過後，才會執行下面的圖片上傳 ---
             const imagesToUpload = currentImageItems.filter(item => item.isNew && item.blob);
             let uploadedCount = 0;
-            const uploadPromises = imagesToUpload.map(async item => {
-                const ext = item.blob.type.split('/')[1] || 'webp';
-                const tempId = productIdInput.value || `new_${Date.now()}`;
-                const fileName = `product-${tempId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
-                const uploadedUrl = await uploadImage(item.blob, fileName);
-                uploadedCount++;
-                submitBtn.textContent = `上傳圖片 (${uploadedCount}/${imagesToUpload.length})...`;
-                item.url = uploadedUrl; // 更新物件內的 url
-                item.isNew = false; // 標記為已上傳
-                item.blob = null; // 清除 blob
-            });
-            await Promise.all(uploadPromises);
+
+            if (imagesToUpload.length > 0) {
+                const uploadPromises = imagesToUpload.map(async item => {
+                    const ext = item.blob.type.split('/')[1] || 'webp';
+                    const tempId = productIdInput.value || `new_${Date.now()}`;
+                    const fileName = `product-${tempId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
+                    const uploadedUrl = await uploadImage(item.blob, fileName);
+                    uploadedCount++;
+                    submitBtn.textContent = `上傳圖片 (${uploadedCount}/${imagesToUpload.length})...`;
+                    item.url = uploadedUrl; // 更新物件內的 url
+                    item.isNew = false; // 標記為已上傳
+                    item.blob = null; // 清除 blob
+                });
+                await Promise.all(uploadPromises);
+            }
 
             submitBtn.textContent = '正在儲存資料...';
 
-            // *** 正確打包要儲存的 imageUrls 格式 ***
+            // 正確打包要儲存的 imageUrls 格式
             const finalImageUrls = currentImageItems.map(item => ({
                 url: item.url,
                 size: item.size
@@ -282,24 +298,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 ean13: ean13Input.value,
                 price: parseFloat(document.getElementById('product-price').value),
                 description: document.getElementById('product-description').value,
-                imageUrls: finalImageUrls, // 使用包含 size 的新格式
-                categoryId: parseInt(categorySelect.value)
+                imageUrls: finalImageUrls,
+                categoryId: categoryIdValue // 使用我們在最前面已經驗證過的值
             };
-            if (!data.categoryId) {
-                alert("請選擇分類！");
-                // 恢復按鈕狀態
-                submitBtn.disabled = false;
-                submitBtn.textContent = '儲存變更';
-                return;
-            }
+
+            // 原本在這裡的分類檢查現在已經不需要了，因為我們在最前面就處理了
+
             await saveProduct(data);
             closeModal(editModal);
+
         } finally {
+            // finally 區塊確保無論成功或失敗，按鈕最終都會恢復正常
             submitBtn.disabled = false;
             submitBtn.textContent = '儲存變更';
         }
     });
-    // ▲▲▲ *** 修正結束 *** ▲▲▲
 
     // ▼▼▼ *** 核心修正事件 2: cropperConfirmBtn.click *** ▼▼▼
     if (cropperConfirmBtn) cropperConfirmBtn.addEventListener('click', () => {
