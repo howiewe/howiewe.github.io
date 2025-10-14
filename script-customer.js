@@ -408,7 +408,42 @@ document.addEventListener('DOMContentLoaded', () => {
         if (searchBox) { searchBox.addEventListener('blur', () => { if (searchBox.value === '') { toolbar.classList.remove('search-active'); } }); }
         if (categoryToggleBtn) { categoryToggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-open')); }
         if (sortBtn) { sortBtn.addEventListener('click', (e) => { e.stopPropagation(); sortOptionsContainer.classList.toggle('hidden'); }); }
-        if (sortOptionsContainer) { sortOptionsContainer.addEventListener('click', (e) => { e.preventDefault(); const target = e.target.closest('a'); if (target) { state.sortBy = target.dataset.value; state.currentPage = 1; sortBtnText.textContent = target.textContent; sortOptionsContainer.classList.add('hidden'); fetchProducts(); } }); }
+        if (sortOptionsContainer) {
+            sortOptionsContainer.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('a');
+                if (target) {
+                    const newSortBy = target.dataset.value;
+
+                    // 如果點擊的選項和目前一樣，就只關閉選單
+                    if (state.sortBy === newSortBy) {
+                        sortOptionsContainer.classList.add('hidden');
+                        return;
+                    }
+
+                    state.sortBy = newSortBy;
+
+                    // ▼▼▼ 【核心修改】為訪客頁面加入相同的智慧排序邏輯 ▼▼▼
+                    if (newSortBy === 'updatedAt' || newSortBy === 'createdAt') {
+                        // 時間相關排序，預設為「由新到舊」(desc)
+                        state.order = 'desc';
+                    } else {
+                        // 價格、名稱排序，預設為「由小到大」(asc)
+                        state.order = 'asc';
+                    }
+                    // ▲▲▲ 【修改結束】 ▲▲▲
+
+                    // 同步更新升降序按鈕的 UI
+                    orderToggleBtn.dataset.order = state.order;
+
+                    // 更新 UI 並重新拉取資料
+                    sortBtnText.textContent = target.textContent;
+                    state.currentPage = 1;
+                    sortOptionsContainer.classList.add('hidden');
+                    fetchProducts();
+                }
+            });
+        }
         if (orderToggleBtn) { orderToggleBtn.addEventListener('click', () => { state.order = (state.order === 'asc') ? 'desc' : 'asc'; state.currentPage = 1; orderToggleBtn.dataset.order = state.order; fetchProducts(); }); }
         document.addEventListener('click', () => { if (sortOptionsContainer && !sortOptionsContainer.classList.contains('hidden')) { sortOptionsContainer.classList.add('hidden'); } });
         const currentTheme = localStorage.getItem('theme');
