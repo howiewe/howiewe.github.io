@@ -26,6 +26,18 @@ export async function onRequest(context) {
                 if (method === 'GET') return await getCategoriesOnly(db);
                 break;
             case 'products':
+                if (method === 'GET') {
+                    if (id) {
+                        // 如果有 id (例如 /api/products/123)，就查詢單一產品
+                        return await getProductById(db, id);
+                    } else {
+                        // 如果沒有 id (例如 /api/products?page=1)，就執行現有的分頁查詢
+                        return await getPaginatedProducts(db, url.searchParams);
+                    }
+                }
+                if (method === 'POST') return await createOrUpdateProduct(context, await request.json());
+                if (method === 'DELETE' && id) return await deleteProduct(context, id);
+                break;
                 if (method === 'GET') return await getPaginatedProducts(db, url.searchParams);
                 if (method === 'POST') return await createOrUpdateProduct(context, await request.json());
                 if (method === 'DELETE' && id) return await deleteProduct(context, id);
@@ -318,4 +330,23 @@ async function handleBatchCreateV2(db, { products: newProducts }) {
     }
     if (productStatements.length > 0) await db.batch(productStatements);
     return response({ success: true, message: `成功匯入 ${newProducts.length} 筆產品。` });
+}
+async function getProductById(db, id) {
+    const query = db.prepare("SELECT * FROM products WHERE id = ?");
+    let product = await query.bind(id).first();
+
+    // 如果找不到產品，回傳 404 Not Found
+    if (!product) {
+        return response({ error: 'Product not found' }, 404);
+    }
+
+    // 將 imageUrls 從 JSON 字串解析回物件陣列，再回傳給前端
+    try {
+        product = { ...product, imageUrls: product.imageUrls ? JSON.parse(product.imageUrls) : [] };
+    } catch (e) {
+        console.error(`解析產品 ${id} 的 imageUrls 失敗:`, product.imageUrls);
+        product = { ...product, imageUrls: [] }; // 解析失敗也回傳空陣列
+    }
+
+    return response(product, 200); // 回傳單一產品資料
 }
