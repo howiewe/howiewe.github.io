@@ -237,7 +237,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function createSquareImageBlob(imageFile) { return new Promise((resolve, reject) => { const url = URL.createObjectURL(imageFile); const img = new Image(); img.onload = () => { const size = Math.max(img.naturalWidth, img.naturalHeight); const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); const x = (size - img.naturalWidth) / 2; const y = (size - img.naturalHeight) / 2; ctx.drawImage(img, x, y); URL.revokeObjectURL(url); canvas.toBlob(blob => { if (blob) resolve(blob); else reject(new Error('Canvas to Blob failed.')); }, 'image/png'); }; img.onerror = (err) => { URL.revokeObjectURL(url); reject(err); }; img.src = url; }); }
     async function handleFileSelection(files) { const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/')); if (imageFiles.length === 0) return; imageProcessingQueue = imageFiles; originalQueueLength = imageFiles.length; processNextImageInQueue(); }
     async function processNextImageInQueue() { if (imageProcessingQueue.length === 0) { hideCropperModal(); return; } const file = imageProcessingQueue.shift(); try { const processedBlob = await createSquareImageBlob(file); const url = URL.createObjectURL(processedBlob); showCropperModal(url); const currentIndex = originalQueueLength - imageProcessingQueue.length; cropperStatus.textContent = `正在處理: ${currentIndex} / ${originalQueueLength}`; cropperConfirmBtn.textContent = imageProcessingQueue.length > 0 ? '確認並處理下一張' : '完成裁切'; } catch (e) { showToast('圖片處理失敗，已跳過', 'error'); processNextImageInQueue(); } }
-    function showCropperModal(imageUrl) { openModal(cropperModal); cropperImage.src = imageUrl; if (cropper) cropper.destroy(); cropper = new Cropper(cropperImage, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false, dragMode: 'move', movable: true }); }
+    function showCropperModal(imageUrl) {
+        openModal(cropperModal); cropperImage.src = imageUrl; if (cropper) cropper.destroy(); cropper = new Cropper(cropperImage, {
+            // --- 視覺與比例設定 ---
+            aspectRatio: 1,      // 裁切框是 1:1 的正方形
+            viewMode: 1,         // 限制裁切框不能超出圖片範圍
+            background: false,   // 隱藏容器後的棋盤格背景
+
+            // --- 【核心】互動模式設定 ---
+            dragMode: 'move',      // 設定滑鼠拖曳行為是「移動圖片」
+            cropBoxMovable: false, // 禁止移動裁切框
+            cropBoxResizable: false, // 禁止調整裁切框大小
+
+            // --- 【核心】縮放功能設定 ---
+            zoomable: true,        // 啟用縮放功能 (總開關)
+            zoomOnWheel: true,     // 啟用滑鼠滾輪縮放
+            zoomOnTouch: true,     // 啟用觸控手勢縮放
+
+            // --- 效能與外觀微調 (可選) ---
+            autoCropArea: 1,       // 初始裁切框佔滿整個圖片
+            movable: true          // 確保圖片本身是可以移動的
+        });
+    }
     function hideCropperModal() { closeModal(cropperModal); if (cropper) { const url = cropperImage.src; cropper.destroy(); cropper = null; if (url.startsWith('blob:')) URL.revokeObjectURL(url); cropperImage.src = ''; } imageProcessingQueue = []; originalQueueLength = 0; }
     function updateBarcodePreview() { if (!ean13Input) return; const svg = document.getElementById('barcode-preview'); const value = ean13Input.value; if (value.length >= 12 && value.length <= 13) { try { JsBarcode(svg, value, { format: "EAN13", width: 2, height: 50 }); svg.style.display = 'block'; } catch (e) { svg.style.display = 'none'; } } else { svg.style.display = 'none'; } }
     async function uploadImage(blob, fileName) { try { const response = await fetch(`/api/upload/${fileName}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob }); if (!response.ok) throw new Error(`圖片上傳失敗: ${response.statusText}`); const result = await response.json(); return result.url; } catch (error) { console.error('上傳圖片失敗:', error); showToast(`圖片上傳失敗: ${error.message}`, 'error'); return null; } }

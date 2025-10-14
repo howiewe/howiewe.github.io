@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let imageProcessingQueue = [];
     let originalQueueLength = 0;
 
-    
+
 
     // --- Rendering Functions ---
     function render() {
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         render();
     }
-    
+
     // --- 【全新】多圖裁切流程函式 (從 script-admin.js 移植並修改) ---
     function showToast(message, type = 'info', duration = 3000) { const el = document.getElementById('toast-container'); if (!el) return; const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.textContent = message; el.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, duration); }
 
@@ -158,7 +158,26 @@ document.addEventListener('DOMContentLoaded', () => {
         cropperModal.classList.remove('hidden');
         cropperImage.src = imageUrl;
         if (cropper) cropper.destroy();
-        cropper = new Cropper(cropperImage, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false, dragMode: 'move', movable: true });
+        cropper = new Cropper(cropperImage, {
+            // --- 視覺與比例設定 ---
+            aspectRatio: 1,
+            viewMode: 1,
+            background: false,
+
+            // --- 【核心】互動模式設定 ---
+            dragMode: 'move',
+            cropBoxMovable: false,
+            cropBoxResizable: false,
+
+            // --- 【核心】縮放功能設定 ---
+            zoomable: true,
+            zoomOnWheel: true,
+            zoomOnTouch: true,
+
+            // --- 效能與外觀微調 (可選) ---
+            autoCropArea: 1,
+            movable: true
+        });
     }
 
     function hideCropperModal() {
@@ -219,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const imageUrls = prod.assignedImageIds.map(id => state.images.find(i => i.id === id)?.r2Url).filter(Boolean);
                 return { ...prod.data, imageUrls };
             });
-            
+
             if (productsToSubmit.length === 0) {
                 alert("沒有可提交的產品。請至少為一個產品分配圖片。");
                 updateSubmitButton();
@@ -230,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             finalSubmitBtn.textContent = '正在儲存至資料庫...';
             const response = await fetch('/api/batch-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToSubmit }) });
             if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.details || '儲存產品時發生未知錯誤'); }
-            
+
             const result = await response.json();
             alert(`批次建檔成功！\n${result.message}`);
             window.location.href = '/admin.html';
@@ -248,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentTheme = localStorage.getItem('theme');
         if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
-        
+
         // 【新增】裁切 Modal 的事件監聽
         if (cropperConfirmBtn) cropperConfirmBtn.addEventListener('click', () => {
             if (!cropper) return;
@@ -278,6 +297,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         render();
     }
-    
+
     init();
 });
