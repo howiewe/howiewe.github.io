@@ -229,23 +229,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const productId = parseInt(pathParts[2]);
 
             if (!isNaN(productId)) {
-                // 如果彈窗已經開啟，先關閉舊的
                 if (!detailModal.classList.contains('hidden')) {
-                    closeModal(false); // 傳入 false 表示不要更動 URL
+                    closeModal(false);
                 }
-                // 顯示暫時的載入訊息
                 productList.innerHTML = '<p class="empty-message">正在載入產品...</p>';
 
-                // 根據 ID 獲取單一產品的資料
                 const product = await fetchProductById(productId);
 
                 if (product) {
-                    // 為了讓使用者關閉彈窗後能看到背景的產品列表，我們先載入列表
                     await fetchProducts();
-                    // 然後再打開目標產品的彈窗
                     openDetailModal(product);
                 } else {
-                    // 如果 API 找不到該產品，自動導回首頁
                     history.replaceState({}, '產品展示', '/');
                     await fetchProducts();
                 }
@@ -257,15 +251,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const newCategoryId = parseInt(pathParts[2]) || 'all';
 
             if (state.categoryId !== newCategoryId) {
-                closeModal(false); // 如果有彈窗開著，關閉它
+                closeModal(false);
                 state.categoryId = newCategoryId;
-                state.currentPage = 1; // 切換分類時，重置到第一頁
+                state.currentPage = 1;
                 await fetchProducts();
             }
         }
         // 【路由邏輯 3】: 如果以上都不是，則視為首頁
         else {
-            if (state.categoryId !== 'all') {
+            // 【核心修正】新增 `|| currentProducts.length === 0` 條件
+            // 這個條件確保了：無論是從其他分類切換回來，或是網站首次載入 (此時產品陣列為空)，
+            // 都會觸發載入「所有產品」。
+            if (state.categoryId !== 'all' || currentProducts.length === 0) {
                 closeModal(false);
                 state.categoryId = 'all';
                 state.currentPage = 1;
@@ -276,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 最後，同步側邊欄的 'active' 樣式
         updateSidebarActiveState();
     }
-    
+
     /**
      * @description 更新側邊欄分類的選中 (active) 狀態，使其與目前 URL 匹配
      */
@@ -291,10 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('#category-tree a').forEach(a => {
             const linkPath = a.getAttribute('href');
             let linkId = 'all';
-            if(linkPath.startsWith('/category/')) {
+            if (linkPath.startsWith('/category/')) {
                 linkId = linkPath.split('/')[2];
             }
-            
+
             if (String(activeId) === linkId) {
                 a.classList.add('active');
             } else {
@@ -443,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        
+
         // 【核心修改】監聽瀏覽器的前進/後退按鈕事件，並交由路由器處理
         window.addEventListener('popstate', handleRouteChange);
 
