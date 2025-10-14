@@ -797,9 +797,12 @@ form select:focus {
 }
 
 .product-description-display {
-    white-space: pre-wrap; /* 核心：告訴瀏覽器保留換行符和空格 */
-    word-wrap: break-word; /* 輔助：當遇到超長單字時強制換行，避免排版錯亂 */
-    color: var(--text-secondary); /* 讓描述文字顏色和次要文字一致，視覺更和諧 */
+    white-space: pre-wrap;
+    /* 核心：告訴瀏覽器保留換行符和空格 */
+    word-wrap: break-word;
+    /* 輔助：當遇到超長單字時強制換行，避免排版錯亂 */
+    color: var(--text-secondary);
+    /* 讓描述文字顏色和次要文字一致，視覺更和諧 */
 }
 
 #product-detail-info .details-grid {
@@ -1608,24 +1611,31 @@ body.lightbox-open {
     /* --- Toolbar 預設狀態 --- */
     .customer-page .toolbar {
         display: grid;
-        grid-template-columns: 44px 1fr 1fr 44px; /* 前後固定 44px，中間均分 */
-        gap: 0.5rem; /* 減小間距 */
+        grid-template-columns: 44px 1fr 1fr 44px;
+        /* 前後固定 44px，中間均分 */
+        gap: 0.5rem;
+        /* 減小間距 */
         align-items: center;
         transition: all 0.3s ease;
     }
+
     .customer-page #search-box {
         display: none;
     }
+
     .customer-page #search-toggle-btn,
     .customer-page #category-toggle-btn,
     .customer-page #sort-btn,
     .customer-page #order-toggle-btn {
         display: inline-flex;
         width: 100%;
-        height: 44px; /* 統一所有按鈕高度 */
-        padding: 0; /* 重置內邊距，由 flex 置中 */
+        height: 44px;
+        /* 統一所有按鈕高度 */
+        padding: 0;
+        /* 重置內邊距，由 flex 置中 */
         justify-content: center;
     }
+
     /* 針對中間兩個按鈕，恢復左右內邊距 */
     .customer-page #category-toggle-btn,
     .customer-page #sort-btn {
@@ -1634,27 +1644,35 @@ body.lightbox-open {
 
     /* --- Toolbar 搜尋中狀態 --- */
     .customer-page .toolbar.search-active {
-        grid-template-columns: 1fr 44px 44px; /* 改為三欄佈局 */
+        grid-template-columns: 1fr 44px 44px;
+        /* 改為三欄佈局 */
     }
+
     .customer-page .toolbar.search-active #search-box {
         display: block;
         width: 100%;
-        height: 44px; /* 統一輸入框高度 */
+        height: 44px;
+        /* 統一輸入框高度 */
     }
+
     .customer-page .toolbar.search-active #search-toggle-btn,
     .customer-page .toolbar.search-active #category-toggle-btn {
         display: none;
     }
+
     .customer-page .toolbar.search-active .sort-container {
         width: auto;
     }
+
     .customer-page .toolbar.search-active #sort-btn {
         width: 44px;
         padding: 0;
     }
+
     .customer-page .toolbar.search-active #sort-btn span {
         display: none;
     }
+
     /* ▲▲▲ Toolbar 修正結束 ▲▲▲ */
 
     .modal-content {
@@ -1671,7 +1689,7 @@ body.lightbox-open {
     .header-actions .view-toggle {
         display: flex;
     }
-    
+
     .product-grid {
         grid-template-columns: 1fr;
     }
@@ -1680,7 +1698,7 @@ body.lightbox-open {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.5rem;
     }
-    
+
     /* 針對分類管理 Modal 的響應式調整 */
     .modal-container.category-manager .modal-content {
         width: 90%;
@@ -1708,7 +1726,7 @@ body.lightbox-open {
 /* --- 18. 可折疊分類側邊欄樣式 (Collapsible Sidebar Additions) --- */
 
 /* 讓包含子分類的 li 項目，滑鼠移上去時顯示為可點擊的手指 */
-#category-tree li.has-children > a {
+#category-tree li.has-children>a {
     cursor: pointer;
 }
 
@@ -1724,8 +1742,10 @@ body.lightbox-open {
     display: inline-block;
     width: 1rem;
     height: 1rem;
-    transition: transform 0.3s ease; /* 旋轉動畫 */
-    flex-shrink: 0; /* 防止圖示被壓縮 */
+    transition: transform 0.3s ease;
+    /* 旋轉動畫 */
+    flex-shrink: 0;
+    /* 防止圖示被壓縮 */
     margin-left: 0.5rem;
 }
 
@@ -1737,7 +1757,8 @@ body.lightbox-open {
 /* 子選單 ul 的過渡動畫效果 */
 #category-tree ul {
     transition: max-height 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    overflow: hidden; /* 這是讓 max-height 生效的關鍵 */
+    overflow: hidden;
+    /* 這是讓 max-height 生效的關鍵 */
 }
 
 /* 預設被隱藏的子選單狀態 */
@@ -1778,7 +1799,8 @@ body.lightbox-open {
 @media(min-width: 768px) {
     .toolbar {
         display: grid;
-        grid-template-columns: minmax(200px, 1fr) auto auto auto; /* 搜尋框自適應，按鈕固定寬度 */
+        grid-template-columns: minmax(200px, 1fr) auto auto auto;
+        /* 搜尋框自適應，按鈕固定寬度 */
         gap: 0.75rem;
         align-items: center;
     }
@@ -1786,48 +1808,57 @@ body.lightbox-open {
     /* 讓管理/新增按鈕的容器填滿可用空間 */
     .toolbar .toolbar-actions {
         display: grid;
-        grid-template-columns: 1fr 1fr; /* 兩個按鈕平均分配 */
+        grid-template-columns: 1fr 1fr;
+        /* 兩個按鈕平均分配 */
         gap: 0.75rem;
         width: 100%;
     }
 
     #search-box {
-        max-width: none; /* 取消最大寬度限制 */
+        max-width: none;
+        /* 取消最大寬度限制 */
     }
 }
 
 
 /* 手機版 (小於 768px) */
 @media (max-width: 768px) {
+
     /* 讓 toolbar-actions 裡的按鈕在手機上也是平均分配 */
     .admin-page .toolbar-actions {
-        grid-column: 1 / -1; /* 讓這個容器橫跨所有網格欄 */
-        order: 2; /* 把它放到搜尋框下面 */
+        grid-column: 1 / -1;
+        /* 讓這個容器橫跨所有網格欄 */
+        order: 2;
+        /* 把它放到搜尋框下面 */
     }
 
     .admin-page #search-box {
-        grid-column: 1 / -1; /* 讓搜尋框橫跨所有網格欄 */
+        grid-column: 1 / -1;
+        /* 讓搜尋框橫跨所有網格欄 */
         order: 1;
-        display: block; /* 確保它總是顯示 */
+        display: block;
+        /* 確保它總是顯示 */
     }
 
     /* 隱藏手機版專用的搜尋觸發按鈕 */
     .admin-page #search-toggle-btn {
         display: none !important;
     }
-    
+
     /* 排序相關按鈕放到最下面 */
     .admin-page .sort-container {
         order: 3;
     }
+
     .admin-page #order-toggle-btn {
         order: 4;
     }
-    
+
     /* 調整 grid 佈局以適應新的排列 */
     .admin-page .toolbar {
         display: grid;
-        grid-template-columns: 1fr auto; /* 左邊自適應，右邊按鈕固定 */
+        grid-template-columns: 1fr auto;
+        /* 左邊自適應，右邊按鈕固定 */
         row-gap: 1rem;
     }
 }
@@ -1837,8 +1868,9 @@ body.lightbox-open {
 /* 預設 (手機版) 狀態 */
 /* 顯示手機版 Home 按鈕 */
 #home-btn-mobile {
-    display: inline-flex; 
+    display: inline-flex;
 }
+
 /* 隱藏電腦版 Home 按鈕 */
 #home-btn-desktop {
     display: none;
@@ -1846,10 +1878,12 @@ body.lightbox-open {
 
 /* 電腦版 (大於 768px) 狀態 */
 @media(min-width: 768px) {
+
     /* 隱藏手機版 Home 按鈕 */
     #home-btn-mobile {
         display: none;
     }
+
     /* 顯示電腦版 Home 按鈕 */
     #home-btn-desktop {
         display: inline-flex;
@@ -1858,21 +1892,28 @@ body.lightbox-open {
 
 /* --- 22. 手機雙欄檢視下，無價格產品標題最多顯示兩行 (兼容性強化版) --- */
 @media (max-width: 768px) {
-  .product-grid.view-two-columns .product-card:has(.price.price-empty) h3 {
-    /* 步驟 1: 覆蓋掉預設的強制單行，允許文字可以自然換行 */
-    white-space: initial;
+    .product-grid.view-two-columns .product-card:has(.price.price-empty) h3 {
+        /* 步驟 1: 覆蓋掉預設的強制單行，允許文字可以自然換行 */
+        white-space: initial;
 
-    /* 步驟 2: 應用 line-clamp 技術來實現最多兩行的截斷 */
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2; /* 舊版/Webkit 瀏覽器 fallback */
-    line-clamp: 2;         /* 標準屬性，為了未來的兼容性 */
-  }
+        /* 步驟 2: 應用 line-clamp 技術來實現最多兩行的截斷 */
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        /* 舊版/Webkit 瀏覽器 fallback */
+        line-clamp: 2;
+        /* 標準屬性，為了未來的兼容性 */
+    }
 
-  /* --- 新增開始：徹底隱藏價格元素及其佔位 --- */
-  .product-grid.view-two-columns .product-card:has(.price.price-empty) .price {
-    display: none; /* 讓價格元素連同其空間一起消失 */
-  }
-  /* --- 新增結束 --- */
+    /* --- 新增開始：徹底隱藏價格元素及其佔位 --- */
+    .product-grid.view-two-columns .product-card:has(.price.price-empty) .price {
+        display: none;
+        /* 讓價格元素連同其空間一起消失 */
+    }
+
+    /* --- 新增結束 --- */
+    .slider-nav-btn {
+        display: none !important;
+    }
 }
