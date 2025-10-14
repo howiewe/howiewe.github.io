@@ -327,6 +327,14 @@ document.addEventListener('DOMContentLoaded', () => {
             sliderWrapper.innerHTML = `<div class="slide"><img src="" alt="無圖片"></div>`; totalSlides = 1;
         }
 
+        if (totalSlides <= 1) {
+            // 如果圖片只有一張或沒有圖片，就隱藏整個縮圖容器
+            detailThumbnailList.classList.add('hidden');
+        } else {
+            // 如果有多張圖片，就確保縮圖容器是顯示的
+            detailThumbnailList.classList.remove('hidden');
+        }
+
         // --- 第二步：【核心修改】更新瀏覽器 URL，但**不**重新整理頁面 ---
         const productUrlName = encodeURIComponent(product.name);
         const newUrl = `/product/${product.id}/${productUrlName}`;
