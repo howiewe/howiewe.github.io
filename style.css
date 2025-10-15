@@ -2093,7 +2093,7 @@ body.lightbox-open {
 
 /* 5. 左欄樣式 (現在會自動撐滿高度) */
 .modal-column-left {
-    flex: 0 0 45%;
+    flex: 0 0 40%;
     display: flex;
     flex-direction: column;
     min-width: 400px;
@@ -2102,7 +2102,7 @@ body.lightbox-open {
 
 /* 6. 右欄現在自己是一個垂直 Flex 容器 */
 .modal-column-right {
-    flex: 1 1 55%;
+    flex: 1 1 60%;
     display: flex;
     flex-direction: column;
     /* 讓內容區和頁腳垂直排列 */
