@@ -2386,12 +2386,12 @@ body.lightbox-open {
     }
 }
 
-/* --- 28. 簡化 Admin 編輯彈窗的圖片區佈局 (V3 - 灰色背景版) --- */
+/* --- 28. 簡化 Admin 編輯彈窗的圖片區佈局 (V4 - 縮圖背景修正版) --- */
 
 /* 此段樣式只在螢幕寬度大於 992px 的電腦版生效 */
 @media (min-width: 992px) {
 
-    /* 1. 讓圖片管理區回歸簡單的垂直 Flex 佈局 */
+    /* 1. 圖片管理區的垂直 Flex 佈局 (不變) */
     #edit-modal-container .image-gallery-admin {
         display: flex;
         flex-direction: column; 
@@ -2399,26 +2399,28 @@ body.lightbox-open {
         gap: 0.75rem;           
     }
 
-    /* 2. 設定主圖預覽區的樣式 */
+    /* 2. 主圖預覽區的樣式 (保持不變，維持灰色背景) */
     #edit-modal-container .main-image-wrapper {
         flex: 2; 
         min-height: 0; 
         border: none;
-        background-color: var(--bg-color); /* 【保持】使用和 index 頁面一樣的灰色背景 */
+        background-color: var(--bg-color); /* 維持灰色背景 */
         border-radius: var(--border-radius-md);
-        padding: 1rem; /* 【關鍵修改】將內距加回來，讓背景色可以透出，形成自然邊框 */
+        padding: 1rem;
     }
 
-    /* 3. 設定縮圖列表區的樣式 */
+    /* 3. 縮圖列表區的樣式 (修正) */
     #edit-modal-container #thumbnail-list-admin {
         flex: 1; 
         min-height: 0; 
         border: none;  
-        background-color: var(--bg-color);
-        border-radius: var(--border-radius-md);
+        /* 【關鍵修改】移除這一行，讓背景恢復為透明 */
+        /* background-color: var(--bg-color); */
+        border-radius: var(--border-radius-md); /* 保留圓角沒問題 */
         padding: 0.5rem;
     }
 }
+
 /* --- 29. 簡化 Admin 編輯彈窗的手機版圖片區 --- */
 
 /* 此段樣式只在螢幕寬度小於 991px 的手機版生效 */
