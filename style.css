@@ -1918,12 +1918,12 @@ body.lightbox-open {
     }
 }
 
-/* --- 23. 編輯產品 Modal 桌面端兩欄式佈局 (最終 Grid 修正版) --- */
+/* --- 23. 編輯產品 Modal 桌面端兩欄式佈局 (防彈最終版) --- */
 
 /* 此段樣式只在螢幕寬度大於 992px 時生效 */
 @media (min-width: 992px) {
 
-    /* 彈窗基礎設定 (不變) */
+    /* 彈窗基礎設定 */
     #edit-modal-container .modal-content {
         max-width: 1200px;
         width: 90%;
@@ -1938,7 +1938,7 @@ body.lightbox-open {
         overflow: hidden;
     }
 
-    /* 兩欄式 Grid 佈局 (不變) */
+    /* 兩欄式 Grid 佈局 */
     .modal-layout-grid {
         display: grid;
         grid-template-columns: 450px 1fr;
@@ -1948,80 +1948,74 @@ body.lightbox-open {
         overflow: hidden;
     }
 
-    /* 右側面板設定 (不變) */
+    /* --- 右側面板設定 (幾乎不變) --- */
     .modal-panel-right {
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        min-height: 0; /* 【新增】防彈技巧 */
     }
-
     .modal-panel-right .modal-panel-scroll-content {
         flex-grow: 1;
         overflow-y: auto;
         padding-right: 1rem;
+        min-height: 0; /* 【新增】防彈技巧 */
     }
-
     .modal-panel-right .modal-panel-footer {
         flex-shrink: 0;
         padding-top: 1.5rem;
         border-top: 1px solid var(--border-color);
     }
-
     .modal-panel-footer .button-group {
         justify-content: flex-end;
         margin-top: 1rem;
     }
-
     .modal-panel-right .form-grid {
         grid-template-columns: 1fr;
     }
+
 
     /* ▼▼▼ 【核心修正】左側面板佈局 ▼▼▼ */
 
     .modal-panel-left {
         display: flex;
-        /* 保持 flex 以便處理空狀態 */
         flex-direction: column;
         overflow: hidden;
+        min-height: 0; /* 【新增】防彈技巧 */
     }
 
     /* 圖片管理區本身啟用 Grid 佈局 */
     .image-gallery-admin {
         flex-grow: 1;
         display: grid;
-        /* 【核心修改】使用 fr 單位來設定主圖和縮圖區的固定高度比例 */
-        grid-template-rows: 2fr 1fr;
+        grid-template-rows: 2fr 1fr; /* 使用比例分配空間 */
         gap: 0.75rem;
         overflow: hidden;
+        min-height: 0; /* 【新增】防彈技巧，確保 gallery 本身可以被壓縮 */
     }
 
     /* 主圖外框 */
     .main-image-wrapper {
-        max-height: 380px;
-        /* 設定一個合理的最大高度上限 */
-        min-height: 200px;
-        /* 設定一個最小高度，避免過度壓縮 */
+        /* 【移除】所有固定的 min-height 和 max-height，讓 fr 單位完全控制 */
+        overflow: hidden;
+        min-height: 0; /* 【新增】防彈技巧，讓主圖區可以被壓縮 */
     }
 
     /* 縮圖滾動容器 */
     .thumbnail-scroll-container {
         overflow-y: auto;
-        /* 【關鍵】只讓這個容器滾動 */
-        min-height: 0;
-        /*  Grid/Flex 佈局中的重要技巧，防止容器無限擴展 */
+        min-height: 0; /* 【新增】防彈技巧，讓縮圖區可以被壓縮 */
     }
 
     /* 縮圖列表 */
     #thumbnail-list-admin {
         display: flex;
         flex-wrap: wrap;
-        /* 確保換行 */
         gap: 0.75rem;
     }
 
     .thumbnail-item {
         width: 80px;
-        /* 恢復尺寸，現在空間足夠了 */
         height: 80px;
     }
 }
