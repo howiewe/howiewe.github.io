@@ -2258,45 +2258,52 @@ body.lightbox-open {
     }
 }
 
-/* --- 25. 修正 Admin 編輯彈窗手機版響應式佈局 (V2 - 滾動修正版) --- */
+/* --- 25. 修正 Admin 編輯彈窗手機版響應式佈局 (V3 - 最終滾動方案) --- */
 
 /* 此段樣式只在螢幕寬度小於 991px 時生效 (手機和平板) */
 @media (max-width: 991px) {
 
     /* 
-      【核心修正】
-      讓整個 .modal-content (白色彈窗本身) 負責滾動，而不是內部的 .modal-body
+      1. 【固定外框】
+      讓 .modal-content (白色彈窗) 佔滿螢幕大部分高度，且本身不滾動。
+      這是為了給內部的 .modal-body 一個固定的滾動範圍。
     */
     #edit-modal-container .modal-content {
-        height: auto;               /* 1. 高度由內容決定，不再固定 */
-        max-height: 85vh;           /* 2. 最大高度不超過螢幕的 85% */
-        overflow-y: auto;           /* 3. 【關鍵】當內容超出時，讓這個容器出現滾動條 */
-        -webkit-overflow-scrolling: touch; /* 讓滾動在 iOS 上更順暢 */
+        width: 95vw;
+        height: 90vh;      /* 【關鍵】高度固定，定義出滾動的邊界 */
+        overflow: hidden;  /* 【關鍵】外框本身禁止滾動，防止滾動穿透 */
     }
 
     /* 
-      現在我們只需要讓 .modal-body 恢復成正常的垂直堆疊即可
+      2. 【指定滾動容器】
+      讓 .modal-body (內容區) 成為唯一可以滾動的容器。
+      它會填滿 Header 底下的所有剩餘空間。
     */
     #edit-modal-container .modal-body {
-        flex-direction: column; /* 從橫向排列變為縱向堆疊 */
-        overflow: visible;      /* 移除內部的滾動，交由父層處理 */
-        padding: 1rem;          /* 調整手機版內距 */
+        flex-direction: column; /* 垂直堆疊圖片區和欄位區 */
+        overflow-y: auto;       /* 【核心】讓這個容器在內容超出時垂直滾動 */
+        -webkit-overflow-scrolling: touch; /* 優化 iOS 滾動體驗 */
+        padding: 1rem;
     }
 
     /* 
-      重置左右欄的寬度設定，讓它們佔滿 100% 寬
+      3. 【重置欄位佈局】
+      取消桌面版的兩欄設定，讓圖片區和欄位區都變成 100% 寬度。
     */
     #edit-modal-container .modal-column-left,
     #edit-modal-container .modal-column-right {
-        min-width: 0;           /* 移除桌面版的最小寬度限制 */
-        flex-basis: auto;       /* 讓寬度自動適應 */
+        flex: none;       /* 取消 flex 比例分配 */
+        min-width: 0;     /* 移除最小寬度限制 */
         width: 100%;
     }
-    
+
     /* 
-      (優化) 移除頁腳多餘的上邊距
+      4. 【取消內部滾動】
+      桌面版時，右側表單欄位本身會滾動。在手機上必須取消這個行為，
+      因為現在是整個 .modal-body 在滾動。
     */
-     #edit-modal-container .modal-footer {
-        margin-top: 0;
+    #edit-modal-container .right-column-content-wrapper {
+        overflow-y: visible; /* 取消內部滾動 */
+        height: auto;        /* 高度由內容決定 */
     }
 }
