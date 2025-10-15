@@ -355,15 +355,20 @@ body.dark-mode .icon-sun {
     background-color: rgba(0, 0, 0, 0.6);
     z-index: 1000;
     display: flex;
-    justify-content: center;   /* 水平居中 */
-    align-items: flex-start;   /* 垂直靠上 */
-    padding: 5vh 2vw;          /* 上下左右留出空隙 */
-    overflow-y: auto;          /* 緊急情況下可滾動 */
-    
+    justify-content: center;
+    /* 水平居中 */
+    align-items: flex-start;
+    /* 垂直靠上 */
+    padding: 5vh 2vw;
+    /* 上下左右留出空隙 */
+    overflow-y: auto;
+    /* 緊急情況下可滾動 */
+
     /* 動畫與互動性 (預設隱藏狀態) */
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease-in-out; /* 淡入淡出動畫效果 */
+    transition: opacity 0.3s ease-in-out;
+    /* 淡入淡出動畫效果 */
 }
 
 /* 當 modal 顯示時 (沒有 .hidden class) */
@@ -1959,23 +1964,29 @@ body.lightbox-open {
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        min-height: 0; /* 【新增】防彈技巧 */
+        min-height: 0;
+        /* 【新增】防彈技巧 */
     }
+
     .modal-panel-right .modal-panel-scroll-content {
         flex-grow: 1;
         overflow-y: auto;
         padding-right: 1rem;
-        min-height: 0; /* 【新增】防彈技巧 */
+        min-height: 0;
+        /* 【新增】防彈技巧 */
     }
+
     .modal-panel-right .modal-panel-footer {
         flex-shrink: 0;
         padding-top: 1.5rem;
         border-top: 1px solid var(--border-color);
     }
+
     .modal-panel-footer .button-group {
         justify-content: flex-end;
         margin-top: 1rem;
     }
+
     .modal-panel-right .form-grid {
         grid-template-columns: 1fr;
     }
@@ -1987,30 +1998,35 @@ body.lightbox-open {
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        min-height: 0; /* 【新增】防彈技巧 */
+        min-height: 0;
+        /* 【新增】防彈技巧 */
     }
 
     /* 圖片管理區本身啟用 Grid 佈局 */
     .image-gallery-admin {
         flex-grow: 1;
         display: grid;
-        grid-template-rows: 2fr 1fr; /* 使用比例分配空間 */
+        grid-template-rows: 2fr 1fr;
+        /* 使用比例分配空間 */
         gap: 0.75rem;
         overflow: hidden;
-        min-height: 0; /* 【新增】防彈技巧，確保 gallery 本身可以被壓縮 */
+        min-height: 0;
+        /* 【新增】防彈技巧，確保 gallery 本身可以被壓縮 */
     }
 
     /* 主圖外框 */
     .main-image-wrapper {
         /* 【移除】所有固定的 min-height 和 max-height，讓 fr 單位完全控制 */
         overflow: hidden;
-        min-height: 0; /* 【新增】防彈技巧，讓主圖區可以被壓縮 */
+        min-height: 0;
+        /* 【新增】防彈技巧，讓主圖區可以被壓縮 */
     }
 
     /* 縮圖滾動容器 */
     .thumbnail-scroll-container {
         overflow-y: auto;
-        min-height: 0; /* 【新增】防彈技巧，讓縮圖區可以被壓縮 */
+        min-height: 0;
+        /* 【新增】防彈技巧，讓縮圖區可以被壓縮 */
     }
 
     /* 縮圖列表 */
@@ -2025,6 +2041,7 @@ body.lightbox-open {
         height: 80px;
     }
 }
+
 /* 1. 彈窗容器基礎樣式 (與上一版類似) */
 .modal-content {
     display: flex;
@@ -2045,9 +2062,11 @@ body.lightbox-open {
     justify-content: space-between;
     align-items: center;
 }
+
 .modal-header h2 {
     margin: 0;
 }
+
 .modal-header .close-btn {
     position: static;
     transform: none;
@@ -2057,7 +2076,8 @@ body.lightbox-open {
 /* 3. 讓 form 填滿剩餘空間 */
 #product-form {
     flex-grow: 1;
-    display: flex; /* 讓 modal-body 可以填滿它 */
+    display: flex;
+    /* 讓 modal-body 可以填滿它 */
     overflow: hidden;
 }
 
@@ -2067,7 +2087,8 @@ body.lightbox-open {
     display: flex;
     gap: 1.5rem;
     overflow: hidden;
-    padding: 1.5rem; /* 在 Body 容器上設定內距 */
+    padding: 1.5rem;
+    /* 在 Body 容器上設定內距 */
 }
 
 /* 5. 左欄樣式 (現在會自動撐滿高度) */
@@ -2075,22 +2096,28 @@ body.lightbox-open {
     flex: 0 0 45%;
     display: flex;
     flex-direction: column;
-    min-width: 400px; /* 給一個最小寬度，避免過度壓縮 */
+    min-width: 400px;
+    /* 給一個最小寬度，避免過度壓縮 */
 }
 
 /* 6. 右欄現在自己是一個垂直 Flex 容器 */
 .modal-column-right {
     flex: 1 1 55%;
     display: flex;
-    flex-direction: column; /* 讓內容區和頁腳垂直排列 */
-    overflow: hidden; /* 關鍵：限制內容不出界 */
+    flex-direction: column;
+    /* 讓內容區和頁腳垂直排列 */
+    overflow: hidden;
+    /* 關鍵：限制內容不出界 */
 }
 
 /* 7. 右欄的內容包裹器 (負責滾動) */
 .right-column-content-wrapper {
-    flex-grow: 1; /* 佔滿所有可用空間 */
-    overflow-y: auto; /* 【實現】只有表單欄位會滾動 */
-    padding-right: 10px; /* 為滾動條留出空間 */
+    flex-grow: 1;
+    /* 佔滿所有可用空間 */
+    overflow-y: auto;
+    /* 【實現】只有表單欄位會滾動 */
+    padding-right: 10px;
+    /* 為滾動條留出空間 */
 }
 
 /* 8. 【核心】左欄圖片區內部佈局 (與上一版相同) */
@@ -2099,21 +2126,32 @@ body.lightbox-open {
     flex-direction: column;
     height: 100%;
 }
-#image-upload-area.hidden { display: none; }
+
+#image-upload-area.hidden {
+    display: none;
+}
+
 #image-upload-area {
     flex-grow: 1;
     display: flex;
     height: 100%;
     min-height: 200px;
 }
+
 .image-gallery-admin {
     display: flex;
     flex-direction: column;
     width: 100%;
     gap: 0.5rem;
 }
+
 .main-image-wrapper {
-    flex-shrink: 0;
+    flex-grow: 1;
+    /* 【核心修改】让主图容器去占据所有剩余的垂直空间 */
+    flex-shrink: 1;
+    /* 允许在需要时被压缩 */
+    min-height: 200px;
+    /* 保留一个最小高度，防止被过度压缩 */
     border: 1px dashed var(--border-color);
     border-radius: var(--border-radius);
     padding: 0.5rem;
@@ -2121,15 +2159,30 @@ body.lightbox-open {
     align-items: center;
     justify-content: center;
     background-color: var(--background-secondary-color);
-    min-height: 250px;
+    overflow: hidden;
+    /* 新增：确保内部图片不会溢出 */
 }
+
 #main-image-preview {
+    width: 100%;
+    /* 宽度撑满 */
+    height: 100%;
+    /* 【核心修改】高度也撑满父容器 */
     max-width: 100%;
-    max-height: 350px;
+    /* 以防万一 */
+    max-height: 100%;
+    /* 【核心修改】解除 350px 的封印，改为撑满父容器 */
     object-fit: contain;
+    /* 保持图片原始比例，这是最重要的 */
 }
+
 #thumbnail-list-admin {
-    flex-grow: 1;
+    flex-grow: 0;
+    /* 【核心修改】告诉缩图列表不要放大 */
+    flex-shrink: 0;
+    /* 告诉缩图列表也不要缩小 */
+    flex-basis: 120px;
+    /* 【核心修改】给缩图列表一个固定的基础高度，例如 120px */
     overflow-y: auto;
     padding: 0.5rem;
     border: 1px solid var(--border-color);
@@ -2140,6 +2193,7 @@ body.lightbox-open {
     align-content: flex-start;
     gap: 0.5rem;
 }
+
 #image-empty-state {
     flex-grow: 1;
     display: flex;
@@ -2150,12 +2204,17 @@ body.lightbox-open {
 
 /* 9. 新的頁腳樣式 (現在位於右欄底部) */
 .modal-footer {
-    flex-shrink: 0; /* 不讓頁腳被壓縮 */
-    padding-top: 1rem; /* 與上方內容的間距 */
-    margin-top: 1rem; /* 作為分隔 */
+    flex-shrink: 0;
+    /* 不讓頁腳被壓縮 */
+    padding-top: 1rem;
+    /* 與上方內容的間距 */
+    margin-top: 1rem;
+    /* 作為分隔 */
     border-top: 1px solid var(--border-color);
 }
+
 .modal-footer .button-group {
     margin: 0;
-    justify-content: flex-end; /* 讓按鈕靠右對齊 */
+    justify-content: flex-end;
+    /* 讓按鈕靠右對齊 */
 }
