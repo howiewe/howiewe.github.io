@@ -160,19 +160,17 @@
                 <button id="modal-close-btn" class="close-btn" title="關閉">&times;</button>
             </div>
 
-            <!-- 2. 表單主體 (包含所有內容和按鈕) -->
+            <!-- 2. 表單主體 (將佈局核心交給 modal-body) -->
             <form id="product-form" novalidate>
                 <input type="hidden" id="product-id">
 
-                <!-- 2a. 可滾動的內容區 (Body) -->
+                <!-- 2a. 內容區 (Body) - 現在是唯一的子元素 -->
                 <div class="modal-body">
 
-                    <!-- 左欄：圖片管理 -->
+                    <!-- 左欄：圖片管理 (將佔據完整高度) -->
                     <div class="modal-column-left">
                         <div class="form-group full-height">
                             <label>產品圖片 (可拖曳縮圖排序)</label>
-
-                            <!-- 狀態一：圖片區為空時顯示 -->
                             <div id="image-empty-state" class="hidden">
                                 <div id="image-dropzone">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
@@ -186,16 +184,11 @@
                                     <span>可一次選擇多張圖片</span>
                                 </div>
                             </div>
-
-                            <!-- 狀態二：圖片區非空時顯示 (這是實現滾動的核心結構) -->
                             <div id="image-upload-area" class="hidden">
                                 <div class="image-gallery-admin">
-                                    <!-- 主預覽圖 (固定) -->
                                     <div class="main-image-wrapper"><img id="main-image-preview" src="" alt="主要圖片預覽">
                                     </div>
-                                    <!-- 縮圖列表 (可滾動) -->
                                     <div id="thumbnail-list-admin" class="thumbnail-list">
-                                        <!-- JS 會動態填入縮圖 -->
                                         <div id="add-more-images-btn" class="thumbnail-item add-new" title="新增更多圖片">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"
                                                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -207,48 +200,48 @@
                                     </div>
                                 </div>
                             </div>
-
                             <input type="file" id="product-image-upload" accept="image/png,image/jpeg,image/webp"
                                 class="hidden" multiple>
                         </div>
                     </div>
 
-                    <!-- 右欄：表單資料 (可滾動) -->
+                    <!-- 右欄：表單資料 + 按鈕 (自身成為一個 flex column) -->
                     <div class="modal-column-right">
-                        <div class="form-grid">
-                            <div class="form-group"><label for="product-name">產品名稱</label><input type="text"
-                                    id="product-name" required></div>
-                            <div class="form-group"><label for="product-sku">產品編號 (SKU)</label><input type="text"
-                                    id="product-sku" required></div>
-                            <div class="form-group"><label for="product-price">產品價格</label><input type="number"
-                                    id="product-price" required></div>
-                            <div class="form-group"><label for="product-ean13">EAN-13 條碼 (12或13碼)</label><input
-                                    type="text" id="product-ean13" maxlength="13" pattern="\d{12,13}"></div>
-                        </div>
-                        <div class="form-group"><label for="product-category-select">產品分類</label><select
-                                id="product-category-select" required></select></div>
-                        <div class="form-group">
-                            <div class="barcode-preview-container"><svg id="barcode-preview"></svg></div>
-                        </div>
-                        <div class="form-group"><label for="product-description">產品描述</label><textarea
-                                id="product-description" rows="4"></textarea></div>
 
-                        <!-- 尺寸拉桿現在是右欄的一部分 -->
-                        <div class="form-group"><label for="image-size">圖片顯示大小: <span
-                                    id="image-size-value">100</span>%</label><input type="range" id="image-size"
-                                min="10" max="100" step="5"></div>
+                        <!-- 新增的包裹層，用於滾動 -->
+                        <div class="right-column-content-wrapper">
+                            <div class="form-grid">
+                                <div class="form-group"><label for="product-name">產品名稱</label><input type="text"
+                                        id="product-name" required></div>
+                                <div class="form-group"><label for="product-sku">產品編號 (SKU)</label><input type="text"
+                                        id="product-sku" required></div>
+                                <div class="form-group"><label for="product-price">產品價格</label><input type="number"
+                                        id="product-price" required></div>
+                                <div class="form-group"><label for="product-ean13">EAN-13 條碼 (12或13碼)</label><input
+                                        type="text" id="product-ean13" maxlength="13" pattern="\d{12,13}"></div>
+                            </div>
+                            <div class="form-group"><label for="product-category-select">產品分類</label><select
+                                    id="product-category-select" required></select></div>
+                            <div class="form-group">
+                                <div class="barcode-preview-container"><svg id="barcode-preview"></svg></div>
+                            </div>
+                            <div class="form-group"><label for="product-description">產品描述</label><textarea
+                                    id="product-description" rows="4"></textarea></div>
+                            <div class="form-group"><label for="image-size">圖片顯示大小: <span
+                                        id="image-size-value">100</span>%</label><input type="range" id="image-size"
+                                    min="10" max="100" step="5"></div>
+                        </div>
+
+                        <!-- 頁腳/按鈕區現在被移到右欄的底部 -->
+                        <div class="modal-footer">
+                            <div class="button-group">
+                                <button type="submit" class="btn btn-primary">儲存變更</button>
+                                <button type="button" id="delete-btn" class="btn btn-danger hidden">刪除此產品</button>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
-
-                <!-- 2b. 固定頁腳區 (Footer) -->
-                <div class="modal-footer">
-                    <div class="button-group">
-                        <button type="submit" class="btn btn-primary">儲存變更</button>
-                        <button type="button" id="delete-btn" class="btn btn-danger hidden">刪除此產品</button>
-                    </div>
-                </div>
-
             </form>
         </div>
     </div>
