@@ -1918,12 +1918,12 @@ body.lightbox-open {
     }
 }
 
-/* --- 23. 編輯產品 Modal 桌面端兩欄式佈局 (最終重構版) --- */
+/* --- 23. 編輯產品 Modal 桌面端兩欄式佈局 (最終 Grid 修正版) --- */
 
 /* 此段樣式只在螢幕寬度大於 992px 時生效 */
 @media (min-width: 992px) {
 
-    /* 步驟 1: 彈窗基礎設定 */
+    /* 彈窗基礎設定 (不變) */
     #edit-modal-container .modal-content {
         max-width: 1200px;
         width: 90%;
@@ -1938,102 +1938,90 @@ body.lightbox-open {
         overflow: hidden;
     }
 
-    /* 步驟 2: 兩欄式 Grid 佈局 */
+    /* 兩欄式 Grid 佈局 (不變) */
     .modal-layout-grid {
         display: grid;
-        grid-template-columns: 450px 1fr; /* 左欄稍微加寬 */
+        grid-template-columns: 450px 1fr;
         gap: 2rem;
         width: 100%;
         height: 100%;
         overflow: hidden;
     }
 
-    /* ▼▼▼ 步驟 3: 左側純視覺面板佈局 ▼▼▼ */
-    .modal-panel-left {
+    /* 右側面板設定 (不變) */
+    .modal-panel-right {
         display: flex;
         flex-direction: column;
         overflow: hidden;
     }
 
-    /* 空狀態的拖曳區 */
-    .modal-panel-left #image-empty-state {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        height: 100%;
-    }
-    
-    /* 圖片上傳後的顯示區 */
-    .modal-panel-left #image-upload-area,
-    .modal-panel-left .image-gallery-admin {
-        display: flex;
-        flex-direction: column;
+    .modal-panel-right .modal-panel-scroll-content {
         flex-grow: 1;
+        overflow-y: auto;
+        padding-right: 1rem;
+    }
+
+    .modal-panel-right .modal-panel-footer {
+        flex-shrink: 0;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .modal-panel-footer .button-group {
+        justify-content: flex-end;
+        margin-top: 1rem;
+    }
+
+    .modal-panel-right .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* ▼▼▼ 【核心修正】左側面板佈局 ▼▼▼ */
+
+    .modal-panel-left {
+        display: flex;
+        /* 保持 flex 以便處理空狀態 */
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* 圖片管理區本身啟用 Grid 佈局 */
+    .image-gallery-admin {
+        flex-grow: 1;
+        display: grid;
+        /* 【核心修改】使用 fr 單位來設定主圖和縮圖區的固定高度比例 */
+        grid-template-rows: 2fr 1fr;
+        gap: 0.75rem;
         overflow: hidden;
     }
 
     /* 主圖外框 */
-    .modal-panel-left .main-image-wrapper {
-        max-height: 400px; /* 稍微增加主圖最大高度 */
-        flex-shrink: 0;
+    .main-image-wrapper {
+        max-height: 380px;
+        /* 設定一個合理的最大高度上限 */
+        min-height: 200px;
+        /* 設定一個最小高度，避免過度壓縮 */
     }
 
     /* 縮圖滾動容器 */
-    .modal-panel-left .thumbnail-scroll-container {
-        flex-grow: 1; /* 【關鍵】佔滿所有剩餘空間 */
-        overflow-y: auto; /* 啟用垂直滾動 */
-        padding: 0.75rem 0.25rem 0.75rem 0; /* 給右側一點空間避免滾動條重疊 */
+    .thumbnail-scroll-container {
+        overflow-y: auto;
+        /* 【關鍵】只讓這個容器滾動 */
+        min-height: 0;
+        /*  Grid/Flex 佈局中的重要技巧，防止容器無限擴展 */
     }
 
     /* 縮圖列表 */
-    .modal-panel-left #thumbnail-list-admin {
+    #thumbnail-list-admin {
         display: flex;
-        flex-wrap: wrap; /* 自動換行 */
+        flex-wrap: wrap;
+        /* 確保換行 */
         gap: 0.75rem;
     }
-    
-    .modal-panel-left .thumbnail-item {
+
+    .thumbnail-item {
         width: 80px;
+        /* 恢復尺寸，現在空間足夠了 */
         height: 80px;
     }
-    
-    /* ▲▲▲ 左側面板佈局結束 ▲▲▲ */
-
-
-    /* ▼▼▼ 步驟 4: 右側資料與操作面板佈局 ▼▼▼ */
-    .modal-panel-right {
-        display: flex;
-        flex-direction: column; /* 【關鍵】讓內部元素垂直排列 */
-        overflow: hidden;
-    }
-
-    /* 可滾動的內容區 */
-    .modal-panel-right .modal-panel-scroll-content {
-        flex-grow: 1; /* 【關鍵】佔滿上方所有可用空間 */
-        overflow-y: auto; /* 【關鍵】啟用垂直滾動 */
-        padding-right: 1rem;
-    }
-
-    /* 固定的底欄 */
-    .modal-panel-right .modal-panel-footer {
-        flex-shrink: 0; /* 【關鍵】防止底欄被壓縮 */
-        padding-top: 1.5rem;
-        border-top: 1px solid var(--border-color); /* 增加分隔線，視覺更清晰 */
-    }
-    
-    .modal-panel-right .form-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .modal-panel-right #product-description {
-        min-height: 150px;
-    }
-
-    .modal-panel-footer .button-group {
-        justify-content: flex-end; /* 讓按鈕靠右對齊 */
-        margin-top: 1rem;
-    }
-
-    /* ▲▲▲ 右側面板佈局結束 ▲▲▲ */
 }
