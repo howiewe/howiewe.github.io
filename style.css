@@ -1918,86 +1918,105 @@ body.lightbox-open {
     }
 }
 
-/* --- 23. 編輯產品 Modal 桌面端兩欄式佈局 (最終修正版) --- */
+/* --- 23. 編輯產品 Modal 桌面端兩欄式佈局 (最終完美版) --- */
 
 /* 此段樣式只在螢幕寬度大於 992px 時生效 */
 @media (min-width: 992px) {
 
-    /* 步驟 1: 將 Modal 彈窗加寬，並設定高度，為佈局做準備 */
+    /* 步驟 1: 彈窗基礎設定 (與之前相同) */
     #edit-modal-container .modal-content {
-        max-width: 1200px; /* 增加寬度以容納更多內容 */
+        max-width: 1200px;
         width: 90%;
-        height: 88vh; /* 設定一個相對螢幕的高度 */
-        display: flex; /* 使用 Flexbox 讓子元素能填滿空間 */
+        height: 88vh;
+        display: flex;
         flex-direction: column;
     }
 
     #edit-modal-container #product-form {
-        flex-grow: 1; /* 讓表單填滿 modal-content 的剩餘空間 */
+        flex-grow: 1;
         display: flex;
-        overflow: hidden; /* 關鍵：防止子元素的滾動條溢出到表單外 */
+        overflow: hidden;
     }
 
-    /* 步驟 2: 啟用兩欄式 Grid 佈局 */
+    /* 步驟 2: 兩欄式 Grid 佈局 (與之前相同) */
     .modal-layout-grid {
         display: grid;
-        grid-template-columns: 420px 1fr; /* 左欄固定 420px，右欄自動填滿 */
-        gap: 2.5rem; /* 增加兩欄之間的間距 */
+        grid-template-columns: 420px 1fr;
+        gap: 2.5rem;
         width: 100%;
         overflow: hidden; 
     }
 
-    /* 步驟 3: 設定左右面板的樣式 */
-    .modal-panel-left {
-        display: flex;
-        flex-direction: column; /* 讓左側內容垂直排列 */
-        overflow: hidden; /* 防止內容溢出 */
-    }
-
+    /* 步驟 3: 右側面板設定 (與之前相同) */
     .modal-panel-right {
-        overflow-y: auto; /* 【核心】讓右側面板在內容過長時可以獨立滾動 */
-        padding-right: 1rem; /* 增加內距，避免滾動條太貼近內容 */
-    }
-
-    /* 步驟 4: 限制主預覽圖容器的最大高度，確保下方元素空間 */
-    .modal-panel-left .main-image-wrapper {
-        max-height: 350px; /* 【核心】限制主圖最大高度 */
-        flex-shrink: 0; /* 防止容器在 flex 佈局中被壓縮 */
-    }
-
-    /* 步驟 5: 讓縮圖列表區域填滿剩餘空間並可滾動 */
-    .modal-panel-left .thumbnail-scroll-container {
-        flex-grow: 1; /* 【核心】佔滿主圖和按鈕之間的剩餘空間 */
-        overflow-y: auto; /* 【核心】當縮圖過多時，啟用垂直滾動 */
-        min-height: 80px; /* 給一個最小高度，避免在內容少時被過度壓縮 */
-        padding: 0.5rem 0;
-    }
-
-    .modal-panel-left #thumbnail-list-admin {
-        display: flex;
-        flex-wrap: wrap; /* 【核心】讓縮圖自動換行 */
-        gap: 0.75rem; /* 調整縮圖間距 */
+        overflow-y: auto;
+        padding-right: 1rem;
     }
     
-    .modal-panel-left .thumbnail-item {
-        width: 70px; /* 可選：稍微縮小縮圖尺寸以容納更多 */
-        height: 70px;
-    }
-
-    /* 步驟 6: 將操作按鈕固定在左側面板的底部 */
-    .modal-panel-left .button-group {
-        margin-top: auto; /* 【核心】將按鈕推至底部 */
-        padding-top: 1rem; /* 增加與上方元素的間距 */
-        flex-shrink: 0; /* 防止按鈕組被壓縮 */
-    }
-    
-    /* 步驟 7: 覆寫右側面板中的 form-grid 樣式，實現「一行一欄」 */
     .modal-panel-right .form-grid {
-        grid-template-columns: 1fr; /* 強制所有欄位都只佔一整行 */
+        grid-template-columns: 1fr;
     }
     
-    /* (可選) 微調右側描述區塊的高度 */
     .modal-panel-right #product-description {
         min-height: 120px;
     }
+
+    /* ▼▼▼ 步驟 4: 【核心修正】左側面板 Flexbox 佈局重構 ▼▼▼ */
+    .modal-panel-left {
+        display: flex;
+        flex-direction: column; /* 確保子元素垂直排列 */
+        overflow: hidden; /* 隱藏任何意外的溢出 */
+    }
+
+    /* 主圖的容器 (form-group) */
+    .modal-panel-left > .form-group:first-child {
+        flex-shrink: 0; /* 防止這個容器被壓縮 */
+    }
+
+    /* 主圖本身的外框 */
+    .modal-panel-left .main-image-wrapper {
+        max-height: 320px; /* 【關鍵】減少主圖最大高度，釋放垂直空間 */
+        flex-shrink: 0;
+    }
+
+    /* 包含圖片上傳區的父容器 */
+    .modal-panel-left #image-upload-area {
+        flex-grow: 1; /* 【關鍵】讓這個容器填滿剩餘空間 */
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* 很重要，為內部滾動做準備 */
+    }
+
+    .modal-panel-left .image-gallery-admin {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 縮圖滾動容器 */
+    .modal-panel-left .thumbnail-scroll-container {
+        flex-grow: 1; /* 【關鍵】佔滿主圖和按鈕之間的剩餘空間 */
+        overflow-y: auto; /* 【關鍵】當縮圖過多時，啟用垂直滾動 */
+        padding-top: 0.75rem; /* 增加與主圖的間距 */
+    }
+
+    /* 縮圖列表本身 */
+    .modal-panel-left #thumbnail-list-admin {
+        display: flex;
+        flex-wrap: wrap; /* 讓縮圖自動換行 */
+        gap: 0.75rem;
+    }
+    
+    .modal-panel-left .thumbnail-item {
+        width: 75px; /* 調整縮圖尺寸 */
+        height: 75px;
+    }
+
+    /* 操作按鈕組 */
+    .modal-panel-left .button-group {
+        flex-shrink: 0; /* 防止按鈕組被壓縮 */
+        padding-top: 1rem; /* 增加與上方元素的間距 */
+        margin-top: 0; /* 【關鍵】移除之前的 margin-top: auto */
+    }
+    /* ▲▲▲ 核心修正結束 ▲▲▲ */
 }
