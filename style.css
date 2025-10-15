@@ -2385,3 +2385,37 @@ body.lightbox-open {
         padding-top: 2.5rem; 
     }
 }
+
+/* --- 28. 簡化 Admin 編輯彈窗的圖片區佈局 (V2 - 無框版) --- */
+
+/* 此段樣式只在螢幕寬度大於 992px 的電腦版生效 */
+@media (min-width: 992px) {
+
+    /* 1. 讓圖片管理區回歸簡單的垂直 Flex 佈局 */
+    #edit-modal-container .image-gallery-admin {
+        display: flex;
+        flex-direction: column; 
+        height: 100%;           
+        gap: 0.75rem;           
+    }
+
+    /* 2. 【核心】設定主圖預覽區的高度比例為 2，並移除所有邊框 */
+    #edit-modal-container .main-image-wrapper {
+        flex: 2; 
+        min-height: 0; 
+        border: none; /* 【關鍵修改】移除所有邊框 */
+        padding: 0;   /* 同時移除內邊距，讓圖片更貼近邊緣 */
+        background-color: var(--bg-color); /* 給一個和縮圖區一致的底色 */
+        border-radius: var(--border-radius-md); /* 加上圓角使其風格統一 */
+    }
+
+    /* 3. 【核心】設定縮圖列表區的高度比例為 1，並確保無邊框 */
+    #edit-modal-container #thumbnail-list-admin {
+        flex: 1; 
+        min-height: 0; 
+        border: none;  
+        background-color: var(--bg-color);
+        border-radius: var(--border-radius-md);
+        padding: 0.5rem; /* 增加一點內距，讓縮圖不會緊貼邊緣 */
+    }
+}
