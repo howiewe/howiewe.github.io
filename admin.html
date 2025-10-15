@@ -202,15 +202,15 @@
                         <div class="modal-panel-scroll-content">
                             <div class="form-grid">
                                 <div class="form-group"><label for="product-name">產品名稱</label><input type="text" id="product-name" required></div>
-                                <div class="form-group"><label for="product-sku">產品編號 (SKU)</label><input type="text" id="product-sku" required></div>
                                 <div class="form-group"><label for="product-price">產品價格</label><input type="number" id="product-price" required></div>
-                                <div class="form-group"><label for="product-ean13">EAN-13 條碼 (12或13碼)</label><input type="text" id="product-ean13" maxlength="13" pattern="\d{12,13}"></div>
+                                <div class="form-group"><label for="product-category-select">產品分類</label><select id="product-category-select" required></select></div>
+                                <div class="form-group"><label for="product-description">產品描述</label><textarea id="product-description" rows="2"></textarea></div>
+                                <div class="form-group"><label for="product-sku">產品編號 (SKU)</label><input type="text" id="product-sku" required></div>
                             </div>
-                            <div class="form-group"><label for="product-category-select">產品分類</label><select id="product-category-select" required></select></div>
                             <div class="form-group">
+                                <div class="form-group"><label for="product-ean13">EAN-13 條碼 (12或13碼)</label><input type="text" id="product-ean13" maxlength="13" pattern="\d{12,13}"></div>
                                 <div class="barcode-preview-container"><svg id="barcode-preview"></svg></div>
                             </div>
-                            <div class="form-group"><label for="product-description">產品描述</label><textarea id="product-description" rows="4"></textarea></div>
                             <div class="form-group">
                                 <label for="image-size">圖片顯示大小: <span id="image-size-value">100</span>%</label>
                                 <input type="range" id="image-size" min="10" max="100" step="5">
