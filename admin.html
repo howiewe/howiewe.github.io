@@ -153,38 +153,53 @@
     <!-- 編輯/新增 Modal -->
     <div id="edit-modal-container" class="modal-container hidden">
         <div class="modal-content">
-            <button id="modal-close-btn" class="close-btn" title="關閉">&times;</button>
-            <h2 id="form-title">編輯產品</h2>
+
+            <!-- 1. 固定頁首區 (Header) -->
+            <div class="modal-header">
+                <h2 id="form-title">編輯產品</h2>
+                <button id="modal-close-btn" class="close-btn" title="關閉">&times;</button>
+            </div>
+
+            <!-- 2. 表單主體 (包含所有內容和按鈕) -->
             <form id="product-form" novalidate>
                 <input type="hidden" id="product-id">
 
-                <!-- ▼▼▼ 全新桌面版兩欄式佈局容器 ▼▼▼ -->
-                <div class="modal-layout-grid">
-                    
-                    <!-- 左側面板：純視覺區 -->
-                    <div class="modal-panel-left">
-                        <div id="image-empty-state" class="hidden">
-                            <div id="image-dropzone">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="17 8 12 3 7 8"></polyline>
-                                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                                </svg>
-                                <p>將圖片拖曳至此</p>
-                                <span>或點擊選擇檔案</span>
+                <!-- 2a. 可滾動的內容區 (Body) -->
+                <div class="modal-body">
+
+                    <!-- 左欄：圖片管理 -->
+                    <div class="modal-column-left">
+                        <div class="form-group full-height">
+                            <label>產品圖片 (可拖曳縮圖排序)</label>
+
+                            <!-- 狀態一：圖片區為空時顯示 -->
+                            <div id="image-empty-state" class="hidden">
+                                <div id="image-dropzone">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    <p>將圖片拖曳至此，或點擊選擇檔案</p>
+                                    <span>可一次選擇多張圖片</span>
+                                </div>
                             </div>
-                        </div>
-                        <div id="image-upload-area" class="hidden">
-                            <div class="image-gallery-admin">
-                                <div class="main-image-wrapper"><img id="main-image-preview" src="" alt="主要圖片預覽"></div>
-                                <div class="thumbnail-scroll-container">
+
+                            <!-- 狀態二：圖片區非空時顯示 (這是實現滾動的核心結構) -->
+                            <div id="image-upload-area" class="hidden">
+                                <div class="image-gallery-admin">
+                                    <!-- 主預覽圖 (固定) -->
+                                    <div class="main-image-wrapper"><img id="main-image-preview" src="" alt="主要圖片預覽">
+                                    </div>
+                                    <!-- 縮圖列表 (可滾動) -->
                                     <div id="thumbnail-list-admin" class="thumbnail-list">
+                                        <!-- JS 會動態填入縮圖 -->
                                         <div id="add-more-images-btn" class="thumbnail-item add-new" title="新增更多圖片">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
-                                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                                stroke-linejoin="round">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
                                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                                             </svg>
@@ -192,41 +207,48 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <input type="file" id="product-image-upload" accept="image/png,image/jpeg,image/webp"
+                                class="hidden" multiple>
                         </div>
-                        <input type="file" id="product-image-upload" accept="image/png,image/jpeg,image/webp" class="hidden" multiple>
                     </div>
 
-                    <!-- 右側面板：資料與操作區 -->
-                    <div class="modal-panel-right">
-                        <!-- 【新增】可滾動的內容區 -->
-                        <div class="modal-panel-scroll-content">
-                            <div class="form-grid">
-                                <div class="form-group"><label for="product-name">產品名稱</label><input type="text" id="product-name" required></div>
-                                <div class="form-group"><label for="product-price">產品價格</label><input type="number" id="product-price" required></div>
-                                <div class="form-group"><label for="product-category-select">產品分類</label><select id="product-category-select" required></select></div>
-                                <div class="form-group"><label for="product-description">產品描述</label><textarea id="product-description" rows="2"></textarea></div>
-                                <div class="form-group"><label for="product-sku">產品編號 (SKU)</label><input type="text" id="product-sku" required></div>
-                            </div>
-                            <div class="form-group">
-                                <div class="form-group"><label for="product-ean13">EAN-13 條碼 (12或13碼)</label><input type="text" id="product-ean13" maxlength="13" pattern="\d{12,13}"></div>
-                                <div class="barcode-preview-container"><svg id="barcode-preview"></svg></div>
-                            </div>
-                            <div class="form-group">
-                                <label for="image-size">圖片顯示大小: <span id="image-size-value">100</span>%</label>
-                                <input type="range" id="image-size" min="10" max="100" step="5">
-                            </div>
+                    <!-- 右欄：表單資料 (可滾動) -->
+                    <div class="modal-column-right">
+                        <div class="form-grid">
+                            <div class="form-group"><label for="product-name">產品名稱</label><input type="text"
+                                    id="product-name" required></div>
+                            <div class="form-group"><label for="product-sku">產品編號 (SKU)</label><input type="text"
+                                    id="product-sku" required></div>
+                            <div class="form-group"><label for="product-price">產品價格</label><input type="number"
+                                    id="product-price" required></div>
+                            <div class="form-group"><label for="product-ean13">EAN-13 條碼 (12或13碼)</label><input
+                                    type="text" id="product-ean13" maxlength="13" pattern="\d{12,13}"></div>
                         </div>
-                        
-                        <!-- 【新增】固定的底欄操作區 -->
-                        <div class="modal-panel-footer">
-                            <div class="button-group">
-                                <button type="submit" class="btn btn-primary">儲存變更</button>
-                                <button type="button" id="delete-btn" class="btn btn-danger hidden">刪除此產品</button>
-                            </div>
+                        <div class="form-group"><label for="product-category-select">產品分類</label><select
+                                id="product-category-select" required></select></div>
+                        <div class="form-group">
+                            <div class="barcode-preview-container"><svg id="barcode-preview"></svg></div>
                         </div>
+                        <div class="form-group"><label for="product-description">產品描述</label><textarea
+                                id="product-description" rows="4"></textarea></div>
+
+                        <!-- 尺寸拉桿現在是右欄的一部分 -->
+                        <div class="form-group"><label for="image-size">圖片顯示大小: <span
+                                    id="image-size-value">100</span>%</label><input type="range" id="image-size"
+                                min="10" max="100" step="5"></div>
+                    </div>
+
+                </div>
+
+                <!-- 2b. 固定頁腳區 (Footer) -->
+                <div class="modal-footer">
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">儲存變更</button>
+                        <button type="button" id="delete-btn" class="btn btn-danger hidden">刪除此產品</button>
                     </div>
                 </div>
-                <!-- ▲▲▲ 佈局容器結束 ▲▲▲ -->
+
             </form>
         </div>
     </div>
