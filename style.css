@@ -2419,3 +2419,29 @@ body.lightbox-open {
         padding: 0.5rem;
     }
 }
+/* --- 29. 簡化 Admin 編輯彈窗的手機版圖片區 --- */
+
+/* 此段樣式只在螢幕寬度小於 991px 的手機版生效 */
+@media (max-width: 991px) {
+
+    /* 1. 【核心】在手機上完全隱藏縮圖列表 */
+    #edit-modal-container #thumbnail-list-admin {
+        display: none;
+    }
+
+    /* 2. 將主圖預覽區套用與電腦版一致的 "無框灰色背景" 樣式 */
+    #edit-modal-container .main-image-wrapper {
+        border: none;
+        background-color: var(--bg-color);
+        border-radius: var(--border-radius-md);
+        padding: 1rem;
+        
+        /* 為手機版設定一個合適的固定高度，避免佔用過多垂直空間 */
+        height: 300px; 
+    }
+
+    /* 3. 由於縮圖區已隱藏，移除圖片管理容器的間距 */
+    #edit-modal-container .image-gallery-admin {
+        gap: 0;
+    }
+}
