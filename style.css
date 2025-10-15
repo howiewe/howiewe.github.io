@@ -345,20 +345,25 @@ body.dark-mode .icon-sun {
 
 /* --- 7. Modal & 表單 (Modal & Form) --- */
 .modal-container {
+    /* 保持原有的樣式 */
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgb(17 24 39 / 0.8);
-    backdrop-filter: blur(4px);
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1010;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
+    justify-content: center; /* 水平居中 (不變) */
+    
+    /* 核心修改：從 center 改為 flex-start */
+    align-items: flex-start; /* 垂直方向從頂部對齊 */
+    
+    /* 新增：為彈窗和頂部/底部邊緣留出一些呼吸空間 */
+    padding: 5vh 2vw;
+    
+    /* 新增：如果內容真的太長，讓遮罩層本身可以滾動 */
+    overflow-y: auto;
 }
 
 .modal-container:not(.hidden) {
