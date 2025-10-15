@@ -2307,3 +2307,26 @@ body.lightbox-open {
         height: auto;        /* 高度由內容決定 */
     }
 }
+/* --- 26. 微調 Admin 電腦版彈窗垂直間距 --- */
+
+/* 此段樣式只在螢幕寬度大於 992px 時生效 (即桌面兩欄式佈局時) */
+@media (min-width: 992px) {
+
+    /* 1. 減少彈窗外層的上下留白 (從 5% 視窗高度縮減為 3%) */
+    #edit-modal-container.modal-container {
+        padding-top: 3vh;
+        padding-bottom: 3vh;
+    }
+
+    /* 2. 壓縮彈窗內部內容區的上下間距 */
+    #edit-modal-container .modal-body {
+        padding-top: 1rem;    /* 原為 1.5rem */
+        padding-bottom: 1rem; /* 原為 1.5rem */
+    }
+
+    /* 3. 減少表單底部與按鈕之間的間距 */
+    #edit-modal-container .modal-footer {
+        padding-top: 1rem; /* 原為 1rem */
+        margin-top: 0;     /* 【關鍵】移除多餘的 1rem 上邊界 */
+    }
+}
