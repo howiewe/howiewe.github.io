@@ -2257,3 +2257,38 @@ body.lightbox-open {
         -webkit-overflow-scrolling: touch;
     }
 }
+
+/* --- 25. 修正 Admin 編輯彈窗手機版響應式佈局 --- */
+
+/* 此段樣式只在螢幕寬度小於 991px 時生效 (手機和平板) */
+@media (max-width: 991px) {
+
+    /* 
+      針對後台編輯彈窗 (#edit-modal-container) 進行響應式修正
+    */
+
+    /* 1. 讓左右欄垂直堆疊 */
+    #edit-modal-container .modal-body {
+        flex-direction: column; /* 核心：從橫向排列變為縱向堆疊 */
+        overflow-y: auto;       /* 允許整個內容區滾動，而不是隱藏 */
+        padding: 1.5rem 1rem;   /* 微調手機版內距 */
+    }
+
+    /* 2. 重置左右欄的寬度設定，讓它們佔滿100%寬 */
+    #edit-modal-container .modal-column-left,
+    #edit-modal-container .modal-column-right {
+        min-width: 0;     /* 【關鍵】移除桌面版的最小寬度限制 */
+        flex-basis: auto; /* 讓寬度自動適應 */
+        width: 100%;
+    }
+
+    /* 3. (優化) 調整右欄表單滾動容器的高度行為 */
+    #edit-modal-container .right-column-content-wrapper {
+       overflow-y: visible; /* 內容不再需要自己滾動，因為整個 modal-body 都可滾動 */
+    }
+    
+    /* 4. (優化) 移除頁腳多餘的上邊距 */
+     #edit-modal-container .modal-footer {
+        margin-top: 0;
+    }
+}
