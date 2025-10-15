@@ -2331,7 +2331,7 @@ body.lightbox-open {
     }
 }
 
-/* --- 27. 調整 Admin 彈窗標題與關閉按鈕 --- */
+/* --- 27. 調整 Admin 彈窗標題與關閉按鈕 (V2 - 修正版) --- */
 
 /* ===== A. 全域修改 (對手機和電腦都生效) ===== */
 
@@ -2341,39 +2341,47 @@ body.lightbox-open {
     display: none;
 }
 
-/* 2. 由於標題已隱藏，直接隱藏整個 header 容器以移除其佔用的空白區域 */
+/* 2. 【核心修正】不隱藏 header，而是讓它在視覺上消失，這樣才不會連同按鈕一起隱藏 */
 #edit-modal-container .modal-header {
-    display: none;
+    padding: 0;
+    border-bottom: none;
+    height: 0; /* 讓 header 本身不佔用任何垂直空間 */
 }
 
-/* 3. 為整個彈窗設定相對定位，作為關閉按鈕的定位基準 (這是最關鍵的一步) */
+/* 3. 為整個彈窗設定相對定位，作為關閉按鈕的定位基準 */
 #edit-modal-container .modal-content {
     position: relative;
-    /* 為了給右上角的 X 留出空間，稍微增加一點內距 */
-    padding-top: 2rem; 
 }
 
 /* 4. 將關閉按鈕 (X) 絕對定位到彈窗的右上角 */
 #edit-modal-container .close-btn {
-    position: absolute; /* 【核心】使用絕對定位 */
-    z-index: 10;        /* 確保按鈕在最上層，不會被其他內容覆蓋 */
+    position: absolute;
+    z-index: 10; /* 確保按鈕在最上層 */
 }
 
 
-/* ===== B. 針對不同裝置微調按鈕位置 ===== */
+/* ===== B. 針對不同裝置微調按鈕位置和內部間距 ===== */
 
 /* 電腦版 (寬度 > 991px) */
 @media (min-width: 992px) {
     #edit-modal-container .close-btn {
-        top: 1rem;      /* 距離頂部 1rem */
-        right: 1.5rem;  /* 距離右側 1.5rem，與表單欄位的右邊距對齊 */
+        top: 1rem;
+        right: 1.5rem;
+    }
+    /* 因為 header 消失了，我們把頂部空間補回到內容區 */
+    #edit-modal-container .modal-body {
+        padding-top: 1.5rem; 
     }
 }
 
 /* 手機版 (寬度 <= 991px) */
 @media (max-width: 991px) {
     #edit-modal-container .close-btn {
-        top: 0.75rem;   /* 距離頂部 0.75rem */
-        right: 0.75rem; /* 距離右側 0.75rem */
+        top: 0.75rem;
+        right: 0.75rem;
+    }
+    /* 手機版也需要補回頂部空間，可以多一點以方便點擊 */
+    #edit-modal-container .modal-body {
+        padding-top: 2.5rem; 
     }
 }
