@@ -1687,6 +1687,7 @@ body.lightbox-open {
         max-height: 85vh;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        width: 95%;
     }
 }
 
