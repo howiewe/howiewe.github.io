@@ -1917,3 +1917,66 @@ body.lightbox-open {
         display: none !important;
     }
 }
+
+/* --- 23. 編輯產品 Modal 桌面端兩欄式佈局 --- */
+
+/* 此段樣式只在螢幕寬度大於 992px 時生效 */
+@media (min-width: 992px) {
+
+    /* 步驟 1: 將 Modal 彈窗加寬，並設定固定高度，為兩欄佈局做準備 */
+    #edit-modal-container .modal-content {
+        max-width: 1100px; /* 從 800px 增加到 1100px */
+        width: 90%;
+        height: 85vh; /* 設定一個相對螢幕的高度 */
+        
+        /* 使用 Flexbox 讓佈局容器能填滿可用空間 */
+        display: flex;
+        flex-direction: column;
+    }
+
+    #edit-modal-container #product-form {
+        /* 讓表單填滿 modal-content 的剩餘空間 */
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* 關鍵：防止子元素的滾動條溢出到表單外 */
+    }
+
+    /* 步驟 2: 啟用兩欄式 Grid 佈局 */
+    .modal-layout-grid {
+        display: grid;
+        grid-template-columns: 420px 1fr; /* 左欄固定 420px，右欄自動填滿 */
+        gap: 2.5rem; /* 增加兩欄之間的間距 */
+        
+        /* 讓 Grid 容器填滿表單可用空間，並允許其內容滾動 */
+        flex-grow: 1;
+        overflow: hidden; 
+    }
+
+    /* 步驟 3: 設定左右面板的樣式 */
+    .modal-panel-left {
+        display: flex;
+        flex-direction: column; /* 讓左側內容垂直排列 */
+    }
+
+    .modal-panel-right {
+        overflow-y: auto; /* 【核心】讓右側面板在內容過長時可以獨立滾動 */
+        padding-right: 1rem; /* 增加一點內距，避免滾動條太貼近內容 */
+    }
+
+    /* 步驟 4: 將操作按鈕推到左側面板的底部 */
+    .modal-panel-left .button-group {
+        margin-top: auto; /* 【魔法】自動將按鈕推至底部 */
+        padding-top: 1.5rem; /* 增加與上方元素的間距 */
+    }
+    
+    /* 步驟 5: 覆寫右側面板中的 form-grid 樣式，實現「一行一欄」 */
+    .modal-panel-right .form-grid {
+        grid-template-columns: 1fr; /* 強制所有欄位都只佔一整行 */
+    }
+    
+    /* (可選) 微調右側描述區塊的高度，使其有更多空間 */
+    .modal-panel-right #product-description {
+        min-height: 150px;
+    }
+}
