@@ -2218,3 +2218,42 @@ body.lightbox-open {
     justify-content: flex-end;
     /* 讓按鈕靠右對齊 */
 }
+
+/* --- 24. 彈窗 UI 修復 (Modal UI Fix) --- */
+
+/* 
+  此段程式碼的目標是：
+  針對客戶檢視 (index) 的彈窗 (#detail-modal-container) 進行樣式覆蓋，
+  避免它被後台編輯 (#edit-modal-container) 的複雜兩欄式佈局污染。
+*/
+
+/* 桌面版 (Desktop View) - 修正跑版問題 */
+@media (min-width: 768px) {
+    #detail-modal-container .modal-content {
+        /* 核心修正：讓高度由內容決定，而不是固定高度 */
+        height: auto;
+        /* 設定最大高度，避免內容過長時超出螢幕 */
+        max-height: 85vh;
+        /* 【關鍵】允許內容本身垂直滾動，而不是隱藏 */
+        overflow-y: auto;
+
+        /* 恢復較為簡單的寬度設定 */
+        width: 90%;
+        max-width: 900px; /* 給定一個適合檢視的寬度 */
+    }
+}
+
+/* 手機版 (Mobile View) - 修正滾動條問題 */
+@media (max-width: 767px) {
+    /* 這裡的樣式會覆蓋掉通用的 .modal-content 手機版設定 */
+    #detail-modal-container .modal-content {
+        /* 確保高度是自動的 */
+        height: auto;
+        /* 最大高度設為螢幕的 85%，留下呼吸空間 */
+        max-height: 85vh;
+        /* 【關鍵】當內容超過最大高度時，顯示滾動條 */
+        overflow-y: auto;
+        /* 讓滾動在 iOS 上更流暢 */
+        -webkit-overflow-scrolling: touch;
+    }
+}
