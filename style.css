@@ -344,8 +344,9 @@ body.dark-mode .icon-sun {
 }
 
 /* --- 7. Modal & 表單 (Modal & Form) --- */
+/* 0. 彈窗遮罩層與定位 (最終完整版) */
 .modal-container {
-    /* 保持原有的樣式 */
+    /* 佈局與定位 */
     position: fixed;
     top: 0;
     left: 0;
@@ -354,18 +355,18 @@ body.dark-mode .icon-sun {
     background-color: rgba(0, 0, 0, 0.6);
     z-index: 1000;
     display: flex;
-    justify-content: center; /* 水平居中 (不變) */
+    justify-content: center;   /* 水平居中 */
+    align-items: flex-start;   /* 垂直靠上 */
+    padding: 5vh 2vw;          /* 上下左右留出空隙 */
+    overflow-y: auto;          /* 緊急情況下可滾動 */
     
-    /* 核心修改：從 center 改為 flex-start */
-    align-items: flex-start; /* 垂直方向從頂部對齊 */
-    
-    /* 新增：為彈窗和頂部/底部邊緣留出一些呼吸空間 */
-    padding: 5vh 2vw;
-    
-    /* 新增：如果內容真的太長，讓遮罩層本身可以滾動 */
-    overflow-y: auto;
+    /* 動畫與互動性 (預設隱藏狀態) */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out; /* 淡入淡出動畫效果 */
 }
 
+/* 當 modal 顯示時 (沒有 .hidden class) */
 .modal-container:not(.hidden) {
     opacity: 1;
     pointer-events: auto;
