@@ -31,7 +31,7 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg></button>
                 <a href="/" id="home-btn-mobile" class="btn btn-icon" title="返回前台">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                         <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -43,14 +43,14 @@
 
             <div class="header-actions">
                 <a href="/" id="home-btn-desktop" class="btn btn-icon" title="返回前台">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                         <polyline points="9 22 9 12 15 12 15 22"></polyline>
                     </svg>
                 </a>
                 <button id="view-toggle-btn" class="btn view-toggle" title="切換檢視模式">
-                    <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                    <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"></rect>
@@ -174,30 +174,29 @@
                                         <polyline points="17 8 12 3 7 8"></polyline>
                                         <line x1="12" y1="3" x2="12" y2="15"></line>
                                     </svg>
-                                    <p>將圖片拖曳至此，或點擊選擇檔案</p>
-                                    <span>可一次選擇多張圖片</span>
+                                    <p>將圖片拖曳至此</p>
+                                    <span>或點擊選擇檔案</span>
                                 </div>
                             </div>
                             <div id="image-upload-area" class="hidden">
                                 <div class="image-gallery-admin">
                                     <div class="main-image-wrapper"><img id="main-image-preview" src="" alt="主要圖片預覽"></div>
-                                    <div id="thumbnail-list-admin" class="thumbnail-list">
-                                        <div id="add-more-images-btn" class="thumbnail-item add-new" title="新增更多圖片">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
-                                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                                stroke-linejoin="round">
-                                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                            </svg>
+                                    <!-- 【結構調整】新增一個專門用於滾動的容器 -->
+                                    <div class="thumbnail-scroll-container">
+                                        <div id="thumbnail-list-admin" class="thumbnail-list">
+                                            <div id="add-more-images-btn" class="thumbnail-item add-new" title="新增更多圖片">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"
+                                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                    stroke-linejoin="round">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                </svg>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <input type="file" id="product-image-upload" accept="image/png,image/jpeg,image/webp" class="hidden" multiple>
-                        </div>
-                        <div class="form-group">
-                            <label for="image-size">圖片顯示大小: <span id="image-size-value">100</span>%</label>
-                            <input type="range" id="image-size" min="10" max="100" step="5">
                         </div>
                         <div class="button-group">
                             <button type="submit" class="btn btn-primary">儲存變更</button>
@@ -205,7 +204,7 @@
                         </div>
                     </div>
 
-                    <!-- 右側面板：資料欄位 -->
+                    <!-- 右側面板：資料欄位與圖片大小滑桿 -->
                     <div class="modal-panel-right">
                         <div class="form-grid">
                             <div class="form-group"><label for="product-name">產品名稱</label><input type="text" id="product-name" required></div>
@@ -218,6 +217,12 @@
                             <div class="barcode-preview-container"><svg id="barcode-preview"></svg></div>
                         </div>
                         <div class="form-group"><label for="product-description">產品描述</label><textarea id="product-description" rows="4"></textarea></div>
+                        
+                        <!-- 【結構調整】將圖片大小滑桿移至此處最底部 -->
+                        <div class="form-group">
+                            <label for="image-size">圖片顯示大小: <span id="image-size-value">100</span>%</label>
+                            <input type="range" id="image-size" min="10" max="100" step="5">
+                        </div>
                     </div>
 
                 </div>
