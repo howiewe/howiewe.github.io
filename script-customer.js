@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch(`/api/products?${params.toString()}`);
+            const response = await fetch(`/public/products?${params.toString()}`);
             if (!response.ok) throw new Error(`網路回應不正常: ${response.statusText}`);
             const data = await response.json();
 
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchProductById(id) {
         try {
             // 呼叫我們為單一產品新增的 API 端點
-            const response = await fetch(`/api/products/${id}`);
+            const response = await fetch(`/public/products/${id}`);
             if (!response.ok) {
                 console.error(`找不到 ID 為 ${id} 的產品`);
                 return null;
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function loadInitialData() {
         try {
-            const response = await fetch('/api/all-data?t=' + new Date().getTime());
+            const response = await fetch('/public/all-data?t=' + new Date().getTime());
             if (!response.ok) throw new Error('無法載入分類');
             const data = await response.json();
             allCategories = data.categories || [];
