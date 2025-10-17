@@ -1439,6 +1439,16 @@ body.lightbox-open {
     z-index: 10;
 }
 
+/* 1. 針對手機版「編輯產品」彈窗的主滾動區 */
+#edit-modal-container .modal-body {
+    overscroll-behavior: contain;
+}
+
+/* 2. 針對「分類管理」彈窗的滾動列表 */
+.category-manager-list {
+    overscroll-behavior: contain;
+}
+
 
 /* --- 14. 響應式樣式 (Responsive Styles) --- */
 
