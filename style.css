@@ -452,7 +452,7 @@ body.dark-mode .icon-sun {
     z-index: 1000;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: center;
     padding: 5vh 2vw;
     overflow-y: auto;
     opacity: 0;
