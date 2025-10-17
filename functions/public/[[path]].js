@@ -1,4 +1,4 @@
-// functions/public/[[path]].js
+// functions/public/[[path]].js (修正路徑解析邏輯)
 
 // --- 統一的 API 響應格式 ---
 const response = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -8,16 +8,20 @@ const response = (data, status = 200) => new Response(JSON.stringify(data), {
 
 // --- API 路由處理 ---
 export async function onRequest(context) {
-    const { request, env } = context;
+    const { request, env, params } = context; // <--- 取得 params
     if (!env.D1_DB) {
         return response({ error: '後端環境變數未正確設定' }, 500);
     }
 
-    const url = new URL(request.url);
-    // 注意：因為檔案在 /public/ 下，所以第一個路徑片段就是 resource
-    const pathSegments = url.pathname.split('/').filter(p => p !== 'public');
+    // --- [核心修正] ---
+    // 我們不再手動解析 URL，而是直接使用 Cloudflare Pages 提供的 params.path
+    // params.path 是一個陣列，包含了所有匹配通配符的路徑片段
+    // 例如，/public/products/123 會得到 ['products', '123']
+    const pathSegments = params.path;
     const resource = pathSegments[0];
     const id = pathSegments[1];
+    // --- 修正結束 ---
+
     const method = request.method;
 
     // [安全機制] 強制規定此路徑只接受 GET
@@ -34,17 +38,18 @@ export async function onRequest(context) {
                 if (id) {
                     return await getProductById(db, id);
                 } else {
+                    const url = new URL(request.url); // 這裡才需要 URL 來拿 query params
                     return await getPaginatedProducts(db, url.searchParams);
                 }
         }
-        return response({ error: `無效的公開 API 路徑: ${url.pathname}` }, 404);
+        return response({ error: `無效的公開 API 路徑: /public/${pathSegments.join('/')}` }, 404);
     } catch (e) {
         console.error("Public API Error:", e);
         return response({ error: '伺服器內部錯誤', details: e.message }, 500);
     }
 }
 
-// --- 以下是這個檔案需要的「唯讀」函式 ---
+// --- 以下是這個檔案需要的「唯讀」函式 (保持不變) ---
 
 async function getCategoriesOnly(db) {
     const categoriesQuery = db.prepare("SELECT * FROM categories ORDER BY parentId, sortOrder ASC");
