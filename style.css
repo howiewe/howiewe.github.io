@@ -771,6 +771,19 @@ form select:focus {
     overflow: hidden;
 }
 
+.image-gallery-customer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem; /* 這會為主圖和縮圖列表之間創造垂直間距 */
+}
+
+#detail-thumbnail-list {
+    /* 確保在所有情況下，縮圖之間都有間距並能自動換行 */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
 .image-gallery-admin .main-image-wrapper {
     height: 0;
     padding-top: 100%;
