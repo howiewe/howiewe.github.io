@@ -1450,11 +1450,10 @@ body.lightbox-open {
 }
 
 
-/* --- 14. 響應式樣式 (Responsive Styles) --- */
+/* --- 手機版 (<= 768px) --- */
+@media (max-width: 768px) {
 
-/* --- 手機與平板 (<= 991px) --- */
-@media (max-width: 991px) {
-    /* Admin Edit Modal: Mobile Layout */
+    /* --- 新增：從 991px 規則合併過來的 Admin Edit Modal 手機版佈局 --- */
     #edit-modal-container .modal-content {
         width: 95vw;
         height: 90vh;
@@ -1466,8 +1465,8 @@ body.lightbox-open {
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         padding: 1rem;
-        padding-top: 2.5rem;
-        /* Space for close button */
+        padding-top: 3.5rem;
+        /* 稍微增加頂部空間給關閉按鈕 */
     }
 
     #edit-modal-container .modal-column-left,
@@ -1487,25 +1486,48 @@ body.lightbox-open {
         right: 0.75rem;
     }
 
+    /* ▼▼▼【核心修改】讓縮圖列表顯示出來，並設定為可水平滾動 ▼▼▼ */
     #edit-modal-container #thumbnail-list-admin {
-        display: none;
+        display: flex;
+        /* 從 none 改為 flex */
+        overflow-x: auto;
+        /* 允許水平滾動 */
+        overflow-y: hidden;
+        /* 隱藏垂直滾動條 */
+        padding: 0.5rem 0;
+        /* 增加一點垂直內距 */
+        /* 讓滾動在 iOS 上更平滑 */
+        -webkit-overflow-scrolling: touch;
+        /* 為了美觀，可以嘗試隱藏滾動條 */
+        scrollbar-width: none;
+        /* Firefox */
     }
+
+    #edit-modal-container #thumbnail-list-admin::-webkit-scrollbar {
+        display: none;
+        /* Chrome, Safari */
+    }
+
+    /* ▲▲▲ 修改結束 ▲▲▲ */
+
 
     #edit-modal-container .main-image-wrapper {
         border: none;
         background-color: var(--bg-color);
         border-radius: var(--border-radius-md);
         padding: 1rem;
-        height: 300px;
+        /* 為了佈局穩定，給一個固定的高度 */
+        height: 250px;
     }
 
     #edit-modal-container .image-gallery-admin {
-        gap: 0;
+        gap: 0.5rem;
+        /* 增加主圖和縮圖列表之間的間距 */
     }
-}
 
-/* --- 手機版 (<= 768px) --- */
-@media (max-width: 768px) {
+    /* --- 合併規則結束 --- */
+
+
     /* General Layout */
     .container {
         padding: 1.5rem 1rem;
@@ -1574,7 +1596,7 @@ body.lightbox-open {
     .product-grid.view-two-columns .product-card:has(.price.price-empty) .price {
         display: none;
     }
-    
+
     .slider-nav-btn {
         display: none !important;
     }
@@ -1691,7 +1713,7 @@ body.lightbox-open {
     .cm-actions .action-btn {
         opacity: 1;
     }
-    
+
     /* Customer Detail Modal Fix: Mobile */
     #detail-modal-container .modal-content {
         height: auto;
@@ -1704,6 +1726,7 @@ body.lightbox-open {
 
 /* --- 平板與桌面 (>= 768px) --- */
 @media (min-width: 768px) {
+
     /* Layouts */
     #product-detail-layout {
         grid-template-columns: 350px 1fr;
@@ -1745,7 +1768,7 @@ body.lightbox-open {
     .sort-container {
         flex-shrink: 0;
     }
-    
+
     /* Toolbar: Admin Specific */
     .admin-page .toolbar {
         display: grid;
@@ -1772,19 +1795,20 @@ body.lightbox-open {
     #home-btn-desktop {
         display: inline-flex;
     }
-    
+
     /* Customer Detail Modal Fix: Desktop */
     #detail-modal-container .modal-content {
         height: auto;
         max-height: 85vh;
         overflow-y: auto;
         width: 90%;
-        max-width: 900px; 
+        max-width: 900px;
     }
 }
 
 /* --- 大型桌面 (>= 992px) --- */
 @media (min-width: 992px) {
+
     /* Admin Edit Modal: Desktop Layout */
     #edit-modal-container.modal-container {
         padding-top: 3vh;
@@ -1794,12 +1818,14 @@ body.lightbox-open {
     #edit-modal-container .modal-content {
         max-width: 1200px;
         width: 90%;
-        height: auto; /* Let content decide height */
-        max-height: 94vh; /* Adjust based on new padding */
+        height: auto;
+        /* Let content decide height */
+        max-height: 94vh;
+        /* Adjust based on new padding */
         display: flex;
         flex-direction: column;
     }
-    
+
     #edit-modal-container .modal-body {
         padding: 1.5rem 1.5rem 1rem 1.5rem;
     }
@@ -1813,7 +1839,7 @@ body.lightbox-open {
         top: 1rem;
         right: 1.5rem;
     }
-    
+
     /* Admin Edit Modal: Image Gallery Layout */
     .image-gallery-admin {
         display: flex;
@@ -1830,11 +1856,11 @@ body.lightbox-open {
         border-radius: var(--border-radius-md);
         padding: 1rem;
         /* Remove fixed padding-top for flex to work */
-        height: auto; 
+        height: auto;
         padding-top: 0;
     }
-    
-     #edit-modal-container #thumbnail-list-admin {
+
+    #edit-modal-container #thumbnail-list-admin {
         flex: 1;
         min-height: 0;
         border: none;
