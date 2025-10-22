@@ -73,21 +73,28 @@ async function getCategoriesOnly(db) {
 
 // 【全新簡潔版】getPaginatedProducts
 async function getPaginatedProducts(db, params) {
-    // 參數解析和 SQL 查詢部分不變
     const categoryIdsParam = params.get('categoryIds');
 
     // 如果收到了 'categoryIds' 參數，就進入目錄生成模式
     if (categoryIdsParam) {
         const ids = categoryIdsParam.split(',').map(id => parseInt(id.trim())).filter(Number.isInteger);
+
         if (ids.length === 0) {
             return response({ products: [], pagination: {} });
         }
 
-        // 準備 SQL 的 IN 查詢，D1 原生支援直接綁定陣列
-        const query = db.prepare("SELECT * FROM products WHERE categoryId IN ? ORDER BY name ASC LIMIT 500")
-            .bind(ids);
+        // --- ▼▼▼ 核心修正處 ▼▼▼ ---
 
-        const { results } = await query.run();
+        // 1. 根據 ID 的數量，動態產生對應數量的 '?' 佔位符
+        const placeholders = ids.map(() => '?').join(',');
+
+        // 2. 將動態產生的佔位符放入 SQL 查詢語句中
+        const query = db.prepare(`SELECT * FROM products WHERE categoryId IN (${placeholders}) ORDER BY name ASC LIMIT 500`);
+
+        // 3. 使用展開語法 (...) 將陣列中的每個 ID 分別綁定
+        const { results } = await query.bind(...ids).run();
+
+        // --- ▲▲▲ 修正結束 ▲▲▲ ---
 
         const products = (results || []).map(p => {
             try {
@@ -97,9 +104,10 @@ async function getPaginatedProducts(db, params) {
             }
         });
 
-        // 回傳所有產品，不分頁
         return response({ products, pagination: { isCatalogMode: true, totalProducts: products.length } });
     }
+
+    // --- 以下為原有的分頁查詢邏輯 (保持不變) ---
     const page = parseInt(params.get('page')) || 1;
     const limit = parseInt(params.get('limit')) || 24;
     const categoryId = params.get('categoryId') ? parseInt(params.get('categoryId')) : null;
@@ -142,23 +150,19 @@ async function getPaginatedProducts(db, params) {
     const totalProducts = countResult.results[0].total;
     const totalPages = Math.ceil(totalProducts / limit);
 
-    // ▼▼▼ *** 簡化後的邏輯 *** ▼▼▼
-    // 直接解析 imageUrls，不再需要檢查格式
     const products = (dataResult.results || []).map(p => {
         try {
             return { ...p, imageUrls: p.imageUrls ? JSON.parse(p.imageUrls) : [] };
         } catch (e) {
-            return { ...p, imageUrls: [] }; // 解析失敗時返回空陣列
+            return { ...p, imageUrls: [] };
         }
     });
-    // ▲▲▲ *** 簡化結束 *** ▲▲▲
 
     return response({
         products,
         pagination: { currentPage: page, totalPages, totalProducts, limit }
     });
 }
-
 async function createOrUpdateProduct(context, product) {
     const { env } = context;
     const { D1_DB, IMAGE_BUCKET, R2_PUBLIC_URL } = env;
