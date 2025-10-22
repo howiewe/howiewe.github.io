@@ -254,8 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createNewPage() {
         const page = document.createElement('div');
         page.className = 'page';
-        page.innerHTML = `
-            <div class="page-header">產品目錄</div>
+        page.innerHTML = `          
             <div class="page-content"></div>
             <div class="page-footer"><span class="page-number"></span></div>
         `;
