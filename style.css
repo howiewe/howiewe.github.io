@@ -2048,8 +2048,8 @@ body.lightbox-open {
 }
 
 .product-item-print-img {
-    width: 80px;  /* 恢復成之前的大小，您可以自行調整 */
-    height: 80px;
+    width: 160px;  /* 恢復成之前的大小，您可以自行調整 */
+    height: 160px;
     flex-shrink: 0;
 }
 
