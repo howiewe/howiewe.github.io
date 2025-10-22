@@ -123,6 +123,7 @@ async function getPaginatedProducts(db, params) {
             -- 4. 最終排序：先依階層路徑，再依價格
             ORDER BY 
                 cp.sort_path ASC,
+                CASE WHEN p.price IS NULL OR p.price <= 0 THEN 1 ELSE 0 END ASC,
                 p.price ASC
             LIMIT 500
         `);
