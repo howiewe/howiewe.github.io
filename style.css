@@ -2027,12 +2027,11 @@ body.lightbox-open {
     break-inside: avoid; /* 嘗試避免在列印時被切斷 */
 }
 
-.product-item-print-img {
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
-    background-color: #f0f0f0;
-}
+    .product-item-print-img {
+        width: 80px;
+        height: 80px;
+        flex-shrink: 0;
+    }
 
 .product-item-print-img img {
     width: 100%;
