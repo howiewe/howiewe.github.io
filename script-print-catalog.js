@@ -11,6 +11,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 【新增】輔助函式 ---
 
+    function shrinkTextToFit(element) {
+        // 獲取容器的可用寬度
+        const availableWidth = element.clientWidth;
+        // 獲取文字內容的實際渲染寬度
+        let textWidth = element.scrollWidth;
+
+        // 如果文字已經在容器內，則無需任何操作
+        if (textWidth <= availableWidth) {
+            return;
+        }
+
+        // 獲取當前的字體大小作為起始值
+        let currentFontSize = parseFloat(window.getComputedStyle(element).fontSize);
+
+        // 當文字寬度依然超出容器，且字體大小尚未小於下限時，持續循環
+        while (textWidth > availableWidth && currentFontSize > 8) { // 設定 8px 為最小字體，避免無法閱讀
+            // 每次縮小 0.5px
+            currentFontSize -= 0.5;
+            element.style.fontSize = currentFontSize + 'px';
+
+            // 重新測量縮小後的文字寬度
+            textWidth = element.scrollWidth;
+        }
+    }
+
     /**
      * 從一個產品的 categoryId 向上追溯，找到其所屬的「主要分類」(第二層分類)。
      * @param {number} categoryId - 產品自身的分類 ID。
@@ -243,6 +268,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             svgElement.style.display = 'none'; // 如果失敗就隱藏
                         }
                     }
+                }
+
+                const productNameEl = productEl.querySelector('.product-name');
+                if (productNameEl) {
+                    shrinkTextToFit(productNameEl);
                 }
                 // 步驟 2d: 執行高度檢查，如果超出則換頁 (保留舊邏輯)
                 const contentTop = currentContentContainer.getBoundingClientRect().top;

@@ -2068,9 +2068,7 @@ body.lightbox-open {
 .product-item-print-info .product-name {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* ▼▼▼ 【核心】使用正確的選擇器來定位價格 ▼▼▼ */
