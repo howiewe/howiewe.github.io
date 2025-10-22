@@ -195,6 +195,9 @@ document.addEventListener('DOMContentLoaded', () => {
         item.className = 'product-item-print';
 
         const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0].url : 'placeholder.jpg';
+        if (firstImage.startsWith('https://')) {
+            firstImage += `?v=${new Date().getTime()}`;
+        }
         const price = product.price ? `$${product.price}` : '價格未定';
 
         item.innerHTML = `
