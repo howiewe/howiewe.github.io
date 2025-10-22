@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadPdfBtn.disabled = true;
         downloadPdfBtn.textContent = 'PDF 產生中...';
 
-        const jsPDF = window.jsPDF;
+        const jsPDF = window.jspdf.jsPDF;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pages = previewContainer.querySelectorAll('.page');
 
