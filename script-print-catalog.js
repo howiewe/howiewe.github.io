@@ -233,8 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             JsBarcode(svgElement, product.ean13, {
                                 format: "EAN13",
                                 width: 1.5,       // 條碼線條寬度
-                                height: 35,       // 條碼高度
-                                displayValue: false, // 不在條碼下方顯示數字
+                                height: 30,       // 條碼高度
+                                fontSize: 14,
+                                displayValue: true, // 不在條碼下方顯示數字
                                 margin: 0
                             });
                         } catch (e) {

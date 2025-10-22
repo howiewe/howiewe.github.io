@@ -2096,7 +2096,7 @@ body.lightbox-open {
 .product-barcode-svg {
     width: 100%;
     max-width: 180px; /* 限制最大寬度 */
-    height: 35px;     /* 固定高度 */
+    height: 45px;     /* 固定高度 */
 }
 
 .product-item-print-info .product-ean13 {
