@@ -2099,6 +2099,23 @@ body.lightbox-open {
     color: #888;
 }
 
+.product-sku {
+    display: inline-block; /* 核心：讓元素自適應內容寬度，又能設定內外距 */
+    border: 1px solid var(--border-color); /* 淺灰色邊框 */
+    padding: 2px 6px;      /* 上下 2px，左右 6px 的內距 */
+    font-size: 0.75rem;    /* 較小的字體 (約 12px) */
+    color: var(--text-secondary); /* 次要文字顏色 */
+    border-radius: var(--border-radius-sm); /* 小圓角，與整體風格一致 */
+    margin-bottom: 0.5rem; /* 與下方的產品名稱保持間距 */
+}
+
+.product-item-print-info .product-name {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    overflow: hidden;
+    white-space: nowrap; /* 確保 JS 能偵測寬度 */
+}
+
 /* 瀏覽器列印優化 */
 @media print {
     body.print-tool-page {

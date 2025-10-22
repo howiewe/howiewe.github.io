@@ -324,16 +324,21 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `<svg id="barcode-${product.id}-${Math.random()}" class="product-barcode-svg"></svg>`
             : '';
 
+        const skuHtml = product.sku
+            ? `<span class="product-sku">${product.sku}</span>`
+            : '';
+
         item.innerHTML = `
         <div class="product-item-print-img">
-        <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
-    </div>
-    <div class="product-item-print-info">
-        <h3 class="product-name">${product.name}</h3>
-        ${barcodeSvgHtml}
-    </div>
-    <p class="product-price">${price}</p>
-`;
+            <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
+        </div>
+        <div class="product-item-print-info">
+            ${skuHtml}
+            <h3 class="product-name">${product.name}</h3>
+            ${barcodeSvgHtml}
+        </div>
+        <p class="product-price">${price}</p>
+    `;
         return item;
     }
 
