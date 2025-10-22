@@ -271,15 +271,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const price = product.price ? `$${product.price}` : '價格未定';
 
-        item.innerHTML = `
-            <div class="product-item-print-img">
-                <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
-            </div>
-            <div class.product-item-print-info">
-                <h3 class="product-name">${product.name}</h3>
-                <p class="product-price">${price}</p>
-            </div>
-        `;
+        // 新增 EAN13 的 HTML，如果 EAN13 存在的話
+const ean13Html = product.ean13 ? `<p class="product-ean13">${product.ean13}</p>` : '';
+
+item.innerHTML = `
+    <div class="product-item-print-img">
+        <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
+    </div>
+    <div class="product-item-print-info">
+        <div class="product-details">
+            <h3 class="product-name">${product.name}</h3>
+            ${ean13Html}
+        </div>
+        <p class="product-price">${price}</p>
+    </div>
+`;
         return item;
     }
 

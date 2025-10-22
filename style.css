@@ -2054,8 +2054,10 @@ body.lightbox-open {
 .product-item-print-info {
     flex-grow: 1;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
-
 .product-item-print-info .product-name {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
@@ -2068,6 +2070,13 @@ body.lightbox-open {
     margin: 0;
     font-size: 0.9rem;
     color: var(--text-secondary);
+    align-self: flex-end; 
+    font-weight: bold;
+}
+.product-item-print-info .product-ean13 {
+    margin: 2px 0 0 0; /* 微調與品名間的距離 */
+    font-size: 0.8rem;
+    color: #888;
 }
 
 /* 瀏覽器列印優化 */
