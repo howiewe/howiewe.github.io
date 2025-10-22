@@ -2062,7 +2062,8 @@ body.lightbox-open {
 .product-item-print-info {
     flex-grow: 1;
     overflow: hidden;
-    /* 【核心】移除這裡的 relative 定位 */
+    /* ▼▼▼ 【核心修正】在資訊區塊底部增加內邊距，為價格標籤騰出空間 ▼▼▼ */
+    padding-bottom: 30px; /* 這個值可以根據您的價格標籤高度微調 */
 }
 
 .product-item-print-info .product-name {
