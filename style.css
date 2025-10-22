@@ -2069,6 +2069,7 @@ body.lightbox-open {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
     overflow: hidden;
+    white-space: nowrap; 
 }
 
 /* ▼▼▼ 【核心】使用正確的選擇器來定位價格 ▼▼▼ */
