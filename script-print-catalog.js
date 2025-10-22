@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
             current = parent;
             parent = categoryMap.get(current.parentId);
         }
-        
+
         // 此時的 current 就是我們要找的「主要分類」(第二層分類)。
         return current;
     }
@@ -189,13 +189,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const mainCategory = findMainCategory(product.categoryId, categoryMap);
             // 如果產品沒有分類或找不到主要分類，則歸入一個特殊組
             const mainCategoryId = mainCategory ? mainCategory.id : 'unclassified';
-            
+
             if (!groupedProducts.has(mainCategoryId)) {
                 groupedProducts.set(mainCategoryId, []);
             }
             groupedProducts.get(mainCategoryId).push(product);
         });
-        
+
         const A4_CONTENT_HEIGHT_LIMIT_PX = 1000;
         let currentPage, currentContentContainer;
 
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 步驟 2: 遍歷分好組的產品，進行排版
         groupedProducts.forEach((productsInGroup, mainCategoryId) => {
-            
+
             // 步驟 2a: 每個新的主要分類都強制從新的一頁開始
             startNewPage();
 
@@ -225,6 +225,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const productEl = createProductPrintElement(product);
                 currentContentContainer.appendChild(productEl);
 
+                if (product.ean13) {
+                    // 使用 querySelector 尋找剛剛才加入的 SVG 元素
+                    const svgElement = productEl.querySelector('.product-barcode-svg');
+                    if (svgElement) {
+                        try {
+                            JsBarcode(svgElement, product.ean13, {
+                                format: "EAN13",
+                                width: 1.5,       // 條碼線條寬度
+                                height: 35,       // 條碼高度
+                                displayValue: false, // 不在條碼下方顯示數字
+                                margin: 0
+                            });
+                        } catch (e) {
+                            console.error("條碼產生失敗:", e);
+                            svgElement.style.display = 'none'; // 如果失敗就隱藏
+                        }
+                    }
+                }
                 // 步驟 2d: 執行高度檢查，如果超出則換頁 (保留舊邏輯)
                 const contentTop = currentContentContainer.getBoundingClientRect().top;
                 const lastElementBottom = productEl.getBoundingClientRect().bottom;
@@ -264,28 +282,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function createProductPrintElement(product) {
         const item = document.createElement('div');
         item.className = 'product-item-print';
-        
+
         let firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0].url : '';
-        // 確保 CORS 圖片可以被 html2canvas 讀取
-        if (firstImage) { firstImage += `?t=${new Date().getTime()}`; } 
+        if (firstImage) { firstImage += `?t=${new Date().getTime()}`; }
 
         const price = product.price ? `$${product.price}` : '價格未定';
 
-        // 新增 EAN13 的 HTML，如果 EAN13 存在的話
-const ean13Html = product.ean13 ? `<p class="product-ean13">${product.ean13}</p>` : '';
+        // 【修改】如果 EAN13 存在，則產生一個帶有唯一 ID 的 SVG 元素容器
+        const barcodeSvgHtml = product.ean13
+            ? `<svg id="barcode-${product.id}-${Math.random()}" class="product-barcode-svg"></svg>`
+            : '';
 
-item.innerHTML = `
-    <div class="product-item-print-img">
-        <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
-    </div>
-    <div class="product-item-print-info">
-        <div class="product-details">
-            <h3 class="product-name">${product.name}</h3>
-            ${ean13Html}
+        item.innerHTML = `
+        <div class="product-item-print-img">
+            <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
         </div>
-        <p class="product-price">${price}</p>
-    </div>
-`;
+        <div class="product-item-print-info">
+            <div class="product-details">
+                <h3 class="product-name">${product.name}</h3>
+                ${barcodeSvgHtml}
+            </div>
+            <p class="product-price">${price}</p>
+        </div>
+    `;
         return item;
     }
 
@@ -302,7 +321,7 @@ item.innerHTML = `
             downloadPdfBtn.textContent = '下載 PDF';
             return;
         }
-        
+
         const jsPDF = window.jspdf.jsPDF;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pages = previewContainer.querySelectorAll('.page');
@@ -311,14 +330,14 @@ item.innerHTML = `
             const pageElement = pages[i];
             try {
                 const canvas = await html2canvas(pageElement, {
-                    scale: 2, 
+                    scale: 2,
                     useCORS: true,
                     logging: false
                 });
 
                 const imgData = canvas.toDataURL('image/png');
-                const pdfWidth = 210; 
-                const pdfHeight = 297; 
+                const pdfWidth = 210;
+                const pdfHeight = 297;
 
                 if (i > 0) {
                     pdf.addPage();

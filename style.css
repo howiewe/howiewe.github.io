@@ -774,7 +774,8 @@ form select:focus {
 .image-gallery-customer {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem; /* 這會為主圖和縮圖列表之間創造垂直間距 */
+    gap: 0.75rem;
+    /* 這會為主圖和縮圖列表之間創造垂直間距 */
 }
 
 #detail-thumbnail-list {
@@ -1973,6 +1974,7 @@ body.lightbox-open {
     border-radius: var(--border-radius-lg);
     color: var(--text-secondary);
 }
+
 .preview-placeholder p.error {
     color: var(--danger-color);
 }
@@ -1980,8 +1982,10 @@ body.lightbox-open {
 /* --- A4 頁面模擬 --- */
 .page {
     background: #fff;
-    width: 816px; /* A4 寬度 @ 96dpi */
-    height: 1100px; /* 約 A4 高度，預留一些空間 */
+    width: 816px;
+    /* A4 寬度 @ 96dpi */
+    height: 1100px;
+    /* 約 A4 高度，預留一些空間 */
     margin: 0 auto 1.5rem auto;
     box-shadow: var(--shadow-lg);
     padding: 40px;
@@ -1990,7 +1994,8 @@ body.lightbox-open {
     flex-direction: column;
 }
 
-.page-header, .page-footer {
+.page-header,
+.page-footer {
     flex-shrink: 0;
     color: #999;
     font-size: 0.8rem;
@@ -2012,18 +2017,20 @@ body.lightbox-open {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
-    align-content: flex-start; /* 讓內容從頂部開始排列 */
+    align-content: flex-start;
+    /* 讓內容從頂部開始排列 */
 }
 
 .page-category-title {
-    font-size: 1.5rem; /* 24px */
+    font-size: 1.5rem;
+    /* 24px */
     font-weight: 700;
     color: #333;
     margin-bottom: 20px;
     padding-bottom: 10px;
     border-bottom: 2px solid var(--primary-color);
     /* 確保標題和其後的第一個產品項在同一頁，避免標題單獨留在頁尾 */
-    break-after: avoid; 
+    break-after: avoid;
     grid-column: 1 / -1;
 }
 
@@ -2035,15 +2042,17 @@ body.lightbox-open {
     display: flex;
     gap: 10px;
     align-items: center;
-    overflow: hidden; /* 防止內容溢出 */
-    break-inside: avoid; /* 嘗試避免在列印時被切斷 */
+    overflow: hidden;
+    /* 防止內容溢出 */
+    break-inside: avoid;
+    /* 嘗試避免在列印時被切斷 */
 }
 
-    .product-item-print-img {
-        width: 160px;
-        height: 160px;
-        flex-shrink: 0;
-    }
+.product-item-print-img {
+    width: 160px;
+    height: 160px;
+    flex-shrink: 0;
+}
 
 .product-item-print-img img {
     width: 100%;
@@ -2054,10 +2063,15 @@ body.lightbox-open {
 .product-item-print-info {
     flex-grow: 1;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    position: relative;
+    padding: 0 10px 10px 0; 
 }
+
+.product-item-print-info .product-details {
+    /* 避免文字內容跑到絕對定位的價格下方 */
+    padding-right: 50px; 
+}
+
 .product-item-print-info .product-name {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
@@ -2070,11 +2084,24 @@ body.lightbox-open {
     margin: 0;
     font-size: 0.9rem;
     color: var(--text-secondary);
-    align-self: flex-end; 
+    align-self: flex-end;
     font-weight: bold;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 4px 8px;
+    background-color: #ffffff;
 }
+
+.product-barcode-svg {
+    width: 100%;
+    max-width: 180px; /* 限制最大寬度 */
+    height: 35px;     /* 固定高度 */
+}
+
 .product-item-print-info .product-ean13 {
-    margin: 2px 0 0 0; /* 微調與品名間的距離 */
+    margin: 2px 0 0 0;
+    /* 微調與品名間的距離 */
     font-size: 0.8rem;
     color: #888;
 }
@@ -2084,13 +2111,16 @@ body.lightbox-open {
     body.print-tool-page {
         overflow: visible;
     }
+
     .print-settings {
         display: none;
     }
+
     .print-preview {
         padding: 0;
         overflow: visible;
     }
+
     .page {
         margin: 0;
         box-shadow: none;
