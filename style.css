@@ -2040,8 +2040,8 @@ body.lightbox-open {
 }
 
     .product-item-print-img {
-        width: 80px;
-        height: 80px;
+        width: 160px;
+        height: 160px;
         flex-shrink: 0;
     }
 
