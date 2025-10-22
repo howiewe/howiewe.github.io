@@ -131,28 +131,41 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const A4_PAGE_HEIGHT_PX = 1056; // 模擬 A4 高度 (減去邊距後的可見內容區)
-        const PAGE_PADDING_TOP_BOTTOM_PX = 80; // 上下邊距總和
-        const CONTENT_HEIGHT_LIMIT = A4_PAGE_HEIGHT_PX - PAGE_PADDING_TOP_BOTTOM_PX;
+        // A4 紙張在 96 DPI 下約為 1123px，我們預留頁首頁尾空間
+        const A4_CONTENT_HEIGHT_LIMIT_PX = 1000;
 
-        let currentPage = createNewPage();
-        // 【核心修正】獲取正確的內容容器
-        let currentContentContainer = currentPage.querySelector('.page-content');
-        previewContainer.appendChild(currentPage);
+        let currentPage;
+        let currentContentContainer;
+
+        // 建立新頁面的輔助函式，避免重複程式碼
+        const startNewPage = () => {
+            currentPage = createNewPage();
+            currentContentContainer = currentPage.querySelector('.page-content');
+            previewContainer.appendChild(currentPage);
+        };
+
+        startNewPage(); // 開始第一頁
 
         products.forEach(product => {
             const productEl = createProductPrintElement(product);
             currentContentContainer.appendChild(productEl);
 
-            // 【核心修正】檢查 .page-content 的實際高度，而不是整個 .page 的高度
-            if (currentContentContainer.scrollHeight > CONTENT_HEIGHT_LIMIT) {
-                currentContentContainer.removeChild(productEl); // 從目前頁面移除
+            // --- 【核心修正】使用 getBoundingClientRect 來進行精確判斷 ---
 
-                currentPage = createNewPage();      // 建立新頁面
-                currentContentContainer = currentPage.querySelector('.page-content'); // 更新內容容器
+            // 1. 取得內容容器 (.page-content) 的頂部在視圖中的位置
+            const contentTop = currentContentContainer.getBoundingClientRect().top;
 
-                previewContainer.appendChild(currentPage);
-                currentContentContainer.appendChild(productEl);    // 加入到新頁面
+            // 2. 取得剛剛加入的最後一個產品元素的底部在視圖中的位置
+            const lastElementBottom = productEl.getBoundingClientRect().bottom;
+
+            // 3. 計算最後一個元素的實際渲染位置是否超出了我們設定的單頁高度限制
+            const currentContentHeight = lastElementBottom - contentTop;
+
+            if (currentContentHeight > A4_CONTENT_HEIGHT_LIMIT_PX) {
+                // 如果超出了限制
+                currentContentContainer.removeChild(productEl); // 從當前頁面移除這個放不下的產品
+                startNewPage(); // 建立一個全新的頁面
+                currentContentContainer.appendChild(productEl); // 將產品放入新頁面
             }
         });
 
