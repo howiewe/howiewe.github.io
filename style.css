@@ -2034,7 +2034,6 @@ body.lightbox-open {
     grid-column: 1 / -1;
 }
 
-/* --- 單個產品項目的列印樣式 --- */
 .product-item-print {
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
@@ -2043,14 +2042,14 @@ body.lightbox-open {
     gap: 10px;
     align-items: center;
     overflow: hidden;
-    /* 防止內容溢出 */
     break-inside: avoid;
-    /* 嘗試避免在列印時被切斷 */
+    /* 【核心】將整個產品框設為定位的父容器 */
+    position: relative; 
 }
 
 .product-item-print-img {
-    width: 160px;
-    height: 160px;
+    width: 80px;  /* 恢復成之前的大小，您可以自行調整 */
+    height: 80px;
     flex-shrink: 0;
 }
 
@@ -2063,12 +2062,7 @@ body.lightbox-open {
 .product-item-print-info {
     flex-grow: 1;
     overflow: hidden;
-    position: relative; 
-}
-
-.product-item-print-info .product-details {
-    /* 避免文字內容跑到絕對定位的價格下方 */
-    padding-bottom: 30px; 
+    /* 【核心】移除這裡的 relative 定位 */
 }
 
 .product-item-print-info .product-name {
@@ -2079,24 +2073,24 @@ body.lightbox-open {
     text-overflow: ellipsis;
 }
 
-.product-item-print-info .product-price {
+/* ▼▼▼ 【核心】使用正確的選擇器來定位價格 ▼▼▼ */
+.product-item-print .product-price {
+    position: absolute;
+    bottom: 10px; /* 對齊父容器的 10px padding */
+    right: 10px;  /* 對齊父容器的 10px padding */
     margin: 0;
     font-size: 1rem;
-    color: var(--text-primary);
     font-weight: bold;
-    /* 【修改】絕對定位到右下角，現在會精準貼齊邊框 */
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    /* 增加一點內距和背景色，讓它更像一個標籤 */
+    color: var(--text-primary);
+    background-color: #ffffff; /* 確保背景不是透明的 */
     padding: 4px 8px;
-    background-color: #ffffff;
+    border-radius: var(--border-radius-sm); /* 可選：加個小圓角更好看 */
 }
 
 .product-barcode-svg {
     width: 100%;
-    max-width: 180px; /* 限制最大寬度 */
-    height: 45px;     /* 固定高度 */
+    max-width: 180px;
+    height: 45px;
 }
 
 .product-item-print-info .product-ean13 {

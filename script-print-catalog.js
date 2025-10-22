@@ -296,16 +296,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         item.innerHTML = `
         <div class="product-item-print-img">
-            <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
-        </div>
-        <div class="product-item-print-info">
-            <div class="product-details">
-                <h3 class="product-name">${product.name}</h3>
-                ${barcodeSvgHtml}
-            </div>
-            <p class="product-price">${price}</p>
-        </div>
-    `;
+        <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
+    </div>
+    <div class="product-item-print-info">
+        <h3 class="product-name">${product.name}</h3>
+        ${barcodeSvgHtml}
+    </div>
+    <p class="product-price">${price}</p>
+`;
         return item;
     }
 
