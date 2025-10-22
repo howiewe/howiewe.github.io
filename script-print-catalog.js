@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         item.innerHTML = `
             <div class="product-item-print-img">
-                <img src="${firstImage}" alt="${product.name}" loading="lazy">
+                <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
             </div>
             <div class="product-item-print-info">
                 <h3 class="product-name">${product.name}</h3>
