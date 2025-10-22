@@ -218,6 +218,14 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadPdfBtn.disabled = true;
         downloadPdfBtn.textContent = 'PDF 產生中...';
 
+        if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+            alert('錯誤：jsPDF 函式庫沒有正確載入！請檢查 console 錯誤。');
+            downloadPdfBtn.disabled = false;
+            downloadPdfBtn.textContent = '下載 PDF';
+            return;
+        }
+
+        // 從 jspdf 物件中取出 jsPDF 建構函式
         const jsPDF = window.jspdf.jsPDF;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pages = previewContainer.querySelectorAll('.page');
