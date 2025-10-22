@@ -121,7 +121,8 @@ async function getPaginatedProducts(db, params) {
             WHERE 
                 p.categoryId IN (${placeholders}) 
             -- 4. 最終排序：先依階層路徑，再依價格
-            -- 主要排序邏輯：
+            ORDER BY
+    -- 主要排序邏輯：
     CASE
         -- 檢查產品所屬的分類 ID，是否存在於 categories 表的 parentId 欄位中
         -- (意思是：這個分類是不是一個父分類？)
