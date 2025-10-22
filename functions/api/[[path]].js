@@ -89,7 +89,15 @@ async function getPaginatedProducts(db, params) {
         const placeholders = ids.map(() => '?').join(',');
 
         // 2. 將動態產生的佔位符放入 SQL 查詢語句中
-        const query = db.prepare(`SELECT * FROM products WHERE categoryId IN (${placeholders}) ORDER BY name ASC LIMIT 500`);
+        const query = db.prepare(`
+            SELECT products.* 
+            FROM products
+            INNER JOIN categories ON products.categoryId = categories.id
+            WHERE products.categoryId IN (${placeholders}) 
+            ORDER BY categories.sortOrder ASC, products.price ASC 
+            LIMIT 500
+        `);
+
 
         // 3. 使用展開語法 (...) 將陣列中的每個 ID 分別綁定
         const { results } = await query.bind(...ids).run();
