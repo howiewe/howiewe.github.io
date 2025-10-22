@@ -1,7 +1,7 @@
-// script-print-catalog.js
+// script-print-catalog.js (最終修改版)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- DOM Elements ---
+    // --- DOM Elements (保持不變) ---
     const categoryTreeWrapper = document.getElementById('category-tree-wrapper');
     const generatePreviewBtn = document.getElementById('generate-preview-btn');
     const downloadPdfBtn = document.getElementById('download-pdf-btn');
@@ -9,7 +9,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let allCategories = [];
 
-    // --- 1. 初始化 ---
+    // --- 【新增】輔助函式 ---
+
+    /**
+     * 從一個產品的 categoryId 向上追溯，找到其所屬的「主要分類」(第二層分類)。
+     * @param {number} categoryId - 產品自身的分類 ID。
+     * @param {Map<number, object>} categoryMap - 用於快速查找的分類 Map。
+     * @returns {object | null} - 回傳主要分類的物件，如果找不到則回傳 null。
+     */
+    function findMainCategory(categoryId, categoryMap) {
+        if (!categoryId) return null;
+        let current = categoryMap.get(categoryId);
+        if (!current) return null;
+
+        // 如果當前分類的父級就是根 (parentId is null)，那它自己就是主要分類。
+        if (current.parentId === null) {
+            return current;
+        }
+
+        let parent = categoryMap.get(current.parentId);
+
+        // 持續向上追溯，直到父分類是根分類為止。
+        while (parent && parent.parentId !== null) {
+            current = parent;
+            parent = categoryMap.get(current.parentId);
+        }
+        
+        // 此時的 current 就是我們要找的「主要分類」(第二層分類)。
+        return current;
+    }
+
+    /**
+     * 根據分類 ID 產生完整的階層路徑字串。
+     * @param {number} categoryId - 目標分類的 ID。
+     * @param {Map<number, object>} categoryMap - 分類 Map。
+     * @returns {string} - 格式化的路徑字串，例如 "運動用品 - 籃球"。
+     */
+    function getCategoryPath(categoryId, categoryMap) {
+        const path = [];
+        let current = categoryMap.get(categoryId);
+        while (current) {
+            path.unshift(current.name); // 將名稱加到路徑陣列的最前面
+            current = categoryMap.get(current.parentId);
+        }
+        return path.join(' - ');
+    }
+
+    // --- 1. 初始化 (保持不變) ---
     async function init() {
         try {
             const response = await fetch('/api/all-data');
@@ -20,13 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             categoryTreeWrapper.innerHTML = `<p class="empty-message error">${error.message}</p>`;
         }
-
         generatePreviewBtn.addEventListener('click', handleGeneratePreview);
         downloadPdfBtn.addEventListener('click', handleDownloadPDF);
     }
 
-    // --- 2. 建立帶有複選框的分類樹 ---
+    // --- 2. 建立帶有複選框的分類樹 (保持不變) ---
     function buildCategoryTree() {
+        // ... 此函式程式碼不變 ...
         const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
         const tree = [];
         for (const category of categoryMap.values()) {
@@ -58,8 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryTreeWrapper.addEventListener('change', handleCheckboxChange);
     }
 
-    // --- 3. 處理複選框的智慧連動 ---
+    // --- 3. 處理複選框的智慧連動 (保持不變) ---
     function handleCheckboxChange(e) {
+        // ... 此函式程式碼不變 ...
         if (e.target.type !== 'checkbox') return;
         const checkbox = e.target;
         const isChecked = checkbox.checked;
@@ -90,8 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 4. 產生預覽 ---
+    // --- 4. 產生預覽 (保持不變) ---
     async function handleGeneratePreview() {
+        // ... 此函式程式碼不變 ...
         generatePreviewBtn.disabled = true;
         generatePreviewBtn.textContent = '正在載入資料...';
         downloadPdfBtn.disabled = true;
@@ -107,12 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch(`/api/products?categoryIds=${selectedIds.join(',')}&limit=500`);
+            // 後端 API 已被修改為會回傳正確排序的產品列表
+            const response = await fetch(`/api/products?categoryIds=${selectedIds.join(',')}`);
             if (!response.ok) throw new Error('獲取產品資料失敗');
             const data = await response.json();
 
             generatePreviewBtn.textContent = '正在排版預覽...';
-            renderPreviewPages(data.products);
+            renderPreviewPages(data.products); // 呼叫我們重構後的新函式
 
             downloadPdfBtn.disabled = false;
         } catch (error) {
@@ -123,7 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 5. 渲染預覽頁面 (核心排版邏輯) ---
+
+    // --- 5. 【核心修改】渲染預覽頁面的全新邏輯 ---
     function renderPreviewPages(products) {
         previewContainer.innerHTML = '';
         if (products.length === 0) {
@@ -131,45 +181,65 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // A4 紙張在 96 DPI 下約為 1123px，我們預留頁首頁尾空間
+        const categoryMap = new Map(allCategories.map(c => [c.id, c]));
+        const groupedProducts = new Map();
+
+        // 步驟 1: 將產品按「主要分類」進行分組
+        products.forEach(product => {
+            const mainCategory = findMainCategory(product.categoryId, categoryMap);
+            // 如果產品沒有分類或找不到主要分類，則歸入一個特殊組
+            const mainCategoryId = mainCategory ? mainCategory.id : 'unclassified';
+            
+            if (!groupedProducts.has(mainCategoryId)) {
+                groupedProducts.set(mainCategoryId, []);
+            }
+            groupedProducts.get(mainCategoryId).push(product);
+        });
+        
         const A4_CONTENT_HEIGHT_LIMIT_PX = 1000;
+        let currentPage, currentContentContainer;
 
-        let currentPage;
-        let currentContentContainer;
-
-        // 建立新頁面的輔助函式，避免重複程式碼
         const startNewPage = () => {
             currentPage = createNewPage();
             currentContentContainer = currentPage.querySelector('.page-content');
             previewContainer.appendChild(currentPage);
         };
 
-        startNewPage(); // 開始第一頁
+        // 步驟 2: 遍歷分好組的產品，進行排版
+        groupedProducts.forEach((productsInGroup, mainCategoryId) => {
+            
+            // 步驟 2a: 每個新的主要分類都強制從新的一頁開始
+            startNewPage();
 
-        products.forEach(product => {
-            const productEl = createProductPrintElement(product);
-            currentContentContainer.appendChild(productEl);
-
-            // --- 【核心修正】使用 getBoundingClientRect 來進行精確判斷 ---
-
-            // 1. 取得內容容器 (.page-content) 的頂部在視圖中的位置
-            const contentTop = currentContentContainer.getBoundingClientRect().top;
-
-            // 2. 取得剛剛加入的最後一個產品元素的底部在視圖中的位置
-            const lastElementBottom = productEl.getBoundingClientRect().bottom;
-
-            // 3. 計算最後一個元素的實際渲染位置是否超出了我們設定的單頁高度限制
-            const currentContentHeight = lastElementBottom - contentTop;
-
-            if (currentContentHeight > A4_CONTENT_HEIGHT_LIMIT_PX) {
-                // 如果超出了限制
-                currentContentContainer.removeChild(productEl); // 從當前頁面移除這個放不下的產品
-                startNewPage(); // 建立一個全新的頁面
-                currentContentContainer.appendChild(productEl); // 將產品放入新頁面
+            // 步驟 2b: 在新頁面的頂部插入分類標題
+            if (mainCategoryId !== 'unclassified') {
+                const titlePath = getCategoryPath(mainCategoryId, categoryMap);
+                const titleEl = document.createElement('h2');
+                titleEl.className = 'page-category-title';
+                titleEl.textContent = titlePath;
+                currentContentContainer.appendChild(titleEl);
             }
+
+            // 步驟 2c: 遍歷該分類下的所有產品
+            productsInGroup.forEach(product => {
+                const productEl = createProductPrintElement(product);
+                currentContentContainer.appendChild(productEl);
+
+                // 步驟 2d: 執行高度檢查，如果超出則換頁 (保留舊邏輯)
+                const contentTop = currentContentContainer.getBoundingClientRect().top;
+                const lastElementBottom = productEl.getBoundingClientRect().bottom;
+                const currentContentHeight = lastElementBottom - contentTop;
+
+                if (currentContentHeight > A4_CONTENT_HEIGHT_LIMIT_PX) {
+                    currentContentContainer.removeChild(productEl);
+                    startNewPage(); // 開始新的一頁
+                    // 注意：這裡不需要再加標題了
+                    currentContentContainer.appendChild(productEl);
+                }
+            });
         });
 
-        // 更新所有頁面的頁碼
+        // 步驟 3: 更新所有頁面的頁碼
         const allPages = previewContainer.querySelectorAll('.page');
         allPages.forEach((page, index) => {
             const pageNumberEl = page.querySelector('.page-number');
@@ -179,6 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
+    // --- createNewPage 和 createProductPrintElement 函式保持不變 ---
     function createNewPage() {
         const page = document.createElement('div');
         page.className = 'page';
@@ -193,18 +265,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function createProductPrintElement(product) {
         const item = document.createElement('div');
         item.className = 'product-item-print';
+        
+        let firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0].url : '';
+        // 確保 CORS 圖片可以被 html2canvas 讀取
+        if (firstImage) { firstImage += `?t=${new Date().getTime()}`; } 
 
-        let firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0].url : 'placeholder.jpg';
-        if (firstImage.startsWith('https://')) {
-            firstImage += `?v=${new Date().getTime()}`;
-        }
         const price = product.price ? `$${product.price}` : '價格未定';
 
         item.innerHTML = `
             <div class="product-item-print-img">
                 <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
             </div>
-            <div class="product-item-print-info">
+            <div class.product-item-print-info">
                 <h3 class="product-name">${product.name}</h3>
                 <p class="product-price">${price}</p>
             </div>
@@ -213,8 +285,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- 6. 下載 PDF ---
+    // --- 6. 下載 PDF (保持不變) ---
     async function handleDownloadPDF() {
+        // ... 此函式程式碼不變 ...
         downloadPdfBtn.disabled = true;
         downloadPdfBtn.textContent = 'PDF 產生中...';
 
@@ -224,8 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadPdfBtn.textContent = '下載 PDF';
             return;
         }
-
-        // 從 jspdf 物件中取出 jsPDF 建構函式
+        
         const jsPDF = window.jspdf.jsPDF;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pages = previewContainer.querySelectorAll('.page');
@@ -234,14 +306,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const pageElement = pages[i];
             try {
                 const canvas = await html2canvas(pageElement, {
-                    scale: 2, // 提高解析度
+                    scale: 2, 
                     useCORS: true,
                     logging: false
                 });
 
                 const imgData = canvas.toDataURL('image/png');
-                const pdfWidth = 210; // A4 寬度 (mm)
-                const pdfHeight = 297; // A4 高度 (mm)
+                const pdfWidth = 210; 
+                const pdfHeight = 297; 
 
                 if (i > 0) {
                     pdf.addPage();

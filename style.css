@@ -2015,6 +2015,17 @@ body.lightbox-open {
     align-content: flex-start; /* 讓內容從頂部開始排列 */
 }
 
+.page-category-title {
+    font-size: 1.5rem; /* 24px */
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--primary-color);
+    /* 確保標題和其後的第一個產品項在同一頁，避免標題單獨留在頁尾 */
+    break-after: avoid; 
+}
+
 /* --- 單個產品項目的列印樣式 --- */
 .product-item-print {
     border: 1px solid var(--border-color);
