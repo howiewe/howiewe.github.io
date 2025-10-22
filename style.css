@@ -2063,13 +2063,12 @@ body.lightbox-open {
 .product-item-print-info {
     flex-grow: 1;
     overflow: hidden;
-    position: relative;
-    padding: 0 10px 10px 0; 
+    position: relative; 
 }
 
 .product-item-print-info .product-details {
     /* 避免文字內容跑到絕對定位的價格下方 */
-    padding-right: 50px; 
+    padding-bottom: 30px; 
 }
 
 .product-item-print-info .product-name {
@@ -2084,11 +2083,12 @@ body.lightbox-open {
     margin: 0;
     font-size: 1rem;
     color: var(--text-primary);
-    align-self: flex-end;
     font-weight: bold;
+    /* 【修改】絕對定位到右下角，現在會精準貼齊邊框 */
     position: absolute;
     bottom: 0;
     right: 0;
+    /* 增加一點內距和背景色，讓它更像一個標籤 */
     padding: 4px 8px;
     background-color: #ffffff;
 }
