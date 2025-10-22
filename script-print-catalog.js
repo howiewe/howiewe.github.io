@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = document.createElement('div');
         item.className = 'product-item-print';
 
-        const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0].url : 'placeholder.jpg';
+        let firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0].url : 'placeholder.jpg';
         if (firstImage.startsWith('https://')) {
             firstImage += `?v=${new Date().getTime()}`;
         }
