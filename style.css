@@ -2082,8 +2082,8 @@ body.lightbox-open {
 
 .product-item-print-info .product-price {
     margin: 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+    font-size: 1rem;
+    color: var(--text-primary);
     align-self: flex-end;
     font-weight: bold;
     position: absolute;
