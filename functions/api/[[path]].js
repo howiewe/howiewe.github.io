@@ -90,11 +90,40 @@ async function getPaginatedProducts(db, params) {
 
         // 2. 將動態產生的佔位符放入 SQL 查詢語句中
         const query = db.prepare(`
-            SELECT products.* 
-            FROM products
-            INNER JOIN categories ON products.categoryId = categories.id
-            WHERE products.categoryId IN (${placeholders}) 
-            ORDER BY categories.sortOrder ASC, products.price ASC 
+            WITH RECURSIVE category_path AS (
+                -- 1. 錨點成員：從根分類開始
+                SELECT 
+                    id, 
+                    printf('%04d', sortOrder) as sort_path
+                FROM 
+                    categories
+                WHERE 
+                    parentId IS NULL
+
+                UNION ALL
+
+                -- 2. 遞迴成員：尋找子分類並串接排序路徑
+                SELECT 
+                    c.id, 
+                    cp.sort_path || '_' || printf('%04d', c.sortOrder)
+                FROM 
+                    categories c
+                INNER JOIN 
+                    category_path cp ON c.parentId = cp.id
+            )
+            -- 3. 主查詢：將產品與計算出的分類路徑 JOIN
+            SELECT 
+                p.*
+            FROM 
+                products p
+            INNER JOIN 
+                category_path cp ON p.categoryId = cp.id
+            WHERE 
+                p.categoryId IN (${placeholders}) 
+            -- 4. 最終排序：先依階層路徑，再依價格
+            ORDER BY 
+                cp.sort_path ASC,
+                p.price ASC
             LIMIT 500
         `);
 
