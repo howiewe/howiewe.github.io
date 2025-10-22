@@ -121,10 +121,19 @@ async function getPaginatedProducts(db, params) {
             WHERE 
                 p.categoryId IN (${placeholders}) 
             -- 4. 最終排序：先依階層路徑，再依價格
-            ORDER BY 
-                cp.sort_path ASC,
-                CASE WHEN p.price IS NULL OR p.price <= 0 THEN 1 ELSE 0 END ASC,
-                p.price ASC
+            -- 主要排序邏輯：
+    CASE
+        -- 檢查產品所屬的分類 ID，是否存在於 categories 表的 parentId 欄位中
+        -- (意思是：這個分類是不是一個父分類？)
+        WHEN EXISTS (SELECT 1 FROM categories sub WHERE sub.parentId = p.categoryId)
+        -- 如果是父分類，就在其排序路徑後附加一個 ASCII 值很大的字串 '~'
+        THEN cp.sort_path || '_~'
+        -- 如果不是父分類 (即葉子節點)，則使用原始的排序路徑
+        ELSE cp.sort_path
+    END ASC,
+    -- 次要排序邏輯 (價格) 保持不變
+    CASE WHEN p.price IS NULL OR p.price <= 0 THEN 1 ELSE 0 END ASC,
+    p.price ASC
             LIMIT 500
         `);
 
