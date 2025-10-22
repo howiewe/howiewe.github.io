@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             categoryTreeWrapper.innerHTML = `<p class="empty-message error">${error.message}</p>`;
         }
-        
+
         generatePreviewBtn.addEventListener('click', handleGeneratePreview);
         downloadPdfBtn.addEventListener('click', handleDownloadPDF);
     }
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
             let ul = document.createElement('ul');
             if (depth > 0) ul.style.paddingLeft = '20px';
-            
+
             nodes.forEach(node => {
                 const li = document.createElement('li');
                 li.innerHTML = `
@@ -64,14 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkbox = e.target;
         const isChecked = checkbox.checked;
         const li = checkbox.closest('li');
-        
+
         // 勾選/取消所有子項目
         const childCheckboxes = li.querySelectorAll('input[type="checkbox"]');
         childCheckboxes.forEach(child => child.checked = isChecked);
 
         // 更新父項目的狀態
         let parentLi = li.parentElement.closest('li');
-        while(parentLi) {
+        while (parentLi) {
             const parentCheckbox = parentLi.querySelector('input[type="checkbox"]');
             const siblings = Array.from(parentLi.querySelector('ul').children);
             const checkedSiblings = siblings.filter(s => s.querySelector('input[type="checkbox"]').checked).length;
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         generatePreviewBtn.disabled = true;
         generatePreviewBtn.textContent = '正在載入資料...';
         downloadPdfBtn.disabled = true;
-        
+
         const selectedIds = Array.from(categoryTreeWrapper.querySelectorAll('input[type="checkbox"]:checked'))
             .map(cb => cb.dataset.id);
 
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/api/products?categoryIds=${selectedIds.join(',')}&limit=500`);
             if (!response.ok) throw new Error('獲取產品資料失敗');
             const data = await response.json();
-            
+
             generatePreviewBtn.textContent = '正在排版預覽...';
             renderPreviewPages(data.products);
 
@@ -131,26 +131,31 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const A4_PAGE_HEIGHT_PX = 1056; // 模擬 A4 高度 (297mm @ 96dpi * 3.53) - 邊距
-        const PAGE_PADDING_PX = 40;
-        const CONTENT_HEIGHT_LIMIT = A4_PAGE_HEIGHT_PX - (PAGE_PADDING_PX * 2);
+        const A4_PAGE_HEIGHT_PX = 1056; // 模擬 A4 高度 (減去邊距後的可見內容區)
+        const PAGE_PADDING_TOP_BOTTOM_PX = 80; // 上下邊距總和
+        const CONTENT_HEIGHT_LIMIT = A4_PAGE_HEIGHT_PX - PAGE_PADDING_TOP_BOTTOM_PX;
 
         let currentPage = createNewPage();
+        // 【核心修正】獲取正確的內容容器
+        let currentContentContainer = currentPage.querySelector('.page-content');
         previewContainer.appendChild(currentPage);
 
         products.forEach(product => {
             const productEl = createProductPrintElement(product);
-            currentPage.appendChild(productEl);
+            currentContentContainer.appendChild(productEl);
 
-            // 檢查是否超出一頁的高度
-            if (currentPage.scrollHeight > CONTENT_HEIGHT_LIMIT) {
-                currentPage.removeChild(productEl); // 從目前頁面移除
+            // 【核心修正】檢查 .page-content 的實際高度，而不是整個 .page 的高度
+            if (currentContentContainer.scrollHeight > CONTENT_HEIGHT_LIMIT) {
+                currentContentContainer.removeChild(productEl); // 從目前頁面移除
+
                 currentPage = createNewPage();      // 建立新頁面
+                currentContentContainer = currentPage.querySelector('.page-content'); // 更新內容容器
+
                 previewContainer.appendChild(currentPage);
-                currentPage.appendChild(productEl);    // 加入到新頁面
+                currentContentContainer.appendChild(productEl);    // 加入到新頁面
             }
         });
-        
+
         // 更新所有頁面的頁碼
         const allPages = previewContainer.querySelectorAll('.page');
         allPages.forEach((page, index) => {
@@ -160,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     function createNewPage() {
         const page = document.createElement('div');
         page.className = 'page';
@@ -175,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createProductPrintElement(product) {
         const item = document.createElement('div');
         item.className = 'product-item-print';
-        
+
         const firstImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0].url : 'placeholder.jpg';
         const price = product.price ? `$${product.price}` : '價格未定';
 
@@ -221,16 +226,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 downloadPdfBtn.textContent = `正在處理第 ${i + 1} / ${pages.length} 頁...`;
 
             } catch (error) {
-                console.error(`處理第 ${i+1} 頁時發生錯誤:`, error);
-                alert(`產生第 ${i+1} 頁的 PDF 時失敗，請檢查控制台錯誤訊息。`);
+                console.error(`處理第 ${i + 1} 頁時發生錯誤:`, error);
+                alert(`產生第 ${i + 1} 頁的 PDF 時失敗，請檢查控制台錯誤訊息。`);
                 downloadPdfBtn.disabled = false;
                 downloadPdfBtn.textContent = '下載 PDF';
                 return;
             }
         }
-        
+
         pdf.save('產品目錄.pdf');
-        
+
         downloadPdfBtn.disabled = false;
         downloadPdfBtn.textContent = '下載 PDF';
     }
