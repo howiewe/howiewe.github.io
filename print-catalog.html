@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>產品目錄產生器</title>
+    <!-- 引入必要的函式庫 -->
+    <script src="/vendor/js/jsPDF.umd.min.js"></script>
+    <script src="/vendor/js/html2canvas.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="print-tool-page">
+
+    <div id="toast-container"></div>
+
+    <div class="print-layout">
+        <!-- 左欄：設定區 -->
+        <aside class="print-settings">
+            <div class="print-settings-header">
+                <h2>目錄產生設定</h2>
+                <a href="/admin.html" class="btn btn-secondary">返回後台</a>
+            </div>
+            <div class="print-settings-body">
+                <div class="form-group">
+                    <label>選擇要包含的產品分類</label>
+                    <div id="category-tree-wrapper">
+                        <!-- JS 會在這裡動態建立帶有複選框的分類樹 -->
+                        <p class="empty-message">正在載入分類...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="print-settings-footer">
+                <button id="generate-preview-btn" class="btn btn-primary">產生預覽</button>
+                <button id="download-pdf-btn" class="btn btn-success" disabled>下載 PDF</button>
+            </div>
+        </aside>
+
+        <!-- 右欄：預覽區 -->
+        <main class="print-preview">
+            <div id="preview-container">
+                <div class="preview-placeholder">
+                    <p>請在左側選擇分類，然後點擊「產生預覽」</p>
+                    <span>預覽結果將會顯示於此區域</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script-print-catalog.js"></script>
+</body>
+</html>

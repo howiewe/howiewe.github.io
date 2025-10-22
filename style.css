@@ -1882,3 +1882,199 @@ body.lightbox-open {
         overflow-y: auto;
     }
 }
+
+/* === 14. 目錄產生器專屬樣式 (Print Catalog Generator) === */
+
+/* --- 頁面主佈局 --- */
+.print-tool-page {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.print-layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.print-settings {
+    width: 350px;
+    flex-shrink: 0;
+    background-color: var(--surface-color);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.print-settings-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.print-settings-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.print-settings-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.print-settings-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+/* --- 分類樹 (含複選框) --- */
+#category-tree-wrapper ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#category-tree-wrapper li {
+    margin-top: 0.5rem;
+}
+
+#category-tree-wrapper label {
+    margin-left: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* --- 預覽區 --- */
+.print-preview {
+    flex-grow: 1;
+    background-color: var(--bg-color);
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+#preview-container {
+    width: 100%;
+}
+
+.preview-placeholder {
+    text-align: center;
+    padding: 4rem;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius-lg);
+    color: var(--text-secondary);
+}
+.preview-placeholder p.error {
+    color: var(--danger-color);
+}
+
+/* --- A4 頁面模擬 --- */
+.page {
+    background: #fff;
+    width: 816px; /* A4 寬度 @ 96dpi */
+    height: 1100px; /* 約 A4 高度，預留一些空間 */
+    margin: 0 auto 1.5rem auto;
+    box-shadow: var(--shadow-lg);
+    padding: 40px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-header, .page-footer {
+    flex-shrink: 0;
+    color: #999;
+    font-size: 0.8rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.page-footer {
+    padding-top: 10px;
+    padding-bottom: 0;
+    border-top: 1px solid #eee;
+    border-bottom: none;
+    margin-top: auto;
+    text-align: right;
+}
+
+.page-content {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-content: flex-start; /* 讓內容從頂部開始排列 */
+}
+
+/* --- 單個產品項目的列印樣式 --- */
+.product-item-print {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    overflow: hidden; /* 防止內容溢出 */
+    break-inside: avoid; /* 嘗試避免在列印時被切斷 */
+}
+
+.product-item-print-img {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    background-color: #f0f0f0;
+}
+
+.product-item-print-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.product-item-print-info {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.product-item-print-info .product-name {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-item-print-info .product-price {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* 瀏覽器列印優化 */
+@media print {
+    body.print-tool-page {
+        overflow: visible;
+    }
+    .print-settings {
+        display: none;
+    }
+    .print-preview {
+        padding: 0;
+        overflow: visible;
+    }
+    .page {
+        margin: 0;
+        box-shadow: none;
+        width: 100%;
+        height: 100%;
+    }
+}
