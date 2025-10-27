@@ -55,9 +55,8 @@ class TitleRewriter {
 
 
 export async function onRequest(context) {
-    const { request, env, next } = context; // <-- 取得 next 函數
+    const { request, env, next } = context;
 
-    // 安全性檢查：確保 D1 資料庫已繫結
     if (!env.D1_DB) {
         return new Response("後端資料庫未設定。", { status: 500 });
     }
@@ -65,18 +64,14 @@ export async function onRequest(context) {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // --- 1. 設定預設的 Meta 標籤內容 ---
-    //    【請務必替換成您自己的預設圖片網址！】
     let metaData = {
         title: '光華工業有限公司 | 產品展示',
         description: '探索光華工業有限公司提供的所有優質產品，涵蓋運動用品等領域。',
-        image: 'https://imagedelivery.net/v7-tA232h3t-IAn8qA-pXg/553b85d9-c03b-43d9-485e-526437149f00/public', // <-- 這是範例圖片，請務必替換成您自己的
+        image: 'https://imagedelivery.net/v7-tA232h3t-IAn8qA-pXg/553b85d9-c03b-43d9-485e-526437149f00/public',
         url: url.href
     };
 
-    // --- 2. 根據網址路徑，查詢資料並更新 Meta 標籤內容 ---
     try {
-        // 排除靜態資源和 API 路徑，避免不必要的資料庫查詢
         if (!pathname.startsWith('/api/') && !pathname.startsWith('/public/') && !pathname.includes('.')) {
             if (pathname.startsWith('/product/')) {
                 const id = pathname.split('/')[2];
@@ -90,7 +85,7 @@ export async function onRequest(context) {
                                 if (images && images.length > 0 && images[0].url) {
                                     firstImageUrl = images[0].url;
                                 }
-                            } catch (e) { /* 解析失敗則忽略 */ }
+                            } catch (e) { /* 忽略錯誤 */ }
                         }
                         metaData = {
                             title: `${product.name} | 光華工業有限公司`,
@@ -103,55 +98,31 @@ export async function onRequest(context) {
             } else if (pathname.startsWith('/category/')) {
                 const id = pathname.split('/')[2];
                 if (!isNaN(id)) {
-                    // 步驟 1: 查詢分類本身的資訊 (這部分不變)
-                    const category = await env.D1_DB.prepare(
-                        "SELECT name FROM categories WHERE id = ?"
-                    ).bind(id).first();
-
+                    const category = await env.D1_DB.prepare("SELECT name FROM categories WHERE id = ?").bind(id).first();
                     if (category) {
-                        // ▼▼▼ 【核心修改】從這裡開始是新的查詢邏輯 ▼▼▼
-
-                        // 步驟 2: 使用遞迴查詢，找出目標分類及其所有後代子分類的 ID，
-                        //         然後從這個完整的 ID 集合中，隨機找一個有圖片的產品。
                         const randomProductImage = await env.D1_DB.prepare(`
-                            SELECT 
-                                p.imageUrls 
-                            FROM 
-                                products p
-                            WHERE 
-                                p.categoryId IN (
-                                    -- 這裡是一個遞迴的子查詢 (Common Table Expression)
-                                    WITH RECURSIVE descendant_categories(id) AS (
-                                        -- 1. 初始設定：從我們指定的分類 ID 開始
-                                        SELECT id FROM categories WHERE id = ?
-                                        UNION ALL
-                                        -- 2. 遞迴步驟：不斷尋找下一層的子分類
-                                        SELECT c.id FROM categories c
-                                        JOIN descendant_categories dc ON c.parentId = dc.id
-                                    )
-                                    -- 3. 結果：回傳所有找到的分類 ID (包含起始 ID 和所有子孫 ID)
-                                    SELECT id FROM descendant_categories
+                            SELECT p.imageUrls FROM products p
+                            WHERE p.categoryId IN (
+                                WITH RECURSIVE descendant_categories(id) AS (
+                                    SELECT id FROM categories WHERE id = ?
+                                    UNION ALL
+                                    SELECT c.id FROM categories c JOIN descendant_categories dc ON c.parentId = dc.id
                                 )
-                                AND p.imageUrls IS NOT NULL 
-                                AND p.imageUrls != '[]' 
-                            ORDER BY 
-                                RANDOM() 
-                            LIMIT 1
-                        `).bind(id).first(); // <--- 只需要綁定一次起始的分類 ID
+                                SELECT id FROM descendant_categories
+                            )
+                            AND p.imageUrls IS NOT NULL AND p.imageUrls != '[]' 
+                            ORDER BY RANDOM() LIMIT 1
+                        `).bind(id).first();
 
-                        // ▲▲▲ 【核心修改】查詢邏輯結束 ▲▲▲
-
-                        let categoryImage = metaData.image; // 預設使用網站的後備圖片
+                        let categoryImage = metaData.image;
                         if (randomProductImage && randomProductImage.imageUrls) {
                             try {
                                 const images = JSON.parse(randomProductImage.imageUrls);
                                 if (images && images.length > 0 && images[0].url) {
-                                    categoryImage = images[0].url; // 成功找到圖片，就使用它
+                                    categoryImage = images[0].url;
                                 }
-                            } catch (e) { /* 解析失敗則忽略，繼續使用後備圖片 */ }
+                            } catch (e) { /* 忽略錯誤 */ }
                         }
-
-                        // 步驟 3: 組合最終的 metaData (這部分不變)
                         metaData = {
                             title: `${category.name} | 光華工業有限公司`,
                             description: `探索我們在「${category.name}」分類下的所有產品。`,
@@ -166,26 +137,30 @@ export async function onRequest(context) {
         console.error("D1 查詢失敗:", dbError);
     }
 
-    // 【核心修正】呼叫 context.next() 來獲取 Cloudflare Pages 正常應提供的靜態頁面 (即 index.html)
-    const response = await next();
+    // 取得原始的、由 Pages 服務的靜態頁面回應
+    const originalResponse = await next();
 
-    if (response.headers.get("Content-Type")?.startsWith("text/html")) {
-        // 步驟 1: 先透過 HTMLRewriter 轉換 response body
-        const transformedResponse = new HTMLRewriter()
+    // 只對 HTML 頁面進行操作
+    if (originalResponse.headers.get("Content-Type")?.startsWith("text/html")) {
+        // 【核心修正】
+        // 步驟 1: 建立一個原始回應的複本。這樣我們就有了一個可以安全修改標頭的物件。
+        //         重要的是，`originalResponse.body` 這個串流也被完整地複製過來了。
+        const mutableResponse = new Response(originalResponse.body, originalResponse);
+
+        // 步驟 2: 在這個可修改的複本上，設定我們需要的快取控制標頭。
+        mutableResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        mutableResponse.headers.set('Pragma', 'no-cache');
+        mutableResponse.headers.set('Expires', '0');
+
+        // 步驟 3: 最後，讓 HTMLRewriter 在這個已經帶有正確標頭的複本上進行內容轉換。
+        //         這樣返回的最終結果，既有修改過的標頭，也有修改過的 HTML 內容，
+        //         並且串流是完整的。
+        return new HTMLRewriter()
             .on('title', new TitleRewriter(metaData.title))
             .on('head', new HeadRewriter(metaData))
-            .transform(response);
-
-        // 步驟 2: 建立一個新的 Response，使用轉換後的 body
-        // 這樣我們才能對 headers 進行修改
-        const newResponse = new Response(transformedResponse.body, transformedResponse);
-
-        // 步驟 3: 【核心修改】設定 Cache-Control 標頭
-        newResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        newResponse.headers.set('Pragma', 'no-cache');
-        newResponse.headers.set('Expires', '0');
-
-        // 步驟 4: 回傳帶有新標頭的最終 Response
-        return newResponse;
+            .transform(mutableResponse);
     }
+
+    // 如果不是 HTML 檔案 (例如 CSS, JS)，直接回傳原始回應，不做任何修改。
+    return originalResponse;
 }
