@@ -69,7 +69,7 @@ export async function onRequest(context) {
     //    【請務必替換成您自己的預設圖片網址！】
     let metaData = {
         title: '光華工業有限公司 | 產品展示',
-        description: '探索光華工業有限公司提供的所有優質產品，涵蓋運動用品、居家生活等領域。',
+        description: '探索光華工業有限公司提供的所有優質產品，涵蓋運動用品等領域。',
         image: 'https://imagedelivery.net/v7-tA232h3t-IAn8qA-pXg/553b85d9-c03b-43d9-485e-526437149f00/public', // <-- 這是範例圖片，請務必替換成您自己的
         url: url.href
     };
