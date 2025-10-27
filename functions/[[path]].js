@@ -169,15 +169,23 @@ export async function onRequest(context) {
     // 【核心修正】呼叫 context.next() 來獲取 Cloudflare Pages 正常應提供的靜態頁面 (即 index.html)
     const response = await next();
 
-    // 只對 HTML 頁面進行改寫
     if (response.headers.get("Content-Type")?.startsWith("text/html")) {
-        // 使用 HTMLRewriter 來「手術式」修改 HTML
-        return new HTMLRewriter()
+        // 步驟 1: 先透過 HTMLRewriter 轉換 response body
+        const transformedResponse = new HTMLRewriter()
             .on('title', new TitleRewriter(metaData.title))
             .on('head', new HeadRewriter(metaData))
             .transform(response);
-    }
 
-    // 如果不是 HTML (例如 CSS, JS 檔案)，直接回傳原始回應
-    return response;
+        // 步驟 2: 建立一個新的 Response，使用轉換後的 body
+        // 這樣我們才能對 headers 進行修改
+        const newResponse = new Response(transformedResponse.body, transformedResponse);
+
+        // 步驟 3: 【核心修改】設定 Cache-Control 標頭
+        newResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        newResponse.headers.set('Pragma', 'no-cache');
+        newResponse.headers.set('Expires', '0');
+
+        // 步驟 4: 回傳帶有新標頭的最終 Response
+        return newResponse;
+    }
 }
