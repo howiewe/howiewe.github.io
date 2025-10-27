@@ -103,39 +103,59 @@ export async function onRequest(context) {
             } else if (pathname.startsWith('/category/')) {
                 const id = pathname.split('/')[2];
                 if (!isNaN(id)) {
-                    // 步驟 1: 查詢分類本身的資訊
+                    // 步驟 1: 查詢分類本身的資訊 (這部分不變)
                     const category = await env.D1_DB.prepare(
                         "SELECT name FROM categories WHERE id = ?"
                     ).bind(id).first();
 
                     if (category) {
-                        // 步驟 2: 隨機查詢該分類下一個有圖片的產品
-                        const randomProductImage = await env.D1_DB.prepare(`
-                            SELECT imageUrls 
-                            FROM products 
-                            WHERE 
-                                categoryId = ? 
-                                AND imageUrls IS NOT NULL 
-                                AND imageUrls != '[]' 
-                            ORDER BY RANDOM() 
-                            LIMIT 1
-                        `).bind(id).first();
+                        // ▼▼▼ 【核心修改】從這裡開始是新的查詢邏輯 ▼▼▼
 
-                        let categoryImage = metaData.image; // 預設使用後備圖片
+                        // 步驟 2: 使用遞迴查詢，找出目標分類及其所有後代子分類的 ID，
+                        //         然後從這個完整的 ID 集合中，隨機找一個有圖片的產品。
+                        const randomProductImage = await env.D1_DB.prepare(`
+                            SELECT 
+                                p.imageUrls 
+                            FROM 
+                                products p
+                            WHERE 
+                                p.categoryId IN (
+                                    -- 這裡是一個遞迴的子查詢 (Common Table Expression)
+                                    WITH RECURSIVE descendant_categories(id) AS (
+                                        -- 1. 初始設定：從我們指定的分類 ID 開始
+                                        SELECT id FROM categories WHERE id = ?
+                                        UNION ALL
+                                        -- 2. 遞迴步驟：不斷尋找下一層的子分類
+                                        SELECT c.id FROM categories c
+                                        JOIN descendant_categories dc ON c.parentId = dc.id
+                                    )
+                                    -- 3. 結果：回傳所有找到的分類 ID (包含起始 ID 和所有子孫 ID)
+                                    SELECT id FROM descendant_categories
+                                )
+                                AND p.imageUrls IS NOT NULL 
+                                AND p.imageUrls != '[]' 
+                            ORDER BY 
+                                RANDOM() 
+                            LIMIT 1
+                        `).bind(id).first(); // <--- 只需要綁定一次起始的分類 ID
+
+                        // ▲▲▲ 【核心修改】查詢邏輯結束 ▲▲▲
+
+                        let categoryImage = metaData.image; // 預設使用網站的後備圖片
                         if (randomProductImage && randomProductImage.imageUrls) {
                             try {
                                 const images = JSON.parse(randomProductImage.imageUrls);
                                 if (images && images.length > 0 && images[0].url) {
-                                    categoryImage = images[0].url;
+                                    categoryImage = images[0].url; // 成功找到圖片，就使用它
                                 }
                             } catch (e) { /* 解析失敗則忽略，繼續使用後備圖片 */ }
                         }
 
-                        // 步驟 3: 組合最終的 metaData
+                        // 步驟 3: 組合最終的 metaData (這部分不變)
                         metaData = {
                             title: `${category.name} | 光華工業有限公司`,
                             description: `探索我們在「${category.name}」分類下的所有產品。`,
-                            image: categoryImage, // 使用我們動態查詢到的隨機圖片
+                            image: categoryImage,
                             url: url.href
                         };
                     }
