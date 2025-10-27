@@ -78,7 +78,7 @@ export async function onRequest(context) {
     try {
         // 排除靜態資源和 API 路徑，避免不必要的資料庫查詢
         if (!pathname.startsWith('/api/') && !pathname.startsWith('/public/') && !pathname.includes('.')) {
-             if (pathname.startsWith('/product/')) {
+            if (pathname.startsWith('/product/')) {
                 const id = pathname.split('/')[2];
                 if (!isNaN(id)) {
                     const product = await env.D1_DB.prepare("SELECT name, description, imageUrls FROM products WHERE id = ?").bind(id).first();
@@ -103,12 +103,39 @@ export async function onRequest(context) {
             } else if (pathname.startsWith('/category/')) {
                 const id = pathname.split('/')[2];
                 if (!isNaN(id)) {
-                    const category = await env.D1_DB.prepare("SELECT name FROM categories WHERE id = ?").bind(id).first();
+                    // 步驟 1: 查詢分類本身的資訊
+                    const category = await env.D1_DB.prepare(
+                        "SELECT name FROM categories WHERE id = ?"
+                    ).bind(id).first();
+
                     if (category) {
+                        // 步驟 2: 隨機查詢該分類下一個有圖片的產品
+                        const randomProductImage = await env.D1_DB.prepare(`
+                            SELECT imageUrls 
+                            FROM products 
+                            WHERE 
+                                categoryId = ? 
+                                AND imageUrls IS NOT NULL 
+                                AND imageUrls != '[]' 
+                            ORDER BY RANDOM() 
+                            LIMIT 1
+                        `).bind(id).first();
+
+                        let categoryImage = metaData.image; // 預設使用後備圖片
+                        if (randomProductImage && randomProductImage.imageUrls) {
+                            try {
+                                const images = JSON.parse(randomProductImage.imageUrls);
+                                if (images && images.length > 0 && images[0].url) {
+                                    categoryImage = images[0].url;
+                                }
+                            } catch (e) { /* 解析失敗則忽略，繼續使用後備圖片 */ }
+                        }
+
+                        // 步驟 3: 組合最終的 metaData
                         metaData = {
                             title: `${category.name} | 光華工業有限公司`,
                             description: `探索我們在「${category.name}」分類下的所有產品。`,
-                            image: metaData.image,
+                            image: categoryImage, // 使用我們動態查詢到的隨機圖片
                             url: url.href
                         };
                     }
@@ -118,7 +145,7 @@ export async function onRequest(context) {
     } catch (dbError) {
         console.error("D1 查詢失敗:", dbError);
     }
-    
+
     // 【核心修正】呼叫 context.next() 來獲取 Cloudflare Pages 正常應提供的靜態頁面 (即 index.html)
     const response = await next();
 
