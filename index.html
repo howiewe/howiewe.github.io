@@ -1,175 +1,488 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
-
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>光華工業有限公司</title>
-    <script src="/vendor/js/JsBarcode.all.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css">
-    <meta name="google-site-verification" content="_93DRdDmsBdOi1rX34ZPWmnudQYLvH0QiSyvHcD2lKQ" />
+    <title>光華工業有限公司 - 專業運動用品製造商</title>
+    
+    <meta name="description" content="光華工業擁有超過50年專業製造經驗，提供高品質乒乓球拍、羽球拍、跳繩、球棒等各式運動用品。我們秉持品質第一、服務至上的理念，是您最值得信賴的合作夥伴。">
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SportsGoodsStore",
+      "name": "光華工業有限公司",
+      "telephone": "+886-4-7772514",
+      "email": "khp72514@ms19.hinet.net",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "溝墘里溝墘巷80-1號",
+        "addressLocality": "鹿港鎮",
+        "addressRegion": "彰化縣",
+        "postalCode": "505",
+        "addressCountry": "TW"
+      },
+      "url": "https://www.your-company-website.com" 
+    }
+    </script>
+    
+    <style>
+        /* --- 全局與色彩變數 --- */
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --text-light: #212529;
+            --bg-light: #ffffff;
+            --card-bg-light: #f8f9fa;
+            --border-light: #dee2e6;
+            --header-bg-light: rgba(255, 255, 255, 0.85);
+
+            --text-dark: #f8f9fa;
+            --bg-dark: #121212;
+            --card-bg-dark: #1e1e1e;
+            --border-dark: #343a40;
+            --header-bg-dark: rgba(18, 18, 18, 0.85);
+
+            --body-text: var(--text-light);
+            --body-bg: var(--bg-light);
+            --card-bg: var(--card-bg-light);
+            --border-color: var(--border-light);
+            --header-bg: var(--header-bg-light);
+        }
+
+        .dark-mode {
+            --body-text: var(--text-dark);
+            --body-bg: var(--bg-dark);
+            --card-bg: var(--card-bg-dark);
+            --border-color: var(--border-dark);
+            --header-bg: var(--header-bg-dark);
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            margin: 0;
+            background-color: var(--body-bg);
+            color: var(--body-text);
+            transition: background-color 0.3s, color 0.3s;
+            line-height: 1.6;
+        }
+
+        /* --- 容器與通用樣式 --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: scale(1.05);
+        }
+
+        /* --- 導覽列 (現代化設計) --- */
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            width: 100%;
+            background-color: var(--header-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: background-color 0.3s;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .dark-mode .site-header {
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 80px;
+        }
+
+        .logo {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .nav-links a {
+            color: var(--body-text);
+            font-size: 1.1em;
+            font-weight: 500;
+            position: relative;
+            padding: 10px 0;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        
+        .nav-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .theme-switch {
+            background: none;
+            border: none;
+            color: var(--body-text);
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            transition: background-color 0.3s;
+        }
+        
+        .theme-switch:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        .dark-mode .theme-switch:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .hamburger { display: none; }
+
+        /* --- 主視覺區 --- (方案一：全螢幕沉浸式) --- */
+        .hero-immersive {
+            width: 100%;
+            min-height: 60vh; /* 確保有足夠的高度 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 100px 20px;
+            box-sizing: border-box; /* 確保 padding 不會撐開寬度 */
+            background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1543351368-0414336065e9?q=80&w=2070&auto-format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed; /* 產生視差滾動效果 */
+        }
+
+        .hero-immersive h1 {
+            font-size: 3.8em;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+
+        .hero-immersive p {
+            font-size: 1.2em;
+            color: #f0f0f0;
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+
+
+        /* --- 內容區塊 --- */
+        .section {
+            padding: 80px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 50px;
+        }
+
+        /* --- 卡片網格 --- */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        
+        .dark-mode .card:hover {
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+
+        .card-image {
+            height: 220px;
+        }
+
+        .card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .card-content {
+            padding: 25px;
+        }
+
+        .card h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        
+        .card p {
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        /* --- 頁尾 --- */
+        .footer {
+            background-color: var(--card-bg);
+            color: var(--body-text);
+            padding: 50px 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 30px;
+        }
+        
+        .footer-about, .footer-contact {
+            flex: 1;
+            min-width: 280px;
+        }
+        
+        .footer h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        
+        .footer p, .footer ul li {
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        
+        .footer ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .footer a {
+            color: var(--body-text);
+            transition: color 0.3s;
+        }
+        
+        .footer a:hover {
+            color: var(--primary-color);
+        }
+
+        .copyright {
+            text-align: center;
+            padding: 20px 0;
+            border-top: 1px solid var(--border-color);
+            margin-top: 40px;
+            opacity: 0.7;
+        }
+
+        /* --- 響應式設計 --- */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hamburger { display: block; background: none; border: none; font-size: 2em; color: var(--body-text); cursor: pointer; }
+            .hero-immersive h1 { font-size: 2.5em; }
+            .hero-immersive p { font-size: 1em; }
+            .section-title { font-size: 2em; }
+        }
+
+    </style>
 </head>
+<body>
 
-<body class="customer-page">
-    <div id="page-overlay"></div>
-    <header>
-        <div class="header-content">
-            <button id="menu-toggle-btn" class="menu-toggle-btn" title="分類選單">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
-            <h1>產品展示</h1>
-
-            <!-- ▼▼▼ 【核心修改】將檢視和主題按鈕移到 Header 右側 ▼▼▼ -->
-            <div class="header-actions">
-                <button id="view-toggle-btn" class="btn view-toggle" title="切換檢視模式">
-                    <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                    <svg class="icon-list" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                    </svg>
-                </button>
-                <button id="theme-toggle" title="切換深色/淺色模式">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="icon-sun">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                    </svg>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="icon-moon">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                    </svg>
-                </button>
+    <!-- 導覽列 -->
+    <header class="site-header">
+        <div class="container navbar">
+            <div class="logo">光華工業</div>
+            <nav class="nav-links">
+                <a href="/catalog">產品系列</a>
+                <a href="#articles">文章</a>
+                <a href="#contact">聯絡我們</a>
+            </nav>
+            <div class="nav-actions">
+                <button class="theme-switch" id="theme-toggle" aria-label="切換深色模式">🌙</button>
+                <button class="hamburger">☰</button>
             </div>
-            <!-- ▲▲▲ 修改結束 ▲▲▲ -->
         </div>
     </header>
 
-    <div class="main-wrapper">
-        <aside id="category-sidebar">
-            <nav id="category-tree"></nav>
-        </aside>
-        <main>
+    <main>
+        <!-- 主視覺區塊 (方案一：全螢幕沉浸式) -->
+        <section class="hero-immersive">
             <div class="container">
-                <!-- ▼▼▼ 【核心修改】全新設計的 Toolbar ▼▼▼ -->
-                <div class="toolbar" id="toolbar">
-                    <!-- 手機版：搜尋按鈕 -->
-                    <button id="search-toggle-btn" class="btn btn-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                    </button>
-                    <!-- 電腦版/手機搜尋模式：搜尋框 -->
-                    <input type="search" id="search-box" placeholder="搜尋產品名稱...">
+                <h1>淬鍊五十載，專注每一次揮擊</h1>
+                <p>自創立至今，我們秉持「品質第一、價格合理、服務至上」的理念，持續精進，為世界各地的客戶提供最值得信賴的運動產品與服務。</p>
+                <a href="/catalog" class="btn">探索我們的產品</a>
+            </div>
+        </section>
 
-                    <!-- 手機版：分類按鈕 -->
-                    <button id="category-toggle-btn" class="btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="3" y1="12" x2="21" y2="12"></line>
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <line x1="3" y1="18" x2="21" y2="18"></line>
-                        </svg>
-                        <span>分類</span>
-                    </button>
-
-                    <!-- 排序按鈕與下拉選單 -->
-                    <div class="sort-container">
-                        <button id="sort-btn" class="btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M3 4h18M3 10h12M3 16h6" />
-                            </svg>
-                            <span id="sort-btn-text">依價格</span>
-                        </button>
-                        <div id="sort-options" class="sort-options hidden">
-                            <a href="#" data-value="price">依價格</a>
-                            <a href="#" data-value="name">依名稱</a>
-                            <a href="#" data-value="updatedAt">依更新時間</a>
-                            <a href="#" data-value="createdAt">依上架時間</a>
+        <!-- 產品系列區塊 -->
+        <section id="products" class="section">
+            <div class="container">
+                <h2 class="section-title">精選產品系列</h2>
+                <div class="card-grid">
+                    <!-- 產品一 -->
+                    <div class="card">
+                        <div class="card-image">
+                            <img src="https://images.unsplash.com/photo-1593341646782-e01614cff09d?q=80&w=1974&auto=format&fit=crop" alt="光華工業製造的專業乒乓球拍">
+                        </div>
+                        <div class="card-content">
+                            <h3>乒乓球拍系列</h3>
+                            <p>精密配重，掌握致勝關鍵。適合從入門到專業的各級選手。</p>
+                            <a href="#">查看更多</a>
                         </div>
                     </div>
-
-                    <!-- 升降序按鈕 -->
-                    <button id="order-toggle-btn" class="btn btn-icon" data-order="asc">
-                        <svg class="icon-asc" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 5l-7 7h14z" />
-                        </svg>
-                        <svg class="icon-desc" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 19l-7-7h14z" />
-                        </svg>
-                    </button>
-                </div>
-                <!-- ▲▲▲ 修改結束 ▲▲▲ -->
-
-                <div id="product-list" class="product-grid"></div>
-                <div id="pagination-controls" class="pagination-container">
-                    <!-- JS 會動態生成分頁按鈕於此 -->
+                    <!-- 產品二 -->
+                    <div class="card">
+                        <div class="card-image">
+                           <img src="https://images.unsplash.com/photo-1521587595359-65a12a55f0b1?q=80&w=2070&auto=format&fit=crop" alt="一支放置在羽球場上的羽球拍與羽球">
+                        </div>
+                        <div class="card-content">
+                            <h3>羽球拍系列</h3>
+                            <p>輕量化設計與強化結構，兼具速度與力量，定義場上優勢。</p>
+                            <a href="#">查看更多</a>
+                        </div>
+                    </div>
+                    <!-- 產品三 -->
+                    <div class="card">
+                         <div class="card-image">
+                           <img src="https://images.unsplash.com/photo-1599447382218-c5178d8a0110?q=80&w=2070&auto=format&fit=crop" alt="專業訓練用的木製棒球棒與跳繩">
+                        </div>
+                        <div class="card-content">
+                            <h3>跳繩與球棒</h3>
+                            <p>從日常訓練到專業競技，我們提供耐用且高效能的器材選擇。</p>
+                            <a href="#">查看更多</a>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </section>
 
-    <!-- 產品詳情 Modal (唯讀) -->
-    <div id="detail-modal-container" class="modal-container hidden">
-        <div class="modal-content">
-            <button id="modal-close-btn" class="close-btn" title="關閉">&times;</button>
-            <div id="product-detail-layout">
-                <div class="image-gallery-customer">
-                    <div class="slider-container">
-                        <div class="slider-wrapper" id="slider-wrapper"></div>
-                        <button id="prev-slide-btn" class="slider-nav-btn prev" title="上一張">&#10094;</button>
-                        <button id="next-slide-btn" class="slider-nav-btn next" title="下一張">&#10095;</button>
-                        <div class="slider-dots" id="slider-dots"></div>
+        <!-- 文章區塊 -->
+        <section id="articles" class="section">
+            <div class="container">
+                <h2 class="section-title">運動新知</h2>
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>如何挑選一支適合初學者的羽球拍？</h3>
+                            <p>從重量、平衡點到中管硬度，我們將帶您了解挑選第一支球拍的關鍵因素。</p>
+                            <a href="#">閱讀全文</a>
+                        </div>
                     </div>
-                    <div id="detail-thumbnail-list" class="thumbnail-list"></div>
+                    <div class="card">
+                        <div class="card-content">
+                            <h3>乒乓球拍膠皮保養全攻略</h3>
+                            <p>正確的清潔與保養，能有效延長膠皮壽命，維持最佳擊球表現。</p>
+                            <a href="#">閱讀全文</a>
+                        </div>
+                    </div>
                 </div>
-                <div id="product-detail-info"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 頁尾 -->
+    <footer id="contact" class="footer">
+        <div class="container">
+            <div class="footer-about">
+                <h3>關於光華工業</h3>
+                <p>創立逾五十年，專業製造各式運動用品，包括乒乓球拍、羽球拍、跳繩、木鋁球棒及多樣球類產品，內外銷業務遍及各地，是您最可靠的夥伴。</p>
+            </div>
+            <div class="footer-contact">
+                <h3>聯絡我們</h3>
+                <ul>
+                    <li>Tel : <a href="tel:+886-4-7772514">886-4-7772514</a></li>
+                    <li>FAX : 886-4-7782884</li>
+                    <li>Email : <a href="mailto:khp72514@ms19.hinet.net">khp72514@ms19.hinet.net</a></li>
+                    <li>地址: <a href="https://maps.app.goo.gl/cFRLgjZFL8UhC5VDA" target="_blank" rel="noopener noreferrer">505彰化縣鹿港鎮溝墘里溝墘巷80-1號</a></li>
+                </ul>
             </div>
         </div>
-    </div>
+        <div class="copyright">
+            <p>&copy; 2025 光華工業有限公司. All Rights Reserved.</p>
+        </div>
+    </footer>
 
-    <div id="image-viewer-modal" class="image-viewer hidden">
-        <img id="viewer-image" src="" alt="產品大圖預覽">
-    </div>
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
 
-    <script src="/script-customer.js"></script>
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            
+            if (body.classList.contains('dark-mode')) {
+                themeToggle.textContent = '☀️';
+            } else {
+                themeToggle.textContent = '🌙';
+            }
+        });
+    </script>
+
 </body>
-
 </html>

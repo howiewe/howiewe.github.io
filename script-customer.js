@@ -192,14 +192,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (category.parentId === null) tree.push(category);
             else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
         }
-        let html = `<ul><li><a href="/" class="active">所有產品</a></li></ul>`;
+        let html = `<ul><li><a href="/catalog" class="active">所有產品</a></li></ul>`;
         function createTreeHTML(nodes, depth = 0) {
             nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
             let subHtml = `<ul class="${depth >= 2 ? 'hidden' : ''}">`;
             for (const node of nodes) {
                 const hasChildren = node.children && node.children.length > 0;
                 const categoryUrlName = encodeURIComponent(node.name);
-                subHtml += `<li class="${hasChildren ? 'has-children' : ''}"><a href="/category/${node.id}/${categoryUrlName}"><span>${node.name}</span>`;
+                subHtml += `<li class="${hasChildren ? 'has-children' : ''}"><a href="/catalog/category/${node.id}/${categoryUrlName}"><span>${node.name}</span>`;
                 if (hasChildren) {
                     subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
                 }
@@ -215,51 +215,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleRouteChange() {
+        // 取得路徑，並移除我們關心的 /catalog 前綴，方便後續判斷
         const path = window.location.pathname;
-        const isProductPath = path.startsWith('/product/');
+        const catalogPath = path.startsWith('/catalog') ? path.substring('/catalog'.length) : path;
+
+        const isProductPath = catalogPath.startsWith('/product/');
+        const isCategoryPath = catalogPath.startsWith('/category/');
         const isModalOpen = !detailModal.classList.contains('hidden');
 
-        // 【核心修正邏輯】
-        // 1. 首先，處理 UI 狀態：如果彈窗是開著的，但我們的新網址不是產品頁，
-        //    那就代表使用者按了「返回」，我們必須無條件先關閉彈窗。
+        // 1. 處理彈窗關閉邏輯
         if (isModalOpen && !isProductPath) {
-            closeModal(false); // 傳入 false 代表不要去更動 history，因為瀏覽器已經處理好了
+            closeModal(false);
         }
 
-        // 2. 接著，處理資料載入邏輯
+        // 2. 處理資料載入
         if (isProductPath) {
-            // 如果目標是產品頁 (例如直接貼上網址，或按「下一頁」回到產品頁)
-            const pathParts = path.split('/');
-            const productId = parseInt(pathParts[2]);
-
-            if (!isNaN(productId)) {
-                // 只有在彈窗還沒開的情況下，才去抓資料並打開它
-                if (!isModalOpen) {
-                    productList.innerHTML = '<p class="empty-message">正在載入產品...</p>';
-                    const product = await fetchProductById(productId);
-                    if (product) {
-                        await fetchProducts(); // 載入背景列表
-                        openDetailModal(product); // 開啟彈窗
-                    } else {
-                        history.replaceState({}, '產品展示', '/');
-                        await fetchProducts();
-                    }
+            const productId = parseInt(catalogPath.split('/')[2]);
+            if (!isNaN(productId) && !isModalOpen) {
+                productList.innerHTML = '<p class="empty-message">正在載入產品...</p>';
+                const product = await fetchProductById(productId);
+                if (product) {
+                    await fetchProducts(); // 載入背景
+                    openDetailModal(product);
+                } else {
+                    // 如果找不到產品，導回目錄首頁
+                    history.replaceState({}, '產品展示', '/catalog');
+                    await fetchProducts();
                 }
             }
-        } else if (path.startsWith('/category/')) {
-            // 如果目標是分類頁
-            const pathParts = path.split('/');
-            const newCategoryId = parseInt(pathParts[2]) || 'all';
-
-            // 只有在分類改變時，才重新載入產品列表
+        } else if (isCategoryPath) {
+            const newCategoryId = parseInt(catalogPath.split('/')[2]) || 'all';
             if (state.categoryId !== newCategoryId) {
                 state.categoryId = newCategoryId;
                 state.currentPage = 1;
                 await fetchProducts();
             }
-        } else {
-            // 如果目標是首頁 ("所有產品")
-            // 只有在分類不是 'all' 或 產品列表是空的 (首次載入) 時，才重新載入
+        } else { // 包含 /catalog 或 / 根路徑
             if (state.categoryId !== 'all' || currentProducts.length === 0) {
                 state.categoryId = 'all';
                 state.currentPage = 1;
@@ -267,9 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 3. 最後，無論如何都同步一次側邊欄的 active 狀態
+        // 3. 同步側邊欄 UI
         updateSidebarActiveState();
     }
+
+
 
     /**
      * @description 更新側邊欄分類的選中 (active) 狀態，使其與目前 URL 匹配
@@ -278,15 +271,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const path = window.location.pathname;
         let activeId = 'all';
 
-        if (path.startsWith('/category/')) {
-            activeId = path.split('/')[2];
+        if (path.startsWith('/catalog/category/')) {
+            activeId = path.split('/')[3]; // /catalog/category/ID -> index 3
         }
 
         document.querySelectorAll('#category-tree a').forEach(a => {
             const linkPath = a.getAttribute('href');
             let linkId = 'all';
-            if (linkPath.startsWith('/category/')) {
-                linkId = linkPath.split('/')[2];
+
+            if (linkPath.startsWith('/catalog/category/')) {
+                linkId = linkPath.split('/')[3];
+            } else if (linkPath !== '/catalog') { // 如果不是目錄首頁，就不是 'all'
+                linkId = null; // 避免匹配到不相關的連結
             }
 
             if (String(activeId) === linkId) {
@@ -337,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- 第二步：【核心修改】更新瀏覽器 URL，但**不**重新整理頁面 ---
         const productUrlName = encodeURIComponent(product.name);
-        const newUrl = `/product/${product.id}/${productUrlName}`;
+        const newUrl = `/catalog/product/${product.id}/${productUrlName}`;
         const newTitle = `${product.name} - 產品展示`;
 
         // 只有在目前 URL 與目標 URL 不符時才執行 pushState，避免重複操作歷史紀錄
@@ -358,16 +354,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (barcodeElement) try { JsBarcode(barcodeElement, product.ean13, { format: "EAN13", displayValue: true, background: "#ffffff", lineColor: "#000000", height: 50, margin: 10 }); } catch (e) { console.error('JsBarcode error:', e); }
             }, 0);
         }
-
-        // 【新增】插入結構化資料以優化 SEO
-        const oldSchema = document.getElementById('product-schema');
-        if (oldSchema) oldSchema.remove();
-        const schema = { "@context": "https://schema.org/", "@type": "Product", "name": product.name, "sku": product.sku, "description": product.description, "image": imageUrls.map(item => item.url), "offers": { "@type": "Offer", "priceCurrency": "TWD", "price": product.price, "availability": "https://schema.org/InStock" } };
-        const script = document.createElement('script');
-        script.id = 'product-schema';
-        script.type = 'application/ld+json';
-        script.textContent = JSON.stringify(schema);
-        document.head.appendChild(script);
     }
 
     /**
@@ -379,9 +365,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('modal-open');
 
         // 【核心修改】如果需要，將 URL 推回上一層 (這裡簡化為推回首頁)
-        if (updateHistory && window.location.pathname.startsWith('/product/')) {
+        if (updateHistory && window.location.pathname.startsWith('/catalog/product/')) {
             const newTitle = '光華工業有限公司';
-            history.pushState({}, newTitle, '/');
+            history.pushState({}, newTitle, '/catalog'); // <--- 改成 /catalog
             document.title = newTitle;
         }
     }

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光華工業有限公司</title>
+    <script src="/vendor/js/JsBarcode.all.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <meta name="google-site-verification" content="_93DRdDmsBdOi1rX34ZPWmnudQYLvH0QiSyvHcD2lKQ" />
+</head>
+
+<body class="customer-page">
+    <div id="page-overlay"></div>
+    <header>
+        <div class="header-content">
+            <button id="menu-toggle-btn" class="menu-toggle-btn" title="分類選單">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <h1>產品展示</h1>
+
+            <!-- ▼▼▼ 【核心修改】將檢視和主題按鈕移到 Header 右側 ▼▼▼ -->
+            <div class="header-actions">
+                <button id="view-toggle-btn" class="btn view-toggle" title="切換檢視模式">
+                    <svg class="icon-grid" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <svg class="icon-list" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                </button>
+                <button id="theme-toggle" title="切換深色/淺色模式">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="icon-sun">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="icon-moon">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- ▲▲▲ 修改結束 ▲▲▲ -->
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <aside id="category-sidebar">
+            <nav id="category-tree"></nav>
+        </aside>
+        <main>
+            <div class="container">
+                <!-- ▼▼▼ 【核心修改】全新設計的 Toolbar ▼▼▼ -->
+                <div class="toolbar" id="toolbar">
+                    <!-- 手機版：搜尋按鈕 -->
+                    <button id="search-toggle-btn" class="btn btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </button>
+                    <!-- 電腦版/手機搜尋模式：搜尋框 -->
+                    <input type="search" id="search-box" placeholder="搜尋產品名稱...">
+
+                    <!-- 手機版：分類按鈕 -->
+                    <button id="category-toggle-btn" class="btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                        <span>分類</span>
+                    </button>
+
+                    <!-- 排序按鈕與下拉選單 -->
+                    <div class="sort-container">
+                        <button id="sort-btn" class="btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M3 4h18M3 10h12M3 16h6" />
+                            </svg>
+                            <span id="sort-btn-text">依價格</span>
+                        </button>
+                        <div id="sort-options" class="sort-options hidden">
+                            <a href="#" data-value="price">依價格</a>
+                            <a href="#" data-value="name">依名稱</a>
+                            <a href="#" data-value="updatedAt">依更新時間</a>
+                            <a href="#" data-value="createdAt">依上架時間</a>
+                        </div>
+                    </div>
+
+                    <!-- 升降序按鈕 -->
+                    <button id="order-toggle-btn" class="btn btn-icon" data-order="asc">
+                        <svg class="icon-asc" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5l-7 7h14z" />
+                        </svg>
+                        <svg class="icon-desc" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 19l-7-7h14z" />
+                        </svg>
+                    </button>
+                </div>
+                <!-- ▲▲▲ 修改結束 ▲▲▲ -->
+
+                <div id="product-list" class="product-grid"></div>
+                <div id="pagination-controls" class="pagination-container">
+                    <!-- JS 會動態生成分頁按鈕於此 -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 產品詳情 Modal (唯讀) -->
+    <div id="detail-modal-container" class="modal-container hidden">
+        <div class="modal-content">
+            <button id="modal-close-btn" class="close-btn" title="關閉">&times;</button>
+            <div id="product-detail-layout">
+                <div class="image-gallery-customer">
+                    <div class="slider-container">
+                        <div class="slider-wrapper" id="slider-wrapper"></div>
+                        <button id="prev-slide-btn" class="slider-nav-btn prev" title="上一張">&#10094;</button>
+                        <button id="next-slide-btn" class="slider-nav-btn next" title="下一張">&#10095;</button>
+                        <div class="slider-dots" id="slider-dots"></div>
+                    </div>
+                    <div id="detail-thumbnail-list" class="thumbnail-list"></div>
+                </div>
+                <div id="product-detail-info"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="image-viewer-modal" class="image-viewer hidden">
+        <img id="viewer-image" src="" alt="產品大圖預覽">
+    </div>
+
+    <script src="/script-customer.js"></script>
+</body>
+
+</html>
