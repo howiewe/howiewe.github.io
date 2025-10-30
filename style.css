@@ -1768,6 +1768,7 @@ body.lightbox-open {
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        width: 100%; /* 【核心修正】強制工具列本身撐滿整個容器寬度 */
     }
 
     #search-toggle-btn,
@@ -1785,25 +1786,20 @@ body.lightbox-open {
 
     /* Toolbar: Customer Page Specific Layout */
     .customer-page .toolbar #search-box {
-        /* 【核心修正】這條規則會讓搜尋框自動填滿左側到右側按鈕之間的空間 */
-        flex-grow: 1;
-
-        /* 保留最大寬度限制，避免在超大螢幕上過度拉伸 */
-        max-width: 400px;
+        /* 這條規則現在可以正常運作，因為父容器有剩餘空間了 */
+        flex-grow: 1; 
+        
+        /* 保留最大寬度限制 */
+        max-width: 400px; 
     }
-
-    /* 【核心修正】我們不再需要 margin-left: auto 了，請刪除或確保沒有這條規則 */
-    /* .customer-page .toolbar .sort-container {
-        margin-left: auto;  <-- 移除此行
-    } */
-
 
     /* Toolbar: Admin Page Specific Layout (Grid) - 保持不變 */
     .admin-page .toolbar {
         display: grid;
         grid-template-columns: minmax(200px, 1fr) auto auto auto;
+        width: auto; /* 管理頁面使用 Grid，不需要 100% 寬度 */
     }
-
+    
     .admin-page .toolbar .toolbar-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1814,6 +1810,7 @@ body.lightbox-open {
     .admin-page #search-box {
         max-width: none;
     }
+
 
 
     /* Admin Home Button */
