@@ -1763,9 +1763,11 @@ body.lightbox-open {
         width: 60%;
     }
 
-    /* Toolbar: General */
+     /* Toolbar: General Base Styles */
     .toolbar {
-        justify-content: space-between;
+        display: flex; /* 確保 display: flex 存在 */
+        align-items: center; /* 垂直置中 */
+        gap: 0.75rem; /* 元素間的基礎間距 */
     }
 
     #search-toggle-btn,
@@ -1775,21 +1777,31 @@ body.lightbox-open {
 
     #search-box {
         display: block;
-        flex-grow: 1;
-        max-width: 400px;
     }
 
     .sort-container {
         flex-shrink: 0;
     }
 
-    /* Toolbar: Admin Specific */
+    /* Toolbar: Customer Page Specific Layout */
+    .customer-page .toolbar #search-box {
+        flex-grow: 1;
+        max-width: 400px;
+    }
+
+    .customer-page .toolbar .sort-container {
+        /* 【核心修正】將第一個按鈕的左外距設為 auto */
+        /* 這會將排序按鈕和它右邊的所有兄弟元素一起推到最右邊 */
+        margin-left: auto;
+    }
+
+    /* Toolbar: Admin Page Specific Layout (Grid) */
     .admin-page .toolbar {
         display: grid;
         grid-template-columns: minmax(200px, 1fr) auto auto auto;
-        gap: 0.75rem;
+        justify-content: initial; /* 覆蓋舊的 space-between */
     }
-
+    
     .admin-page .toolbar .toolbar-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1800,6 +1812,7 @@ body.lightbox-open {
     .admin-page #search-box {
         max-width: none;
     }
+
 
     /* Admin Home Button */
     #home-btn-mobile {
