@@ -1763,11 +1763,11 @@ body.lightbox-open {
         width: 60%;
     }
 
-     /* Toolbar: General Base Styles */
+    /* Toolbar: General Base Styles */
     .toolbar {
-        display: flex; /* 確保 display: flex 存在 */
-        align-items: center; /* 垂直置中 */
-        gap: 0.75rem; /* 元素間的基礎間距 */
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
     }
 
     #search-toggle-btn,
@@ -1785,23 +1785,25 @@ body.lightbox-open {
 
     /* Toolbar: Customer Page Specific Layout */
     .customer-page .toolbar #search-box {
+        /* 【核心修正】這條規則會讓搜尋框自動填滿左側到右側按鈕之間的空間 */
         flex-grow: 1;
+
+        /* 保留最大寬度限制，避免在超大螢幕上過度拉伸 */
         max-width: 400px;
     }
 
-    .customer-page .toolbar .sort-container {
-        /* 【核心修正】將第一個按鈕的左外距設為 auto */
-        /* 這會將排序按鈕和它右邊的所有兄弟元素一起推到最右邊 */
-        margin-left: auto;
-    }
+    /* 【核心修正】我們不再需要 margin-left: auto 了，請刪除或確保沒有這條規則 */
+    /* .customer-page .toolbar .sort-container {
+        margin-left: auto;  <-- 移除此行
+    } */
 
-    /* Toolbar: Admin Page Specific Layout (Grid) */
+
+    /* Toolbar: Admin Page Specific Layout (Grid) - 保持不變 */
     .admin-page .toolbar {
         display: grid;
         grid-template-columns: minmax(200px, 1fr) auto auto auto;
-        justify-content: initial; /* 覆蓋舊的 space-between */
     }
-    
+
     .admin-page .toolbar .toolbar-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -2057,11 +2059,12 @@ body.lightbox-open {
     overflow: hidden;
     break-inside: avoid;
     /* 【核心】將整個產品框設為定位的父容器 */
-    position: relative; 
+    position: relative;
 }
 
 .product-item-print-img {
-    width: 160px;  /* 恢復成之前的大小，您可以自行調整 */
+    width: 160px;
+    /* 恢復成之前的大小，您可以自行調整 */
     height: 160px;
     flex-shrink: 0;
 }
@@ -2076,28 +2079,33 @@ body.lightbox-open {
     flex-grow: 1;
     overflow: hidden;
     /* ▼▼▼ 【核心修正】在資訊區塊底部增加內邊距，為價格標籤騰出空間 ▼▼▼ */
-    padding-bottom: 30px; /* 這個值可以根據您的價格標籤高度微調 */
+    padding-bottom: 30px;
+    /* 這個值可以根據您的價格標籤高度微調 */
 }
 
 .product-item-print-info .product-name {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
     overflow: hidden;
-    white-space: nowrap; 
+    white-space: nowrap;
 }
 
 /* ▼▼▼ 【核心】使用正確的選擇器來定位價格 ▼▼▼ */
 .product-item-print .product-price {
     position: absolute;
-    bottom: 10px; /* 對齊父容器的 10px padding */
-    right: 10px;  /* 對齊父容器的 10px padding */
+    bottom: 10px;
+    /* 對齊父容器的 10px padding */
+    right: 10px;
+    /* 對齊父容器的 10px padding */
     margin: 0;
     font-size: 1rem;
     font-weight: bold;
     color: var(--text-primary);
-    background-color: #ffffff; /* 確保背景不是透明的 */
+    background-color: #ffffff;
+    /* 確保背景不是透明的 */
     padding: 4px 8px;
-    border-radius: var(--border-radius-sm); /* 可選：加個小圓角更好看 */
+    border-radius: var(--border-radius-sm);
+    /* 可選：加個小圓角更好看 */
 }
 
 .product-barcode-svg {
@@ -2114,20 +2122,28 @@ body.lightbox-open {
 }
 
 .product-sku {
-    display: inline-block; /* 核心：讓元素自適應內容寬度，又能設定內外距 */
-    border: 1px solid var(--border-color); /* 淺灰色邊框 */
-    padding: 2px 6px;      /* 上下 2px，左右 6px 的內距 */
-    font-size: 0.75rem;    /* 較小的字體 (約 12px) */
-    color: var(--text-secondary); /* 次要文字顏色 */
-    border-radius: var(--border-radius-sm); /* 小圓角，與整體風格一致 */
-    margin-bottom: 0.5rem; /* 與下方的產品名稱保持間距 */
+    display: inline-block;
+    /* 核心：讓元素自適應內容寬度，又能設定內外距 */
+    border: 1px solid var(--border-color);
+    /* 淺灰色邊框 */
+    padding: 2px 6px;
+    /* 上下 2px，左右 6px 的內距 */
+    font-size: 0.75rem;
+    /* 較小的字體 (約 12px) */
+    color: var(--text-secondary);
+    /* 次要文字顏色 */
+    border-radius: var(--border-radius-sm);
+    /* 小圓角，與整體風格一致 */
+    margin-bottom: 0.5rem;
+    /* 與下方的產品名稱保持間距 */
 }
 
 .product-item-print-info .product-name {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
     overflow: hidden;
-    white-space: nowrap; /* 確保 JS 能偵測寬度 */
+    white-space: nowrap;
+    /* 確保 JS 能偵測寬度 */
 }
 
 /* 瀏覽器列印優化 */
