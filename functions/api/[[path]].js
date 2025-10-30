@@ -184,8 +184,10 @@ async function getPaginatedProducts(db, params) {
         bindings.push(...categoryIds);
     }
     if (searchTerm) {
+        // 條件從 2 個增加到 3 個
         whereClauses.push(`(name LIKE ? OR sku LIKE ? OR ean13 LIKE ?)`);
-        bindings.push(`%${searchTerm}%`, `%${searchTerm}%`);
+        // 綁定的參數也必須從 2 個增加到 3 個
+        bindings.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
     const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
     const countQueryString = `SELECT COUNT(*) as total FROM products ${whereString}`;
