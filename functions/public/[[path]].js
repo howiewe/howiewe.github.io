@@ -86,8 +86,8 @@ async function getPaginatedProducts(db, params) {
         bindings.push(...categoryIds);
     }
     if (searchTerm) {
-        whereClauses.push(`(name LIKE ? OR sku LIKE ?)`);
-        bindings.push(`%${searchTerm}%`, `%${searchTerm}%`);
+        whereClauses.push(`(name LIKE ? OR sku LIKE ? OR ean13 LIKE ?)`);
+        bindings.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
     }
     const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
     const countQueryString = `SELECT COUNT(*) as total FROM products ${whereString}`;
