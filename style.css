@@ -1788,9 +1788,6 @@ body.lightbox-open {
     .customer-page .toolbar #search-box {
         /* 這條規則現在可以正常運作，因為父容器有剩餘空間了 */
         flex-grow: 1; 
-        
-        /* 保留最大寬度限制 */
-        max-width: 400px; 
     }
 
     /* Toolbar: Admin Page Specific Layout (Grid) - 保持不變 */
