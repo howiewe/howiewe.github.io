@@ -133,7 +133,7 @@ export async function onRequest(context) {
                         }
                         metaData = {
                             title: `${category.name} | 光華工業有限公司`,
-                            description: `探索我們在「${category.name}」分類下的所有產品。`,
+                            description: category.description || `探索我們在「${category.name}」分類下的所有產品。`,
                             image: categoryImage,
                             url: url.href
                         };
