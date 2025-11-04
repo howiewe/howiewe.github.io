@@ -2091,3 +2091,19 @@ body.lightbox-open {
         height: 100%;
     }
 }
+/* --- NEW: Category Description (SEO Content) --- */
+.category-description-wrapper {
+    margin-bottom: 2rem; /* 在描述區塊和下方的工具列之間增加間距 */
+    padding: 1.5rem;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+}
+
+/* 如果沒有內容 (由 JS 清空)，則不顯示此區塊，避免佔用空間 */
+.category-description-wrapper:empty {
+    display: none;
+}

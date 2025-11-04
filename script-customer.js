@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sliderDots = document.getElementById('slider-dots');
     const imageViewerModal = document.getElementById('image-viewer-modal');
     const viewerImage = document.getElementById('viewer-image');
+    const categoryDescriptionContainer = document.getElementById('category-description-container');
 
     // --- 前端狀態管理 (用來記錄網站當前的狀態) ---
     let allCategories = []; // 儲存所有分類資料
@@ -256,6 +257,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 state.currentPage = 1;
                 await fetchProducts();
             }
+        }
+
+        if (categoryDescriptionContainer) {
+            let description = '';
+            if (state.categoryId !== 'all') {
+                const currentCategory = allCategories.find(c => c.id === state.categoryId);
+                if (currentCategory && currentCategory.description) {
+                    // 將描述文本中的換行符轉換為 <br> 標籤
+                    description = `<p>${currentCategory.description.replace(/\n/g, '<br>')}</p>`;
+                }
+            }
+            categoryDescriptionContainer.innerHTML = description;
         }
 
         // 3. 同步側邊欄 UI
