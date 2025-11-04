@@ -46,18 +46,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const manageCategoriesBtn = document.getElementById('manage-categories-btn');
     const categoryModal = document.getElementById('category-modal-container');
     const categoryModalCloseBtn = document.getElementById('category-modal-close-btn');
-    const categoryEditModal = document.getElementById('category-edit-modal');
-    const categoryEditModalTitle = document.getElementById('category-edit-modal-title');
-    const categoryEditForm = document.getElementById('category-edit-form');
-    const categoryEditIdInput = document.getElementById('category-edit-id');
-    const categoryEditNameInput = document.getElementById('category-edit-name');
-    const categoryEditDescriptionInput = document.getElementById('category-edit-description');
-    const categoryEditCloseBtn = document.getElementById('category-edit-close-btn');
     const categoryManagerHeader = document.getElementById('category-manager-header');
     const categoryManagerTitle = document.getElementById('category-manager-title');
     const categoryManagerList = document.getElementById('category-manager-list');
     const categoryBackBtn = document.getElementById('category-back-btn');
     const categoryAddBtn = document.getElementById('category-add-btn');
+
+    // ▼▼▼ 【重構後】宣告視圖容器和編輯表單元素 ▼▼▼
+    const categoryManagerView = document.getElementById('category-manager-view');
+    const categoryEditView = document.getElementById('category-edit-view');
+    const categoryEditForm = document.getElementById('category-edit-form');
+    const categoryEditIdInput = document.getElementById('category-edit-id');
+    const categoryEditNameInput = document.getElementById('category-edit-name');
+    const categoryEditDescriptionInput = document.getElementById('category-edit-description');
 
     // --- Global State ---
     let allCategories = [];
@@ -238,40 +239,58 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildCategoryTree() { if (!categoryTreeContainer) return; const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li></ul>`; function createTreeHTML(nodes, depth = 0) { nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); let subHtml = `<ul class="${depth >= 2 ? 'hidden' : ''}">`; for (const node of nodes) { const hasChildren = node.children && node.children.length > 0; subHtml += `<li class="${hasChildren ? 'has-children' : ''}">`; subHtml += `<a href="#" data-id="${node.id}">`; subHtml += `<span>${node.name}</span>`; if (hasChildren) { subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`; } subHtml += `</a>`; if (hasChildren) { subHtml += createTreeHTML(node.children, depth + 1); } subHtml += '</li>'; } return subHtml + '</ul>'; } categoryTreeContainer.innerHTML = html + createTreeHTML(tree); }
     function populateCategorySelect() { if (!categorySelect) return; const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; allCategories.forEach(c => { if (c.parentId === null) { tree.push(categoryMap.get(c.id)); } else if (categoryMap.has(c.parentId)) { categoryMap.get(c.parentId).children.push(categoryMap.get(c.id)); } }); tree.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); let selectOptions = '<option value="" disabled selected>請選擇分類</option>'; function createSelectOptions(nodes, depth = 0) { nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); nodes.forEach(node => { selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; if (node.children.length > 0) { createSelectOptions(node.children, depth + 1); } }); } createSelectOptions(tree); categorySelect.innerHTML = selectOptions; }
     function renderCategoryManager(parentId = null, saveHistory = true) { if (saveHistory) { categoryManagerHistory.push(currentCategoryManagerParentId); } currentCategoryManagerParentId = parentId; if (parentId === null) { categoryManagerTitle.textContent = '分類管理'; categoryBackBtn.classList.add('hidden'); } else { const parent = allCategories.find(c => c.id === parentId); categoryManagerTitle.textContent = parent ? parent.name : '子分類'; categoryBackBtn.classList.remove('hidden'); } const categoriesToShow = allCategories.filter(c => c.parentId === parentId).sort((a, b) => a.sortOrder - b.sortOrder); categoryManagerList.innerHTML = ''; if (categoriesToShow.length === 0) { categoryManagerList.innerHTML = '<p class="empty-message">此層級下沒有分類</p>'; } else { categoriesToShow.forEach(cat => { const item = document.createElement('div'); item.className = 'cm-item'; item.dataset.id = cat.id; item.innerHTML = `<span class="cm-drag-handle" title="拖曳排序"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></span><span class="cm-name">${cat.name}</span><div class="cm-actions"><button data-id="${cat.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button><button data-id="${cat.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button></div>`; categoryManagerList.appendChild(item); }); } if (categorySortableInstance) categorySortableInstance.destroy(); categorySortableInstance = new Sortable(categoryManagerList, { handle: '.cm-drag-handle', animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', onEnd: async (evt) => { const items = Array.from(evt.to.children); const reorderData = items.map((item, index) => ({ id: parseInt(item.dataset.id), sortOrder: index, parentId: currentCategoryManagerParentId })); await reorderCategories(reorderData); } }); }
-    function openCategoryEditModal(category = {}) {
-        categoryEditForm.reset(); // 每次打開前都重置表單
+    // ▼▼▼ 【全新】視圖切換和表單處理邏輯 ▼▼▼
+
+    /**
+     * @description 切換到分類編輯/新增視圖。
+     * @param {object} [category={}] - 可選的分類物件。提供則為編輯模式。
+     */
+    function switchToEditView(category = {}) {
+        categoryEditForm.reset();
 
         if (category.id) {
             // --- 編輯模式 ---
-            categoryEditModalTitle.textContent = '編輯分類';
+            categoryManagerTitle.textContent = '編輯分類';
             categoryEditIdInput.value = category.id;
             categoryEditNameInput.value = category.name || '';
             categoryEditDescriptionInput.value = category.description || '';
         } else {
             // --- 新增模式 ---
-            categoryEditModalTitle.textContent = '新增分類';
-            categoryEditIdInput.value = ''; // 確保 ID 為空
+            categoryManagerTitle.textContent = '新增分類';
+            categoryEditIdInput.value = '';
         }
 
-        openModal(categoryEditModal); // 顯示 Modal
+        // 更新 Header 按鈕的可見性
+        categoryBackBtn.classList.remove('hidden'); // 編輯時，「返回」按鈕總是可見
+        categoryAddBtn.classList.add('hidden'); // 隱藏「新增分類」按鈕
+
+        // 切換視圖
+        categoryManagerView.classList.add('hidden');
+        categoryEditView.classList.remove('hidden');
     }
 
-    // 【重構後】的新增分類函式
-    async function addCategory() {
-        // 只需呼叫 openCategoryEditModal，不帶任何參數
-        openCategoryEditModal();
-    }
-
-    // 【重構後】的編輯分類函式
-    async function editCategory(id) {
-        const category = allCategories.find(c => c.id === id);
-        if (category) {
-            // 找到分類資料後，帶入並呼叫 openCategoryEditModal
-            openCategoryEditModal(category);
+    /**
+     * @description 切換回分類列表視圖。
+     */
+    function switchToManagerView() {
+        // 根據當前層級決定標題和「返回」按鈕狀態
+        const parentId = currentCategoryManagerParentId;
+        if (parentId === null) {
+            categoryManagerTitle.textContent = '分類管理';
+            categoryBackBtn.classList.add('hidden');
         } else {
-            showToast('找不到該分類的資料', 'error');
+            const parent = allCategories.find(c => c.id === parentId);
+            categoryManagerTitle.textContent = parent ? parent.name : '子分類';
+            categoryBackBtn.classList.remove('hidden');
         }
+
+        categoryAddBtn.classList.remove('hidden'); // 恢復「新增分類」按鈕
+
+        // 切換視圖
+        categoryEditView.classList.add('hidden');
+        categoryManagerView.classList.remove('hidden');
     }
+    // ▲▲▲ 全新邏輯結束 ▲▲▲
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
     function initSortable() {
@@ -527,28 +546,67 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cropperModalCloseBtn) cropperModalCloseBtn.addEventListener('click', hideCropperModal);
         if (cropperModal) cropperModal.addEventListener('click', (e) => { if (e.target === cropperModal) hideCropperModal(); });
         if (ean13Input) ean13Input.addEventListener('input', updateBarcodePreview);
-        if (manageCategoriesBtn) manageCategoriesBtn.addEventListener('click', () => { categoryManagerHistory = []; renderCategoryManager(null); openModal(categoryModal); });
-        if (categoryModalCloseBtn) categoryModalCloseBtn.addEventListener('click', () => closeModal(categoryModal));
-        if (categoryBackBtn) categoryBackBtn.addEventListener('click', () => { const lastParentId = categoryManagerHistory.pop(); renderCategoryManager(lastParentId, false); });
-        if (categoryAddBtn) categoryAddBtn.addEventListener('click', addCategory);
-        if (categoryManagerList) categoryManagerList.addEventListener('click', (e) => { const target = e.target; const catItem = target.closest('.cm-item'); if (!catItem) return; const id = parseInt(catItem.dataset.id); if (target.classList.contains('cm-name')) { renderCategoryManager(id); } else if (target.closest('.edit-cat-btn')) { editCategory(id); } else if (target.closest('.delete-cat-btn')) { if (confirm('您確定要刪除這個分類嗎？相關產品將變為「未分類」。')) removeCategory(id); } });
-        if (categoryEditModal) {
-            // 點擊 Modal 背景時關閉
-            categoryEditModal.addEventListener('click', (e) => {
-                if (e.target === categoryEditModal) closeModal(categoryEditModal);
+        if (manageCategoriesBtn) {
+            manageCategoriesBtn.addEventListener('click', () => {
+                categoryManagerHistory = [];
+                renderCategoryManager(null); // 準備列表內容
+                switchToManagerView();       // 確保顯示的是列表視圖
+                openModal(categoryModal);    // 打開 Modal
             });
         }
 
-        if (categoryEditCloseBtn) {
-            // 點擊關閉按鈕時關閉
-            categoryEditCloseBtn.addEventListener('click', () => closeModal(categoryEditModal));
+        if (categoryModalCloseBtn) {
+            categoryModalCloseBtn.addEventListener('click', () => closeModal(categoryModal));
+        }
+
+        if (categoryBackBtn) {
+            categoryBackBtn.addEventListener('click', () => {
+                // 智慧判斷「返回」按鈕的行為
+                if (!categoryEditView.classList.contains('hidden')) {
+                    // 如果當前是編輯視圖，則返回列表視圖
+                    switchToManagerView();
+                } else {
+                    // 否則，執行原有的返回上一層級的邏輯
+                    const lastParentId = categoryManagerHistory.pop();
+                    renderCategoryManager(lastParentId, false);
+                    switchToManagerView(); // 確保切換回列表
+                }
+            });
+        }
+
+        if (categoryAddBtn) {
+            // 「新增分類」按鈕現在呼叫視圖切換函式
+            categoryAddBtn.addEventListener('click', () => switchToEditView());
+        }
+
+        if (categoryManagerList) {
+            // 列表的點擊事件
+            categoryManagerList.addEventListener('click', (e) => {
+                const target = e.target;
+                const catItem = target.closest('.cm-item');
+                if (!catItem) return;
+                const id = parseInt(catItem.dataset.id);
+
+                if (target.classList.contains('cm-name')) {
+                    // 點擊名稱：進入子分類
+                    renderCategoryManager(id);
+                } else if (target.closest('.edit-cat-btn')) {
+                    // 點擊編輯按鈕：切換到編輯視圖
+                    const category = allCategories.find(c => c.id === id);
+                    if (category) {
+                        switchToEditView(category);
+                    }
+                } else if (target.closest('.delete-cat-btn')) {
+                    // 刪除按鈕邏輯不變
+                    if (confirm('您確定要刪除這個分類嗎？相關產品將變為「未分類」。')) removeCategory(id);
+                }
+            });
         }
 
         if (categoryEditForm) {
-            // 監聽表單提交事件
+            // 編輯表單的提交事件
             categoryEditForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-
                 const name = categoryEditNameInput.value.trim();
                 if (!name) {
                     alert('分類名稱不能為空！');
@@ -559,12 +617,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     id: categoryEditIdInput.value ? parseInt(categoryEditIdInput.value) : null,
                     name: name,
                     description: categoryEditDescriptionInput.value.trim(),
-                    parentId: currentCategoryManagerParentId // ★ 核心：帶上當前所在層級的 parentId
+                    parentId: currentCategoryManagerParentId
                 };
 
-                await saveCategory(categoryData);
+                await saveCategory(categoryData); // 儲存資料
 
-                closeModal(categoryEditModal); // 儲存後關閉 Modal
+                // 儲存成功後，刷新列表並切換回列表視圖
+                renderCategoryManager(currentCategoryManagerParentId, false);
+                switchToManagerView();
             });
         }
     }

@@ -263,38 +263,9 @@
         </div>
     </div>
 
-    <!-- 分類管理 Modal (保持不變) -->
-    <div id="category-edit-modal" class="modal-container hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="category-edit-modal-title">編輯分類</h2>
-                <button id="category-edit-close-btn" class="close-btn" title="關閉">&times;</button>
-            </div>
-            <form id="category-edit-form" novalidate>
-                <div class="modal-body" style="flex-direction: column; overflow-y: auto;">
-                    <input type="hidden" id="category-edit-id">
-
-                    <div class="form-group">
-                        <label for="category-edit-name">分類名稱</label>
-                        <input type="text" id="category-edit-name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="category-edit-description">分類描述 (用於 SEO)</label>
-                        <textarea id="category-edit-description" rows="6"
-                            placeholder="為這個分類撰寫一段有吸引力的介紹，有助於搜尋引擎收錄..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="button-group">
-                        <button type="submit" class="btn btn-primary">儲存變更</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
     <div id="category-modal-container" class="modal-container category-manager hidden">
         <div class="modal-content">
+            <!-- 1. 統一的 Modal Header -->
             <div id="category-manager-header" class="category-manager-header">
                 <button id="category-back-btn" class="btn btn-secondary hidden">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -304,10 +275,46 @@
                     返回
                 </button>
                 <h2 id="category-manager-title">分類管理</h2>
+                <!-- "新增分類" 按鈕現在只在列表頁顯示，由 JS 控制 -->
                 <button id="category-add-btn" class="btn btn-primary">新增分類</button>
                 <button id="category-modal-close-btn" class="close-btn" title="關閉">&times;</button>
             </div>
-            <div id="category-manager-list" class="category-manager-list"></div>
+
+            <!-- 2. 視圖容器 (核心) -->
+            <div class="category-views-container">
+
+                <!-- 視圖 A: 分類列表 -->
+                <div id="category-manager-view">
+                    <div id="category-manager-list" class="category-manager-list">
+                        <!-- JS 會動態生成分類列表於此 -->
+                    </div>
+                </div>
+
+                <!-- 視圖 B: 編輯/新增表單 -->
+                <div id="category-edit-view" class="hidden">
+                    <form id="category-edit-form" novalidate>
+                        <div class="modal-body" style="flex-direction: column; padding: 1.5rem;">
+                            <input type="hidden" id="category-edit-id">
+
+                            <div class="form-group">
+                                <label for="category-edit-name">分類名稱</label>
+                                <input type="text" id="category-edit-name" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="category-edit-description">分類描述 (用於 SEO)</label>
+                                <textarea id="category-edit-description" rows="8"
+                                    placeholder="為這個分類撰寫一段有吸引力的介紹，有助於搜尋引擎收錄..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="padding: 0 1.5rem 1.5rem 1.5rem;">
+                            <div class="button-group">
+                                <button type="submit" class="btn btn-primary">儲存變更</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 

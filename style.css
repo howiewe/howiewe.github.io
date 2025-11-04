@@ -1276,7 +1276,7 @@ body.lightbox-open {
     z-index: 10;
 }
 
-/* Category Management Modal */
+/* Category Management Modal (重構後) */
 .modal-container.category-manager .modal-content {
     width: 95%;
     max-width: 720px;
@@ -1319,12 +1319,49 @@ body.lightbox-open {
     order: 10;
 }
 
-.category-manager-list {
+/* --- ▼▼▼ 【新增】視圖切換的核心樣式 ▼▼▼ --- */
+.category-views-container {
     flex-grow: 1;
+    position: relative; /* 讓子視圖可以絕對定位 */
+    overflow: hidden;
+}
+
+#category-manager-view,
+#category-edit-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     overflow-y: auto;
+    background-color: var(--surface-color);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    overscroll-behavior: contain; /* 防止滾動穿透 */
+}
+
+/* 預設的進入/離開動畫 */
+#category-edit-view {
+    opacity: 0;
+    transform: translateX(20px);
+    pointer-events: none; /* 隱藏時不可點擊 */
+}
+#category-edit-view:not(.hidden) {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+#category-manager-view.hidden {
+    opacity: 0;
+    transform: translateX(-20px);
+    pointer-events: none;
+}
+/* --- ▲▲▲ 新增結束 ▲▲▲ --- */
+
+.category-manager-list {
     padding: 1rem;
 }
 
+/* 以下是列表項目的樣式，保持不變 */
 .cm-item {
     display: flex;
     align-items: center;
@@ -1336,131 +1373,23 @@ body.lightbox-open {
     box-shadow: var(--shadow-sm);
     transition: background-color 0.2s, box-shadow 0.2s;
 }
+.cm-item:hover { background-color: var(--bg-color); }
+.cm-drag-handle { cursor: grab; color: var(--text-secondary); margin-right: 1rem; opacity: 0.5; transition: opacity 0.2s; }
+.cm-item:hover .cm-drag-handle { opacity: 1; }
+.cm-name { flex-grow: 1; font-weight: 500; cursor: pointer; }
+.cm-actions { display: flex; gap: 0.5rem; }
+.cm-actions .action-btn { opacity: 0.5; transition: opacity 0.2s; }
+.cm-item:hover .cm-actions .action-btn { opacity: 1; }
+.cm-item.sortable-ghost { background-color: color-mix(in srgb, var(--primary-color) 20%, transparent); border-style: dashed; }
+.cm-item.sortable-chosen { cursor: grabbing; box-shadow: var(--shadow-lg); }
 
-.cm-item:hover {
-    background-color: var(--bg-color);
+/* 編輯表單的內距，由 inline style 改為 class 控制 */
+#category-edit-view .modal-body {
+    padding: 1.5rem;
 }
-
-.cm-drag-handle {
-    cursor: grab;
-    color: var(--text-secondary);
-    margin-right: 1rem;
-    opacity: 0.5;
-    transition: opacity 0.2s;
-}
-
-.cm-item:hover .cm-drag-handle {
-    opacity: 1;
-}
-
-.cm-name {
-    flex-grow: 1;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.cm-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.cm-actions .action-btn {
-    opacity: 0.5;
-    transition: opacity 0.2s;
-}
-
-.cm-item:hover .cm-actions .action-btn {
-    opacity: 1;
-}
-
-.cm-item.sortable-ghost {
-    background-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
-    border-style: dashed;
-}
-
-.cm-item.sortable-chosen {
-    cursor: grabbing;
-    box-shadow: var(--shadow-lg);
-}
-
-/* Admin Home Button */
-#home-btn-mobile {
-    display: inline-flex;
-}
-
-#home-btn-desktop {
-    display: none;
-}
-
-/* Admin Edit Modal Specific Layouts */
-.modal-column-left {
-    flex: 0 0 40%;
-    display: flex;
-    flex-direction: column;
-    min-width: 400px;
-}
-
-.modal-column-right {
-    flex: 1 1 60%;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.right-column-content-wrapper {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding-right: 10px;
-}
-
-.form-group.full-height {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-#image-upload-area {
-    flex-grow: 1;
-    display: flex;
-    height: 100%;
-    min-height: 200px;
-}
-
-.image-gallery-admin {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    gap: 0.5rem;
-}
-
-#edit-modal-container .modal-header h2,
-#edit-modal-container .modal-column-left>.form-group>label {
-    display: none;
-}
-
-#edit-modal-container .modal-header {
-    padding: 0;
-    border-bottom: none;
-    height: 0;
-}
-
-#edit-modal-container .modal-content {
-    position: relative;
-}
-
-#edit-modal-container .close-btn {
-    position: absolute;
-    z-index: 10;
-}
-
-/* 1. 針對手機版「編輯產品」彈窗的主滾動區 */
-#edit-modal-container .modal-body {
-    overscroll-behavior: contain;
-}
-
-/* 2. 針對「分類管理」彈窗的滾動列表 */
-.category-manager-list {
-    overscroll-behavior: contain;
+#category-edit-view .modal-footer {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    margin-top: 0;
 }
 
 
@@ -2160,37 +2089,5 @@ body.lightbox-open {
         box-shadow: none;
         width: 100%;
         height: 100%;
-    }
-}
-
-/* --- 15. 分類編輯 Modal (Category Edit Modal) --- */
-
-/* 確保在所有尺寸下都有合適的大小 */
-#category-edit-modal .modal-content {
-    max-width: 600px; /* 在大螢幕上限制最大寬度 */
-    width: 90%;
-    max-height: 80vh; /* 限制最大高度，避免佔滿整個螢幕 */
-    display: flex;
-    flex-direction: column;
-}
-
-/* 讓表單和其內容填滿 modal */
-#category-edit-form {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    overflow: hidden; /* 防止內部元素溢出 */
-}
-
-/* 確保 modal body 可以滾動 */
-#category-edit-modal .modal-body {
-    padding: 1.5rem;
-    flex-grow: 1;
-}
-
-/* 在手機上，微調 padding */
-@media (max-width: 768px) {
-    #category-edit-modal .modal-body {
-        padding: 1.5rem 1rem;
     }
 }
