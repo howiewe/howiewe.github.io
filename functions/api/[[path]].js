@@ -311,22 +311,25 @@ async function deleteProduct(context, id) {
 }
 
 async function createOrUpdateCategory(db, category) {
-    const { id, name, parentId = null } = category;
+    // 從傳入的資料中，除了 id, name, parentId，再多解構出 description
+    const { id, name, parentId = null, description = '' } = category; // 新增 description
     const now = new Date().toISOString();
     let results;
 
     if (id) {
+        // 更新時，在 SET 陳述式中加入 description = ?
         ({ results } = await db.prepare(
-            "UPDATE categories SET name = ?, parentId = ?, updatedAt = ? WHERE id = ? RETURNING *"
-        ).bind(name, parentId, now, id).run());
+            "UPDATE categories SET name = ?, parentId = ?, description = ?, updatedAt = ? WHERE id = ? RETURNING *"
+        ).bind(name, parentId, description, now, id).run()); // <--- 在這裡新增了 description
     } else {
         const { maxOrder } = await db.prepare(
             "SELECT MAX(sortOrder) as maxOrder FROM categories WHERE parentId IS ?"
         ).bind(parentId).first();
         const newSortOrder = (maxOrder ?? -1) + 1;
+        // 新增時，也在 INSERT 陳述式中加入 description 欄位與對應的值
         ({ results } = await db.prepare(
-            "INSERT INTO categories (name, parentId, sortOrder, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?) RETURNING *"
-        ).bind(name, parentId, newSortOrder, now, now).run());
+            "INSERT INTO categories (name, parentId, sortOrder, description, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?) RETURNING *"
+        ).bind(name, parentId, newSortOrder, description, now, now).run()); // <--- 在這裡新增了 description
     }
 
     if (!results || results.length === 0) throw new Error("分類操作失敗，未返回任何結果。");

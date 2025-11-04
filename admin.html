@@ -264,6 +264,35 @@
     </div>
 
     <!-- 分類管理 Modal (保持不變) -->
+    <div id="category-edit-modal" class="modal-container hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="category-edit-modal-title">編輯分類</h2>
+                <button id="category-edit-close-btn" class="close-btn" title="關閉">&times;</button>
+            </div>
+            <form id="category-edit-form" novalidate>
+                <div class="modal-body" style="flex-direction: column; overflow-y: auto;">
+                    <input type="hidden" id="category-edit-id">
+
+                    <div class="form-group">
+                        <label for="category-edit-name">分類名稱</label>
+                        <input type="text" id="category-edit-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category-edit-description">分類描述 (用於 SEO)</label>
+                        <textarea id="category-edit-description" rows="6"
+                            placeholder="為這個分類撰寫一段有吸引力的介紹，有助於搜尋引擎收錄..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">儲存變更</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
     <div id="category-modal-container" class="modal-container category-manager hidden">
         <div class="modal-content">
             <div id="category-manager-header" class="category-manager-header">

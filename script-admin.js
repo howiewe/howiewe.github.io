@@ -46,6 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const manageCategoriesBtn = document.getElementById('manage-categories-btn');
     const categoryModal = document.getElementById('category-modal-container');
     const categoryModalCloseBtn = document.getElementById('category-modal-close-btn');
+    const categoryEditModal = document.getElementById('category-edit-modal');
+    const categoryEditModalTitle = document.getElementById('category-edit-modal-title');
+    const categoryEditForm = document.getElementById('category-edit-form');
+    const categoryEditIdInput = document.getElementById('category-edit-id');
+    const categoryEditNameInput = document.getElementById('category-edit-name');
+    const categoryEditDescriptionInput = document.getElementById('category-edit-description');
+    const categoryEditCloseBtn = document.getElementById('category-edit-close-btn');
     const categoryManagerHeader = document.getElementById('category-manager-header');
     const categoryManagerTitle = document.getElementById('category-manager-title');
     const categoryManagerList = document.getElementById('category-manager-list');
@@ -90,7 +97,30 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchCategories(showToastOnError = true) { try { const response = await fetch('/api/all-data?t=' + new Date().getTime()); if (!response.ok) throw new Error(`Server Error: ${response.statusText}`); const data = await response.json(); allCategories = data.categories || []; await writeData('categories', allCategories); return true; } catch (error) { console.error('Fetch categories failed:', error); if (showToastOnError) showToast(`拉取分類資料失敗: ${error.message}`, 'error'); return false; } }
     async function saveProduct(productData) { try { const response = await fetch('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData) }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`); await fetchProducts(); showToast('產品儲存成功', 'success'); } catch (error) { showToast(`儲存產品失敗: ${error.message}`, 'error'); console.error(error); } }
     async function deleteProductApi(id) { if (!confirm('您確定要刪除這個產品嗎？')) return; try { const response = await fetch(`/api/products/${id}`, { method: 'DELETE' }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).details || response.statusText}`); await fetchProducts(); closeModal(editModal); showToast('產品已刪除', 'info'); } catch (error) { showToast(`刪除產品失敗: ${error.message}`, 'error'); } }
-    async function saveCategory(categoryData) { try { const response = await fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(categoryData) }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).error || response.statusText}`); await fetchCategories(false); buildCategoryTree(); populateCategorySelect(); renderCategoryManager(currentCategoryManagerParentId, false); await fetchProducts(); } catch (error) { showToast(`儲存分類失敗: ${error.message}`, 'error'); } }
+    async function saveCategory(categoryData) {
+        try {
+            // 確保 parentId 也被正確傳遞
+            const dataToSend = { ...categoryData, parentId: categoryData.parentId };
+
+            const response = await fetch('/api/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dataToSend)
+            });
+
+            if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).error || response.statusText}`);
+
+            // 操作成功後，重新拉取最新資料並更新所有相關 UI
+            await fetchCategories(false);
+            buildCategoryTree();
+            populateCategorySelect();
+            renderCategoryManager(currentCategoryManagerParentId, false); // 刷新當前層級的列表
+            await fetchProducts(); // 順便刷新產品列表，以防有產品分類變動
+
+        } catch (error) {
+            showToast(`儲存分類失敗: ${error.message}`, 'error');
+        }
+    }
     async function reorderCategories(reorderData) { try { const response = await fetch('/api/reorder-categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reorderData) }); if (!response.ok) throw new Error(`伺服器錯誤: ${(await response.json()).error || response.statusText}`); await fetchCategories(false); buildCategoryTree(); populateCategorySelect(); await fetchProducts(); showToast('順序已儲存', 'success'); } catch (error) { showToast(`儲存順序失敗: ${error.message}`, 'error'); renderCategoryManager(currentCategoryManagerParentId, false); } }
     async function removeCategory(id) { try { const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' }); if (!response.ok) { const errData = await response.json(); throw new Error(errData.error || '刪除失敗'); } await fetchCategories(false); buildCategoryTree(); populateCategorySelect(); renderCategoryManager(currentCategoryManagerParentId, false); await fetchProducts(); } catch (error) { alert(error.message); } }
 
@@ -208,8 +238,40 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildCategoryTree() { if (!categoryTreeContainer) return; const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; for (const category of categoryMap.values()) { if (category.parentId === null) tree.push(category); else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category); } let html = `<ul><li><a href="#" class="active" data-id="all">所有產品</a></li></ul>`; function createTreeHTML(nodes, depth = 0) { nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); let subHtml = `<ul class="${depth >= 2 ? 'hidden' : ''}">`; for (const node of nodes) { const hasChildren = node.children && node.children.length > 0; subHtml += `<li class="${hasChildren ? 'has-children' : ''}">`; subHtml += `<a href="#" data-id="${node.id}">`; subHtml += `<span>${node.name}</span>`; if (hasChildren) { subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`; } subHtml += `</a>`; if (hasChildren) { subHtml += createTreeHTML(node.children, depth + 1); } subHtml += '</li>'; } return subHtml + '</ul>'; } categoryTreeContainer.innerHTML = html + createTreeHTML(tree); }
     function populateCategorySelect() { if (!categorySelect) return; const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }])); const tree = []; allCategories.forEach(c => { if (c.parentId === null) { tree.push(categoryMap.get(c.id)); } else if (categoryMap.has(c.parentId)) { categoryMap.get(c.parentId).children.push(categoryMap.get(c.id)); } }); tree.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); let selectOptions = '<option value="" disabled selected>請選擇分類</option>'; function createSelectOptions(nodes, depth = 0) { nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)); nodes.forEach(node => { selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`; if (node.children.length > 0) { createSelectOptions(node.children, depth + 1); } }); } createSelectOptions(tree); categorySelect.innerHTML = selectOptions; }
     function renderCategoryManager(parentId = null, saveHistory = true) { if (saveHistory) { categoryManagerHistory.push(currentCategoryManagerParentId); } currentCategoryManagerParentId = parentId; if (parentId === null) { categoryManagerTitle.textContent = '分類管理'; categoryBackBtn.classList.add('hidden'); } else { const parent = allCategories.find(c => c.id === parentId); categoryManagerTitle.textContent = parent ? parent.name : '子分類'; categoryBackBtn.classList.remove('hidden'); } const categoriesToShow = allCategories.filter(c => c.parentId === parentId).sort((a, b) => a.sortOrder - b.sortOrder); categoryManagerList.innerHTML = ''; if (categoriesToShow.length === 0) { categoryManagerList.innerHTML = '<p class="empty-message">此層級下沒有分類</p>'; } else { categoriesToShow.forEach(cat => { const item = document.createElement('div'); item.className = 'cm-item'; item.dataset.id = cat.id; item.innerHTML = `<span class="cm-drag-handle" title="拖曳排序"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></span><span class="cm-name">${cat.name}</span><div class="cm-actions"><button data-id="${cat.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button><button data-id="${cat.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button></div>`; categoryManagerList.appendChild(item); }); } if (categorySortableInstance) categorySortableInstance.destroy(); categorySortableInstance = new Sortable(categoryManagerList, { handle: '.cm-drag-handle', animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', onEnd: async (evt) => { const items = Array.from(evt.to.children); const reorderData = items.map((item, index) => ({ id: parseInt(item.dataset.id), sortOrder: index, parentId: currentCategoryManagerParentId })); await reorderCategories(reorderData); } }); }
-    async function addCategory() { const name = prompt('請輸入新的分類名稱：'); if (name && name.trim()) await saveCategory({ name: name.trim(), parentId: currentCategoryManagerParentId }); else if (name !== null) alert('分類名稱不能為空！'); }
-    async function editCategory(id) { const category = allCategories.find(c => c.id === id); if (!category) return; const newName = prompt('請輸入新的分類名稱：', category.name); if (newName && newName.trim()) await saveCategory({ id: category.id, name: newName.trim(), parentId: category.parentId }); else if (newName !== null) alert('分類名稱不能為空！'); }
+    function openCategoryEditModal(category = {}) {
+        categoryEditForm.reset(); // 每次打開前都重置表單
+
+        if (category.id) {
+            // --- 編輯模式 ---
+            categoryEditModalTitle.textContent = '編輯分類';
+            categoryEditIdInput.value = category.id;
+            categoryEditNameInput.value = category.name || '';
+            categoryEditDescriptionInput.value = category.description || '';
+        } else {
+            // --- 新增模式 ---
+            categoryEditModalTitle.textContent = '新增分類';
+            categoryEditIdInput.value = ''; // 確保 ID 為空
+        }
+
+        openModal(categoryEditModal); // 顯示 Modal
+    }
+
+    // 【重構後】的新增分類函式
+    async function addCategory() {
+        // 只需呼叫 openCategoryEditModal，不帶任何參數
+        openCategoryEditModal();
+    }
+
+    // 【重構後】的編輯分類函式
+    async function editCategory(id) {
+        const category = allCategories.find(c => c.id === id);
+        if (category) {
+            // 找到分類資料後，帶入並呼叫 openCategoryEditModal
+            openCategoryEditModal(category);
+        } else {
+            showToast('找不到該分類的資料', 'error');
+        }
+    }
     function openModal(modal) { if (modal) modal.classList.remove('hidden'); }
     function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
     function initSortable() {
@@ -470,6 +532,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (categoryBackBtn) categoryBackBtn.addEventListener('click', () => { const lastParentId = categoryManagerHistory.pop(); renderCategoryManager(lastParentId, false); });
         if (categoryAddBtn) categoryAddBtn.addEventListener('click', addCategory);
         if (categoryManagerList) categoryManagerList.addEventListener('click', (e) => { const target = e.target; const catItem = target.closest('.cm-item'); if (!catItem) return; const id = parseInt(catItem.dataset.id); if (target.classList.contains('cm-name')) { renderCategoryManager(id); } else if (target.closest('.edit-cat-btn')) { editCategory(id); } else if (target.closest('.delete-cat-btn')) { if (confirm('您確定要刪除這個分類嗎？相關產品將變為「未分類」。')) removeCategory(id); } });
+        if (categoryEditModal) {
+            // 點擊 Modal 背景時關閉
+            categoryEditModal.addEventListener('click', (e) => {
+                if (e.target === categoryEditModal) closeModal(categoryEditModal);
+            });
+        }
+
+        if (categoryEditCloseBtn) {
+            // 點擊關閉按鈕時關閉
+            categoryEditCloseBtn.addEventListener('click', () => closeModal(categoryEditModal));
+        }
+
+        if (categoryEditForm) {
+            // 監聽表單提交事件
+            categoryEditForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const name = categoryEditNameInput.value.trim();
+                if (!name) {
+                    alert('分類名稱不能為空！');
+                    return;
+                }
+
+                const categoryData = {
+                    id: categoryEditIdInput.value ? parseInt(categoryEditIdInput.value) : null,
+                    name: name,
+                    description: categoryEditDescriptionInput.value.trim(),
+                    parentId: currentCategoryManagerParentId // ★ 核心：帶上當前所在層級的 parentId
+                };
+
+                await saveCategory(categoryData);
+
+                closeModal(categoryEditModal); // 儲存後關閉 Modal
+            });
+        }
     }
 
     init();

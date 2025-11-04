@@ -2162,3 +2162,35 @@ body.lightbox-open {
         height: 100%;
     }
 }
+
+/* --- 15. 分類編輯 Modal (Category Edit Modal) --- */
+
+/* 確保在所有尺寸下都有合適的大小 */
+#category-edit-modal .modal-content {
+    max-width: 600px; /* 在大螢幕上限制最大寬度 */
+    width: 90%;
+    max-height: 80vh; /* 限制最大高度，避免佔滿整個螢幕 */
+    display: flex;
+    flex-direction: column;
+}
+
+/* 讓表單和其內容填滿 modal */
+#category-edit-form {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden; /* 防止內部元素溢出 */
+}
+
+/* 確保 modal body 可以滾動 */
+#category-edit-modal .modal-body {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+/* 在手機上，微調 padding */
+@media (max-width: 768px) {
+    #category-edit-modal .modal-body {
+        padding: 1.5rem 1rem;
+    }
+}
