@@ -2083,7 +2083,7 @@ body.lightbox-open {
     color: #333;
     margin-bottom: 0px;
     margin-top: 0;
-    padding-bottom: 10px;
+    padding-bottom: 6px;
     border-bottom: 2px solid var(--primary-color);
     /* 確保標題和其後的第一個產品項在同一頁，避免標題單獨留在頁尾 */
     break-after: avoid;
