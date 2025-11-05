@@ -2231,22 +2231,25 @@ body.lightbox-open {
 
 .page-number-vertical {
     position: absolute;
-    /* 啟用絕對定位，讓它可以浮動 */
     bottom: 40px;
-    /* 從頁面底部（含內距）算起 */
     right: 15px;
-    /* 離頁面右邊緣 15px */
-
-    /* 核心：將書寫模式改為垂直，由右至左排列 */
+    
+    /* 核心：我們保留 writing-mode */
     writing-mode: vertical-rl;
+    
+    /* --- 新增：給予明確的尺寸和對齊方式，引導 html2canvas --- */
+    /* 給一個固定的寬度，大約是一個字的寬度加上間距 */
+    width: 20px; 
+    /* 給一個足夠的高度，讓文字有地方伸展 */
+    height: 150px; 
+    /* 使用 flexbox 來輔助對齊文字 */
+    display: flex;
+    justify-content: center; /* 水平居中 (在垂直模式下是次要軸) */
+    align-items: flex-start;  /* 將文字對齊到容器頂部 (在 rl 模式下是右側) */
 
-    /* 美化樣式 */
+    /* --- 原本的文字樣式保持不變 --- */
     font-size: 12px;
-    /* 較小的字體 */
     color: #aaa;
-    /* 使用淺灰色，不干擾內容 */
     letter-spacing: 2px;
-    /* 增加字元間距，更好看 */
     white-space: nowrap;
-    /* 確保文字不會換行 */
 }
