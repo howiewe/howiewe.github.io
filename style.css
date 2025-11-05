@@ -2021,7 +2021,7 @@ body.lightbox-open {
     flex-grow: 1;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 10px;
     align-content: flex-start;
     /* 讓內容從頂部開始排列 */
 }
