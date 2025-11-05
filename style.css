@@ -1322,7 +1322,8 @@ body.lightbox-open {
 /* --- ▼▼▼ 【新增】視圖切換的核心樣式 ▼▼▼ --- */
 .category-views-container {
     flex-grow: 1;
-    position: relative; /* 讓子視圖可以絕對定位 */
+    position: relative;
+    /* 讓子視圖可以絕對定位 */
     overflow: hidden;
 }
 
@@ -1336,25 +1337,30 @@ body.lightbox-open {
     overflow-y: auto;
     background-color: var(--surface-color);
     transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
-    overscroll-behavior: contain; /* 防止滾動穿透 */
+    overscroll-behavior: contain;
+    /* 防止滾動穿透 */
 }
 
 /* 預設的進入/離開動畫 */
 #category-edit-view {
     opacity: 0;
     transform: translateX(20px);
-    pointer-events: none; /* 隱藏時不可點擊 */
+    pointer-events: none;
+    /* 隱藏時不可點擊 */
 }
+
 #category-edit-view:not(.hidden) {
     opacity: 1;
     transform: translateX(0);
     pointer-events: auto;
 }
+
 #category-manager-view.hidden {
     opacity: 0;
     transform: translateX(-20px);
     pointer-events: none;
 }
+
 /* --- ▲▲▲ 新增結束 ▲▲▲ --- */
 
 .category-manager-list {
@@ -1373,20 +1379,58 @@ body.lightbox-open {
     box-shadow: var(--shadow-sm);
     transition: background-color 0.2s, box-shadow 0.2s;
 }
-.cm-item:hover { background-color: var(--bg-color); }
-.cm-drag-handle { cursor: grab; color: var(--text-secondary); margin-right: 1rem; opacity: 0.5; transition: opacity 0.2s; }
-.cm-item:hover .cm-drag-handle { opacity: 1; }
-.cm-name { flex-grow: 1; font-weight: 500; cursor: pointer; }
-.cm-actions { display: flex; gap: 0.5rem; }
-.cm-actions .action-btn { opacity: 0.5; transition: opacity 0.2s; }
-.cm-item:hover .cm-actions .action-btn { opacity: 1; }
-.cm-item.sortable-ghost { background-color: color-mix(in srgb, var(--primary-color) 20%, transparent); border-style: dashed; }
-.cm-item.sortable-chosen { cursor: grabbing; box-shadow: var(--shadow-lg); }
+
+.cm-item:hover {
+    background-color: var(--bg-color);
+}
+
+.cm-drag-handle {
+    cursor: grab;
+    color: var(--text-secondary);
+    margin-right: 1rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.cm-item:hover .cm-drag-handle {
+    opacity: 1;
+}
+
+.cm-name {
+    flex-grow: 1;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.cm-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cm-actions .action-btn {
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.cm-item:hover .cm-actions .action-btn {
+    opacity: 1;
+}
+
+.cm-item.sortable-ghost {
+    background-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
+    border-style: dashed;
+}
+
+.cm-item.sortable-chosen {
+    cursor: grabbing;
+    box-shadow: var(--shadow-lg);
+}
 
 /* 編輯表單的內距，由 inline style 改為 class 控制 */
 #category-edit-view .modal-body {
     padding: 1.5rem;
 }
+
 #category-edit-view .modal-footer {
     padding: 0 1.5rem 1.5rem 1.5rem;
     margin-top: 0;
@@ -1768,7 +1812,8 @@ body.lightbox-open {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        width: 100%; /* 【核心修正】強制工具列本身撐滿整個容器寬度 */
+        width: 100%;
+        /* 【核心修正】強制工具列本身撐滿整個容器寬度 */
     }
 
     #search-toggle-btn,
@@ -1787,16 +1832,17 @@ body.lightbox-open {
     /* Toolbar: Customer Page Specific Layout */
     .customer-page .toolbar #search-box {
         /* 這條規則現在可以正常運作，因為父容器有剩餘空間了 */
-        flex-grow: 1; 
+        flex-grow: 1;
     }
 
     /* Toolbar: Admin Page Specific Layout (Grid) - 保持不變 */
     .admin-page .toolbar {
         display: grid;
         grid-template-columns: minmax(200px, 1fr) auto auto auto;
-        width: auto; /* 管理頁面使用 Grid，不需要 100% 寬度 */
+        width: auto;
+        /* 管理頁面使用 Grid，不需要 100% 寬度 */
     }
-    
+
     .admin-page .toolbar .toolbar-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1819,7 +1865,7 @@ body.lightbox-open {
         display: inline-flex;
     }
 
-    
+
 
     /* Customer Detail Modal Fix: Desktop */
     #detail-modal-container .modal-content {
@@ -1999,7 +2045,11 @@ body.lightbox-open {
     /* 約 A4 高度，預留一些空間 */
     margin: 0 auto 1.5rem auto;
     box-shadow: var(--shadow-lg);
-    padding: 40px;
+    padding-top: 20px;
+    /* 只把上邊距從 40px 改成 20px */
+    padding-left: 40px;
+    padding-right: 40px;
+    padding-bottom: 40px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -2159,9 +2209,11 @@ body.lightbox-open {
         height: 100%;
     }
 }
+
 /* --- NEW: Category Description (SEO Content) --- */
 .category-description-wrapper {
-    margin-bottom: 2rem; /* 在描述區塊和下方的工具列之間增加間距 */
+    margin-bottom: 2rem;
+    /* 在描述區塊和下方的工具列之間增加間距 */
     padding: 1.5rem;
     background-color: var(--surface-color);
     border: 1px solid var(--border-color);
@@ -2177,16 +2229,23 @@ body.lightbox-open {
 }
 
 .page-number-vertical {
-    position: absolute;         /* 啟用絕對定位，讓它可以浮動 */
-    bottom: 40px;               /* 從頁面底部（含內距）算起 */
-    right: 15px;                /* 離頁面右邊緣 15px */
-    
+    position: absolute;
+    /* 啟用絕對定位，讓它可以浮動 */
+    bottom: 40px;
+    /* 從頁面底部（含內距）算起 */
+    right: 15px;
+    /* 離頁面右邊緣 15px */
+
     /* 核心：將書寫模式改為垂直，由右至左排列 */
     writing-mode: vertical-rl;
-    
+
     /* 美化樣式 */
-    font-size: 12px;            /* 較小的字體 */
-    color: #aaa;                /* 使用淺灰色，不干擾內容 */
-    letter-spacing: 2px;        /* 增加字元間距，更好看 */
-    white-space: nowrap;        /* 確保文字不會換行 */
+    font-size: 12px;
+    /* 較小的字體 */
+    color: #aaa;
+    /* 使用淺灰色，不干擾內容 */
+    letter-spacing: 2px;
+    /* 增加字元間距，更好看 */
+    white-space: nowrap;
+    /* 確保文字不會換行 */
 }
