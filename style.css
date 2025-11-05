@@ -2231,13 +2231,14 @@ body.lightbox-open {
 
 .page-number-vertical {
     position: absolute;
-    bottom: 40px;
-    right: 15px;
+    bottom: 40px;  /* 離頁面底部 40px */
+    right: 15px;   /* 離頁面右側 15px */
 
-    /* 使用旋轉來模擬垂直文字，視覺效果與 writing-mode 相同 */
-    transform: rotate(-90deg); 
-    transform-origin: bottom right; 
+    /* 核心修改：在旋轉後，使用 translateX 將其移回邊界內 */
+    transform: rotate(-90deg) translateX(100%); 
+    transform-origin: bottom right;
 
+    /* 其他文字樣式不變 */
     font-size: 12px;
     color: #aaa;
     letter-spacing: 2px;
