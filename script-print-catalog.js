@@ -209,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const categoryMap = new Map(allCategories.map(c => [c.id, c]));
         const groupedProducts = new Map();
 
+        // 步驟 1: 將產品按「主要分類」進行分組 (此部分邏輯不變)
         products.forEach(product => {
             const mainCategory = findMainCategory(product.categoryId, categoryMap);
             const mainCategoryId = mainCategory ? mainCategory.id : 'unclassified';
@@ -218,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             groupedProducts.get(mainCategoryId).push(product);
         });
 
-        const A4_CONTENT_HEIGHT_LIMIT_PX = 1000;
+        const A4_CONTENT_HEIGHT_LIMIT_PX = 1020; // A4 內容高度限制
         let currentPage, currentContentContainer;
 
         const startNewPage = () => {
@@ -227,25 +228,39 @@ document.addEventListener('DOMContentLoaded', () => {
             previewContainer.appendChild(currentPage);
         };
 
+        // ▼▼▼ 【核心修改 ①】: 不在迴圈內強制換頁，而是在迴圈開始前，就先建立好第一頁 ▼▼▼
         startNewPage();
 
+        // 步驟 2: 遍歷分好組的產品，進行排版
         groupedProducts.forEach((productsInGroup, mainCategoryId) => {
-            let titleEl = null;
+
+            // 步驟 2a: 產生分類標題元素
+            let titleEl = null; // 先宣告
             if (mainCategoryId !== 'unclassified') {
                 const titlePath = getCategoryPath(mainCategoryId, categoryMap);
                 titleEl = document.createElement('h2');
                 titleEl.className = 'page-category-title';
                 titleEl.textContent = titlePath;
+
+                // ▼▼▼ 【核心修改 ②】: 智慧檢查標題是否需要換頁 ▼▼▼
+                // 1. 暫時將標題加入當前頁面，以便測量高度
                 currentContentContainer.appendChild(titleEl);
 
-                // 【已修正】使用更精準的 scrollHeight 進行測量
-                if (currentContentContainer.scrollHeight > A4_CONTENT_HEIGHT_LIMIT_PX) {
-                    currentContentContainer.removeChild(titleEl);
-                    startNewPage();
-                    currentContentContainer.appendChild(titleEl);
+                // 2. 測量加入後的高度
+                const contentTop = currentContentContainer.getBoundingClientRect().top;
+                const titleBottom = titleEl.getBoundingClientRect().bottom;
+                const contentHeightAfterTitle = titleBottom - contentTop;
+
+                // 3. 如果加入標題後就超高，則執行換頁
+                if (contentHeightAfterTitle > A4_CONTENT_HEIGHT_LIMIT_PX) {
+                    currentContentContainer.removeChild(titleEl); // 從舊頁面移除標題
+                    startNewPage();                             // 建立一個新頁面
+                    currentContentContainer.appendChild(titleEl); // 將標題加入新頁面
                 }
             }
+            // ▲▲▲ 修改結束 ▲▲▲
 
+            // 步驟 2c: 遍歷該分類下的所有產品 (此部分邏輯不變)
             productsInGroup.forEach(product => {
                 const productEl = createProductPrintElement(product);
                 currentContentContainer.appendChild(productEl);
@@ -267,8 +282,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     shrinkTextToFit(productNameEl);
                 }
 
-                // 【已修正】使用更精準的 scrollHeight 進行測量
-                if (currentContentContainer.scrollHeight > A4_CONTENT_HEIGHT_LIMIT_PX) {
+                // 步驟 2d: 檢查單一產品是否需要換頁 (此部分邏輯不變，保留了原有的溢出保護)
+                const contentTop = currentContentContainer.getBoundingClientRect().top;
+                const lastElementBottom = productEl.getBoundingClientRect().bottom;
+                const currentContentHeight = lastElementBottom - contentTop;
+
+                if (currentContentHeight > A4_CONTENT_HEIGHT_LIMIT_PX) {
                     currentContentContainer.removeChild(productEl);
                     startNewPage();
                     currentContentContainer.appendChild(productEl);
@@ -276,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // 步驟 3: 更新所有頁面的頁碼 (此部分邏輯不變)
         const allPages = previewContainer.querySelectorAll('.page');
         allPages.forEach((page, index) => {
             const pageNumberEl = page.querySelector('.page-number-vertical');
