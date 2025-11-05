@@ -2072,7 +2072,7 @@ body.lightbox-open {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
-    align-content: center;
+    align-content: flex-start;
     /* 讓內容從頂部開始排列 */
 }
 
