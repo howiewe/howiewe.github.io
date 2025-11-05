@@ -176,26 +176,60 @@ document.addEventListener('DOMContentLoaded', () => {
      * @description 根據 `state` 中的頁碼資訊，渲染分頁控制按鈕
      */
     function renderPagination() {
-        // ... (此函式功能不變，保持原樣)
         if (!paginationControls) return;
         paginationControls.innerHTML = '';
         if (state.totalPages <= 1) return;
-        const prevBtn = document.createElement('button');
+
+        // 獲取當前 URL 的基本路徑 (不含查詢參數)
+        const baseUrl = window.location.pathname;
+
+        // --- 上一頁按鈕 ---
+        const prevPage = state.currentPage - 1;
+        const prevHref = prevPage > 1 ? `${baseUrl}?page=${prevPage}` : baseUrl;
+        const prevBtn = document.createElement('a'); // 改為 <a> 標籤
         prevBtn.className = 'btn btn-secondary';
         prevBtn.innerHTML = '&#10094;';
         prevBtn.title = '上一頁';
-        prevBtn.disabled = state.currentPage === 1;
-        prevBtn.addEventListener('click', () => { if (state.currentPage > 1) { state.currentPage--; fetchProducts(); } });
+        if (state.currentPage === 1) {
+            prevBtn.classList.add('disabled'); // 使用 class 來表示禁用狀態
+            prevBtn.setAttribute('aria-disabled', 'true');
+        } else {
+            prevBtn.href = prevHref; // 只有在可點擊時才設定 href
+        }
+
+        // --- 頁碼資訊 (保持不變) ---
         const pageInfo = document.createElement('div');
         pageInfo.className = 'page-info';
         pageInfo.textContent = `${state.currentPage} / ${state.totalPages}`;
-        const nextBtn = document.createElement('button');
+
+        // --- 下一頁按鈕 ---
+        const nextPage = state.currentPage + 1;
+        const nextHref = `${baseUrl}?page=${nextPage}`;
+        const nextBtn = document.createElement('a'); // 改為 <a> 標籤
         nextBtn.className = 'btn btn-secondary';
         nextBtn.innerHTML = '&#10095;';
         nextBtn.title = '下一頁';
-        nextBtn.disabled = state.currentPage === state.totalPages;
-        nextBtn.addEventListener('click', () => { if (state.currentPage < state.totalPages) { state.currentPage++; fetchProducts(); } });
+        if (state.currentPage === state.totalPages) {
+            nextBtn.classList.add('disabled');
+            nextBtn.setAttribute('aria-disabled', 'true');
+        } else {
+            nextBtn.href = nextHref;
+        }
+
+        // 將所有元素加入容器
         paginationControls.append(prevBtn, pageInfo, nextBtn);
+
+        // ▼▼▼ 【核心】為分頁容器加上事件代理 ▼▼▼
+        // 我們不在按鈕上單獨綁定事件，而是監聽整個容器的點擊
+        paginationControls.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            // 檢查點擊的是否為一個可用的 <a> 連結
+            if (link && !link.classList.contains('disabled')) {
+                e.preventDefault(); // 阻止頁面刷新
+                history.pushState({}, '', link.href); // 更新 URL
+                handleRouteChange(); // 觸發路由處理，重新載入內容
+            }
+        });
     }
 
     /**
@@ -233,15 +267,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleRouteChange() {
-        // 取得路徑，並移除我們關心的 /catalog 前綴，方便後續判斷
+        // 取得路徑和查詢參數
         const path = window.location.pathname;
-        const catalogPath = path.startsWith('/catalog') ? path.substring('/catalog'.length) : path;
+        const searchParams = new URLSearchParams(window.location.search);
 
+        // ▼▼▼ 【核心修改】從 URL 讀取 page 參數 ▼▼▼
+        const newPage = parseInt(searchParams.get('page')) || 1;
+        // ▲▲▲
+
+        const catalogPath = path.startsWith('/catalog') ? path.substring('/catalog'.length) : path;
         const isProductPath = catalogPath.startsWith('/product/');
         const isCategoryPath = catalogPath.startsWith('/category/');
         const isModalOpen = !detailModal.classList.contains('hidden');
 
-        // 1. 處理彈窗關閉邏輯
+        // 1. 處理彈窗關閉邏輯 (不變)
         if (isModalOpen && !isProductPath) {
             closeModal(false);
         }
@@ -253,42 +292,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 productList.innerHTML = '<p class="empty-message">正在載入產品...</p>';
                 const product = await fetchProductById(productId);
                 if (product) {
-                    await fetchProducts(); // 載入背景
+                    await fetchProducts();
                     openDetailModal(product);
                 } else {
-                    // 如果找不到產品，導回目錄首頁
                     history.replaceState({}, '產品展示', '/catalog');
                     await fetchProducts();
                 }
             }
         } else if (isCategoryPath) {
             const newCategoryId = parseInt(catalogPath.split('/')[2]) || 'all';
-            if (state.categoryId !== newCategoryId) {
+            // ▼▼▼ 【核心修改】檢查分類或頁碼是否有變動 ▼▼▼
+            if (state.categoryId !== newCategoryId || state.currentPage !== newPage) {
                 state.categoryId = newCategoryId;
-                state.currentPage = 1;
+                state.currentPage = newPage; // 更新 state
                 await fetchProducts();
             }
-        } else { // 包含 /catalog 或 / 根路徑
-            if (state.categoryId !== 'all' || currentProducts.length === 0) {
+            // ▲▲▲
+        } else {
+            // ▼▼▼ 【核心修改】檢查分類或頁碼是否有變動 ▼▼▼
+            if (state.categoryId !== 'all' || currentProducts.length === 0 || state.currentPage !== newPage) {
                 state.categoryId = 'all';
-                state.currentPage = 1;
+                state.currentPage = newPage; // 更新 state
                 await fetchProducts();
             }
+            // ▲▲▲
         }
 
+        // 更新分類描述 (邏輯不變)
         if (categoryDescriptionContainer) {
             let description = '';
             if (state.categoryId !== 'all') {
                 const currentCategory = allCategories.find(c => c.id === state.categoryId);
                 if (currentCategory && currentCategory.description) {
-                    // 將描述文本中的換行符轉換為 <br> 標籤
                     description = `<p>${currentCategory.description.replace(/\n/g, '<br>')}</p>`;
                 }
             }
             categoryDescriptionContainer.innerHTML = description;
         }
 
-        // 3. 同步側邊欄 UI
+        // 3. 同步側邊欄 UI (邏輯不變)
         updateSidebarActiveState();
     }
 
