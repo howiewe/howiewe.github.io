@@ -67,10 +67,98 @@ export async function onRequest(context) {
     // 宣告一個陣列，用於儲存所有需要執行的 rewriter 任務
     let rewriters = [];
 
+    // ▼▼▼ 新增：用於 SSR 產品列表的 HTML Rewriter ▼▼▼
+    class ProductListInjector {
+        constructor(products) {
+            this.products = products;
+        }
+        element(element) {
+            if (this.products && this.products.length > 0) {
+                let productsHtml = '';
+                this.products.forEach(product => {
+                    const productUrlName = encodeURIComponent(product.name);
+                    const productHref = `/catalog/product/${product.id}/${productUrlName}`;
+
+                    const firstImageObject = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : null;
+                    const imageUrl = firstImageObject ? firstImageObject.url : '';
+                    const imageSize = firstImageObject ? firstImageObject.size : 90;
+                    const priceHtml = (product.price !== null && product.price !== undefined)
+                        ? `<p class="price">$${product.price}</p>`
+                        : `<p class="price price-empty">&nbsp;</p>`;
+
+                    productsHtml += `
+                        <a href="${productHref}" class="product-card">
+                            <div class="image-container">
+                                <img src="${imageUrl}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${imageSize / 100});">
+                            </div>
+                            <div class="product-info">
+                                <h3>${product.name}</h3>
+                                ${priceHtml}
+                            </div>
+                        </a>
+                    `;
+                });
+                element.setInnerContent(productsHtml, { html: true });
+            } else {
+                // 如果沒有產品，也注入提示訊息，與前端保持一致
+                element.setInnerContent('<p class="empty-message">找不到符合條件的產品。</p>', { html: true });
+            }
+        }
+    }
+    // ▲▲▲ 新增結束 ▲▲▲
+
     try {
         if (pathname.startsWith('/catalog')) {
             baseHtmlPath = '/catalog.html';
-            let categoryDescriptionHtml = ''; // 用於儲存分類描述的 HTML
+            let categoryDescriptionHtml = '';
+            let initialProducts = []; // 用於儲存要 SSR 的產品
+
+            // ▼▼▼ 新增：用於抓取第一頁產品的邏輯 ▼▼▼
+            const limit = 24; // 與前端 fetchProducts 的 limit 保持一致
+            let whereClauses = [];
+            let bindings = [];
+            let categoryId = null;
+
+            if (pathname.startsWith('/catalog/category/')) {
+                const idStr = pathname.split('/')[3];
+                if (!isNaN(idStr)) {
+                    categoryId = parseInt(idStr);
+                }
+            }
+
+            if (categoryId) {
+                const { results: allCategories } = await env.D1_DB.prepare("SELECT id, parentId FROM categories").run();
+                const getSubCategoryIds = (startId) => {
+                    const ids = new Set([startId]);
+                    const queue = [startId];
+                    while (queue.length > 0) {
+                        const currentId = queue.shift();
+                        const children = allCategories.filter(c => c.parentId === currentId);
+                        for (const child of children) { ids.add(child.id); queue.push(child.id); }
+                    }
+                    return Array.from(ids);
+                };
+                const categoryIds = getSubCategoryIds(categoryId);
+                whereClauses.push(`categoryId IN (${categoryIds.map(() => '?').join(',')})`);
+                bindings.push(...categoryIds);
+            }
+
+            const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+            // 預設排序與前端一致 (price asc)
+            const dataQueryString = `SELECT * FROM products ${whereString} ORDER BY price ASC LIMIT ? OFFSET 0`;
+            const { results } = await env.D1_DB.prepare(dataQueryString).bind(...bindings, limit).run();
+
+            if (results) {
+                initialProducts = results.map(p => {
+                    try {
+                        return { ...p, imageUrls: p.imageUrls ? JSON.parse(p.imageUrls) : [] };
+                    } catch (e) {
+                        return { ...p, imageUrls: [] };
+                    }
+                });
+            }
+            // ▲▲▲ 新增結束 ▲▲▲
+
 
             if (pathname.startsWith('/catalog/product/')) {
                 const id = pathname.split('/')[3];
@@ -97,6 +185,7 @@ export async function onRequest(context) {
                     }
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
+                // 這段邏輯保持不變...
                 const id = pathname.split('/')[3];
                 if (!isNaN(id)) {
                     const category = await env.D1_DB.prepare("SELECT name, description FROM categories WHERE id = ?").bind(id).first();
@@ -105,7 +194,6 @@ export async function onRequest(context) {
                             const formattedDescription = category.description.replace(/\n/g, '<br>');
                             categoryDescriptionHtml = `<p>${formattedDescription}</p>`;
                         }
-                        
                         const randomProductImage = await env.D1_DB.prepare(`
                             SELECT p.imageUrls FROM products p
                             WHERE p.categoryId IN (
@@ -141,7 +229,6 @@ export async function onRequest(context) {
                 }
             }
 
-            // 為所有 /catalog/... 路徑設置預設 meta（如果前面沒匹配到）
             if (!metaData) {
                 metaData = {
                     title: '產品目錄 | 光華工業有限公司',
@@ -151,11 +238,12 @@ export async function onRequest(context) {
                 };
             }
 
-            // 將 catalog 頁面需要的 rewriter 任務加入佇列
             rewriters.push(
                 ['title', new TitleRewriter(metaData.title)],
                 ['head', new HeadRewriter(metaData)],
-                ['#category-description-container', new ContentInjector('#category-description-container', categoryDescriptionHtml)]
+                ['#category-description-container', new ContentInjector('#category-description-container', categoryDescriptionHtml)],
+                // ▼▼▼ 【核心修改】將產品列表的 rewriter 加入佇列 ▼▼▼
+                ['#product-list', new ProductListInjector(initialProducts)]
             );
 
         } else if (pathname === '/') {
@@ -166,7 +254,6 @@ export async function onRequest(context) {
                 image: 'https://images.unsplash.com/photo-1543351368-0414336065e9?q=80&w=2070&auto-format&fit=crop',
                 url: url.href
             };
-            // 將首頁需要的 rewriter 任務加入佇列
             rewriters.push(
                 ['title', new TitleRewriter(metaData.title)],
                 ['head', new HeadRewriter(metaData)]
@@ -175,28 +262,22 @@ export async function onRequest(context) {
 
     } catch (dbError) {
         console.error("D1 查詢失敗:", dbError);
-        // 即使資料庫查詢失敗，也應繼續渲染基礎頁面，避免網站完全掛掉
     }
 
-    // 如果沒有匹配到任何需要 SSR 的頁面，交給下一個處理程序
     if (!baseHtmlPath) {
         return next();
     }
 
-    // 從 ASSETS 獲取基礎 HTML 檔案的回應
     const assetResponse = await env.ASSETS.fetch(new URL(baseHtmlPath, request.url));
-    
-    // 如果沒有任何 rewriter 任務，直接回傳原始回應
+
     if (rewriters.length === 0) {
         return assetResponse;
     }
-    
-    // 建立一個 rewriter 實例，並動態串聯所有任務
+
     let rewriter = new HTMLRewriter();
     rewriters.forEach(([selector, handler]) => {
         rewriter.on(selector, handler);
     });
 
-    // 執行轉換並回傳最終的 HTML
     return rewriter.transform(assetResponse);
 }
