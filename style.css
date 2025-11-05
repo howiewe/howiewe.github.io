@@ -370,6 +370,12 @@ body.dark-mode .icon-sun {
     visibility: hidden;
 }
 
+a.product-card,
+a.product-card:hover {
+    text-decoration: none; /* 移除底線 */
+    color: inherit;        /* 讓文字顏色繼承父層 (body)，避免顯示預設的藍色 */
+}
+
 /* --- 7. Toolbar & 排序 (Toolbar & Sorting) --- */
 .sort-container {
     position: relative;

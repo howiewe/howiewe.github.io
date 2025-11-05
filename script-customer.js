@@ -138,20 +138,26 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         currentProducts.forEach(product => {
-            // ▼▼▼ 【核心修改】從 <div> 改為 <a> 標籤 ▼▼▼
             const cardLink = document.createElement('a');
             cardLink.className = 'product-card';
 
-            // 設定 SEO 友善的 URL
             const productUrlName = encodeURIComponent(product.name);
             cardLink.href = `/catalog/product/${product.id}/${productUrlName}`;
 
-            // 監聽點擊事件，阻止預設跳轉行為，改為執行 SPA 的彈窗邏輯
+            // ▼▼▼ 【核心修正處】▼▼▼
             cardLink.addEventListener('click', (e) => {
-                e.preventDefault(); // 阻止瀏覽器跳轉
-                openDetailModal(product); // 執行我們原有的彈窗函式
+                e.preventDefault(); // 1. 阻止瀏覽器直接跳轉
+
+                // 2. 【補回這一步】手動更新瀏覽器的 URL 和歷史紀錄
+                //    只有在 URL 真的改變時才執行，避免重複推入歷史紀錄
+                if (window.location.pathname !== cardLink.pathname) {
+                    history.pushState({ productId: product.id }, '', cardLink.href);
+                }
+
+                // 3. 執行我們原有的彈窗函式
+                openDetailModal(product);
             });
-            // ▲▲▲ 修改結束 ▲▲▲
+            // ▲▲▲ 修正結束 ▲▲▲
 
             const firstImageObject = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : null;
             const imageUrl = firstImageObject ? firstImageObject.url : '';
@@ -160,10 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<p class="price">$${product.price}</p>`
                 : `<p class="price price-empty">&nbsp;</p>`;
 
-            // 將 HTML 內容放入 <a> 標籤中
             cardLink.innerHTML = `<div class="image-container"><img src="${imageUrl}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${imageSize / 100});"></div><div class="product-info"><h3>${product.name}</h3>${priceHtml}</div>`;
-            
-            // 將最終的 <a> 標籤加入到列表中
+
             productList.appendChild(cardLink);
         });
     }
