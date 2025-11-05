@@ -2230,20 +2230,23 @@ body.lightbox-open {
 }
 
 .page-number-vertical {
-    /* 步驟 1: 先決定頁碼的「右下角」 pivot 點要放在哪 */
     position: absolute;
-    bottom: 40px; /* 離頁面底部 40px */
-    right: 15px;  /* 離頁面右側 15px */
+    /* 啟用絕對定位，讓它可以浮動 */
+    bottom: 40px;
+    /* 從頁面底部（含內距）算起 */
+    right: 15px;
+    /* 離頁面右邊緣 15px */
 
-    /* 步驟 2: 進行旋轉 */
-    /* 核心：逆時針旋轉 90 度，讓文字朝上 */
-    transform: rotate(-90deg); 
-    /* 關鍵：設定旋轉的軸心為元素的「右下角」*/
-    transform-origin: bottom right; 
+    /* 核心：將書寫模式改為垂直，由右至左排列 */
+    writing-mode: vertical-rl;
 
-    /* 步驟 3: 其他文字樣式 */
+    /* 美化樣式 */
     font-size: 12px;
+    /* 較小的字體 */
     color: #aaa;
+    /* 使用淺灰色，不干擾內容 */
     letter-spacing: 2px;
+    /* 增加字元間距，更好看 */
     white-space: nowrap;
+    /* 確保文字不會換行 */
 }
