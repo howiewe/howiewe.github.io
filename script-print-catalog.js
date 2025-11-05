@@ -209,19 +209,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const categoryMap = new Map(allCategories.map(c => [c.id, c]));
         const groupedProducts = new Map();
 
-        // 步驟 1: 將產品按「主要分類」進行分組
+        // 步驟 1: 將產品按「主要分類」進行分組 (此部分邏輯不變)
         products.forEach(product => {
             const mainCategory = findMainCategory(product.categoryId, categoryMap);
-            // 如果產品沒有分類或找不到主要分類，則歸入一個特殊組
             const mainCategoryId = mainCategory ? mainCategory.id : 'unclassified';
-
             if (!groupedProducts.has(mainCategoryId)) {
                 groupedProducts.set(mainCategoryId, []);
             }
             groupedProducts.get(mainCategoryId).push(product);
         });
 
-        const A4_CONTENT_HEIGHT_LIMIT_PX = 1000;
+        const A4_CONTENT_HEIGHT_LIMIT_PX = 1000; // A4 內容高度限制
         let currentPage, currentContentContainer;
 
         const startNewPage = () => {
@@ -230,43 +228,52 @@ document.addEventListener('DOMContentLoaded', () => {
             previewContainer.appendChild(currentPage);
         };
 
+        // ▼▼▼ 【核心修改 ①】: 不在迴圈內強制換頁，而是在迴圈開始前，就先建立好第一頁 ▼▼▼
+        startNewPage();
+
         // 步驟 2: 遍歷分好組的產品，進行排版
         groupedProducts.forEach((productsInGroup, mainCategoryId) => {
 
-            // 步驟 2a: 每個新的主要分類都強制從新的一頁開始
-            startNewPage();
-
-            // 步驟 2b: 在新頁面的頂部插入分類標題
+            // 步驟 2a: 產生分類標題元素
+            let titleEl = null; // 先宣告
             if (mainCategoryId !== 'unclassified') {
                 const titlePath = getCategoryPath(mainCategoryId, categoryMap);
-                const titleEl = document.createElement('h2');
+                titleEl = document.createElement('h2');
                 titleEl.className = 'page-category-title';
                 titleEl.textContent = titlePath;
-                currentContentContainer.appendChild(titleEl);
-            }
 
-            // 步驟 2c: 遍歷該分類下的所有產品
+                // ▼▼▼ 【核心修改 ②】: 智慧檢查標題是否需要換頁 ▼▼▼
+                // 1. 暫時將標題加入當前頁面，以便測量高度
+                currentContentContainer.appendChild(titleEl);
+
+                // 2. 測量加入後的高度
+                const contentTop = currentContentContainer.getBoundingClientRect().top;
+                const titleBottom = titleEl.getBoundingClientRect().bottom;
+                const contentHeightAfterTitle = titleBottom - contentTop;
+
+                // 3. 如果加入標題後就超高，則執行換頁
+                if (contentHeightAfterTitle > A4_CONTENT_HEIGHT_LIMIT_PX) {
+                    currentContentContainer.removeChild(titleEl); // 從舊頁面移除標題
+                    startNewPage();                             // 建立一個新頁面
+                    currentContentContainer.appendChild(titleEl); // 將標題加入新頁面
+                }
+            }
+            // ▲▲▲ 修改結束 ▲▲▲
+
+            // 步驟 2c: 遍歷該分類下的所有產品 (此部分邏輯不變)
             productsInGroup.forEach(product => {
                 const productEl = createProductPrintElement(product);
                 currentContentContainer.appendChild(productEl);
 
                 if (product.ean13) {
-                    // 使用 querySelector 尋找剛剛才加入的 SVG 元素
                     const svgElement = productEl.querySelector('.product-barcode-svg');
                     if (svgElement) {
                         try {
                             JsBarcode(svgElement, product.ean13, {
-                                format: "EAN13",
-                                width: 1.5,       // 條碼線條寬度
-                                height: 30,       // 條碼高度
-                                fontSize: 14,
-                                displayValue: true, // 不在條碼下方顯示數字
-                                margin: 0
+                                format: "EAN13", width: 1.5, height: 30,
+                                fontSize: 14, displayValue: true, margin: 0
                             });
-                        } catch (e) {
-                            console.error("條碼產生失敗:", e);
-                            svgElement.style.display = 'none'; // 如果失敗就隱藏
-                        }
+                        } catch (e) { console.error("條碼產生失敗:", e); }
                     }
                 }
 
@@ -274,21 +281,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (productNameEl) {
                     shrinkTextToFit(productNameEl);
                 }
-                // 步驟 2d: 執行高度檢查，如果超出則換頁 (保留舊邏輯)
+
+                // 步驟 2d: 檢查單一產品是否需要換頁 (此部分邏輯不變，保留了原有的溢出保護)
                 const contentTop = currentContentContainer.getBoundingClientRect().top;
                 const lastElementBottom = productEl.getBoundingClientRect().bottom;
                 const currentContentHeight = lastElementBottom - contentTop;
 
                 if (currentContentHeight > A4_CONTENT_HEIGHT_LIMIT_PX) {
                     currentContentContainer.removeChild(productEl);
-                    startNewPage(); // 開始新的一頁
-                    // 注意：這裡不需要再加標題了
+                    startNewPage();
                     currentContentContainer.appendChild(productEl);
                 }
             });
         });
 
-        // 步驟 3: 更新所有頁面的頁碼
+        // 步驟 3: 更新所有頁面的頁碼 (此部分邏輯不變)
         const allPages = previewContainer.querySelectorAll('.page');
         allPages.forEach((page, index) => {
             const pageNumberEl = page.querySelector('.page-number');
