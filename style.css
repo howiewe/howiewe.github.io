@@ -2003,6 +2003,7 @@ body.lightbox-open {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .page-header,
@@ -2014,14 +2015,7 @@ body.lightbox-open {
     border-bottom: 1px solid #eee;
 }
 
-.page-footer {
-    padding-top: 10px;
-    padding-bottom: 0;
-    border-top: 1px solid #eee;
-    border-bottom: none;
-    margin-top: auto;
-    text-align: right;
-}
+
 
 .page-content {
     flex-grow: 1;
@@ -2179,4 +2173,19 @@ body.lightbox-open {
 /* 如果沒有內容 (由 JS 清空)，則不顯示此區塊，避免佔用空間 */
 .category-description-wrapper:empty {
     display: none;
+}
+
+.page-number-vertical {
+    position: absolute;         /* 啟用絕對定位，讓它可以浮動 */
+    bottom: 40px;               /* 從頁面底部（含內距）算起 */
+    right: 15px;                /* 離頁面右邊緣 15px */
+    
+    /* 核心：將書寫模式改為垂直，由右至左排列 */
+    writing-mode: vertical-rl;
+    
+    /* 美化樣式 */
+    font-size: 12px;            /* 較小的字體 */
+    color: #aaa;                /* 使用淺灰色，不干擾內容 */
+    letter-spacing: 2px;        /* 增加字元間距，更好看 */
+    white-space: nowrap;        /* 確保文字不會換行 */
 }

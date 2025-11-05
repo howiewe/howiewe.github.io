@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 步驟 3: 更新所有頁面的頁碼 (此部分邏輯不變)
         const allPages = previewContainer.querySelectorAll('.page');
         allPages.forEach((page, index) => {
-            const pageNumberEl = page.querySelector('.page-number');
+            const pageNumberEl = page.querySelector('.page-number-vertical');
             if (pageNumberEl) {
                 pageNumberEl.textContent = `第 ${index + 1} / ${allPages.length} 頁`;
             }
@@ -311,9 +311,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const page = document.createElement('div');
         page.className = 'page';
         page.innerHTML = `          
-            <div class="page-content"></div>
-            <div class="page-footer"><span class="page-number"></span></div>
-        `;
+        <div class="page-content"></div>
+        <div class="page-number-vertical"></div> 
+    `;
         return page;
     }
 
