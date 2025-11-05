@@ -2231,22 +2231,16 @@ body.lightbox-open {
 
 .page-number-vertical {
     position: absolute;
-    /* 啟用絕對定位，讓它可以浮動 */
-    bottom: 40px;
-    /* 從頁面底部（含內距）算起 */
-    right: 15px;
-    /* 離頁面右邊緣 15px */
+    bottom: 70px; /* 調整 Y 軸位置 */
+    right: -15px; /* 調整 X 軸位置 */
+    
+    /* 核心修改：使用 transform 進行旋轉 */
+    transform: rotate(90deg);
+    transform-origin: bottom right; /* 設定旋轉的中心點為右下角 */
 
-    /* 核心：將書寫模式改為垂直，由右至左排列 */
-    writing-mode: vertical-rl;
-
-    /* 美化樣式 */
+    /* 恢復為正常的文字樣式 */
     font-size: 12px;
-    /* 較小的字體 */
     color: #aaa;
-    /* 使用淺灰色，不干擾內容 */
-    letter-spacing: 2px;
-    /* 增加字元間距，更好看 */
-    white-space: nowrap;
-    /* 確保文字不會換行 */
+    white-space: nowrap; 
+    /* letter-spacing 在旋轉後效果可能不佳，可以先移除或調整 */
 }
