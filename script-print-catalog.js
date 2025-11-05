@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             groupedProducts.get(mainCategoryId).push(product);
         });
 
-        const A4_CONTENT_HEIGHT_LIMIT_PX = 1020; // A4 內容高度限制
+        const A4_CONTENT_HEIGHT_LIMIT_PX = 1040; // A4 內容高度限制
         let currentPage, currentContentContainer;
 
         const startNewPage = () => {
