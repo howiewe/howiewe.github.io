@@ -2233,21 +2233,11 @@ body.lightbox-open {
     position: absolute;
     bottom: 40px;
     right: 15px;
-    
-    /* 核心：我們保留 writing-mode */
-    writing-mode: vertical-rl;
-    
-    /* --- 新增：給予明確的尺寸和對齊方式，引導 html2canvas --- */
-    /* 給一個固定的寬度，大約是一個字的寬度加上間距 */
-    width: 20px; 
-    /* 給一個足夠的高度，讓文字有地方伸展 */
-    height: 150px; 
-    /* 使用 flexbox 來輔助對齊文字 */
-    display: flex;
-    justify-content: center; /* 水平居中 (在垂直模式下是次要軸) */
-    align-items: flex-start;  /* 將文字對齊到容器頂部 (在 rl 模式下是右側) */
 
-    /* --- 原本的文字樣式保持不變 --- */
+    /* 使用旋轉來模擬垂直文字，視覺效果與 writing-mode 相同 */
+    transform: rotate(-90deg); 
+    transform-origin: bottom right; 
+
     font-size: 12px;
     color: #aaa;
     letter-spacing: 2px;
