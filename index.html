@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>光華工業有限公司 - 專業運動用品製造商</title>
-    
+
     <meta name="description" content="光華工業擁有超過50年專業製造經驗，提供高品質乒乓球拍、羽球拍、跳繩、球棒等各式運動用品。我們秉持品質第一、服務至上的理念，是您最值得信賴的合作夥伴。">
 
     <script type="application/ld+json">
@@ -25,7 +26,7 @@
       "url": "https://www.your-company-website.com" 
     }
     </script>
-    
+
     <style>
         /* --- 全局與色彩變數 --- */
         :root {
@@ -74,7 +75,9 @@
             padding: 0 20px;
         }
 
-        h1, h2, h3 {
+        h1,
+        h2,
+        h3 {
             margin-top: 0;
         }
 
@@ -115,11 +118,11 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             transition: background-color 0.3s;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
-        
+
         .dark-mode .site-header {
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .navbar {
@@ -148,7 +151,7 @@
             padding: 10px 0;
             transition: color 0.3s;
         }
-        
+
         .nav-links a:hover {
             color: var(--primary-color);
         }
@@ -164,11 +167,11 @@
             background-color: var(--primary-color);
             transition: width 0.3s ease;
         }
-        
+
         .nav-links a:hover::after {
             width: 100%;
         }
-        
+
         .nav-actions {
             display: flex;
             align-items: center;
@@ -189,31 +192,36 @@
             font-size: 1.2em;
             transition: background-color 0.3s;
         }
-        
+
         .theme-switch:hover {
-            background-color: rgba(0,0,0,0.05);
+            background-color: rgba(0, 0, 0, 0.05);
         }
-        
+
         .dark-mode .theme-switch:hover {
-            background-color: rgba(255,255,255,0.1);
+            background-color: rgba(255, 255, 255, 0.1);
         }
-        
-        .hamburger { display: none; }
+
+        .hamburger {
+            display: none;
+        }
 
         /* --- 主視覺區 --- (方案一：全螢幕沉浸式) --- */
         .hero-immersive {
             width: 100%;
-            min-height: 60vh; /* 確保有足夠的高度 */
+            min-height: 60vh;
+            /* 確保有足夠的高度 */
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
             padding: 100px 20px;
-            box-sizing: border-box; /* 確保 padding 不會撐開寬度 */
-            background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1543351368-0414336065e9?q=80&w=2070&auto-format&fit=crop');
+            box-sizing: border-box;
+            /* 確保 padding 不會撐開寬度 */
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1543351368-0414336065e9?q=80&w=2070&auto-format&fit=crop');
             background-size: cover;
             background-position: center;
-            background-attachment: fixed; /* 產生視差滾動效果 */
+            background-attachment: fixed;
+            /* 產生視差滾動效果 */
         }
 
         .hero-immersive h1 {
@@ -258,11 +266,11 @@
 
         .card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
         }
-        
+
         .dark-mode .card:hover {
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
         }
 
         .card-image {
@@ -283,7 +291,7 @@
             font-size: 1.5em;
             margin-bottom: 10px;
         }
-        
+
         .card p {
             margin-bottom: 20px;
             opacity: 0.8;
@@ -304,32 +312,34 @@
             align-items: flex-start;
             gap: 30px;
         }
-        
-        .footer-about, .footer-contact {
+
+        .footer-about,
+        .footer-contact {
             flex: 1;
             min-width: 280px;
         }
-        
+
         .footer h3 {
             font-size: 1.5em;
             margin-bottom: 20px;
         }
-        
-        .footer p, .footer ul li {
+
+        .footer p,
+        .footer ul li {
             margin-bottom: 10px;
             opacity: 0.8;
         }
-        
+
         .footer ul {
             list-style: none;
             padding: 0;
         }
-        
+
         .footer a {
             color: var(--body-text);
             transition: color 0.3s;
         }
-        
+
         .footer a:hover {
             color: var(--primary-color);
         }
@@ -344,15 +354,34 @@
 
         /* --- 響應式設計 --- */
         @media (max-width: 768px) {
-            .nav-links { display: none; }
-            .hamburger { display: block; background: none; border: none; font-size: 2em; color: var(--body-text); cursor: pointer; }
-            .hero-immersive h1 { font-size: 2.5em; }
-            .hero-immersive p { font-size: 1em; }
-            .section-title { font-size: 2em; }
-        }
+            .nav-links {
+                display: none;
+            }
 
+            .hamburger {
+                display: block;
+                background: none;
+                border: none;
+                font-size: 2em;
+                color: var(--body-text);
+                cursor: pointer;
+            }
+
+            .hero-immersive h1 {
+                font-size: 2.5em;
+            }
+
+            .hero-immersive p {
+                font-size: 1em;
+            }
+
+            .section-title {
+                font-size: 2em;
+            }
+        }
     </style>
 </head>
+
 <body>
 
     <!-- 導覽列 -->
@@ -389,34 +418,40 @@
                     <!-- 產品一 -->
                     <div class="card">
                         <div class="card-image">
-                            <img src="https://images.unsplash.com/photo-1593341646782-e01614cff09d?q=80&w=1974&auto=format&fit=crop" alt="光華工業製造的專業乒乓球拍">
+                            <img src="https://images.unsplash.com/photo-1593341646782-e01614cff09d?q=80&w=1974&auto=format&fit=crop"
+                                alt="光華工業製造的專業乒乓球拍">
                         </div>
                         <div class="card-content">
                             <h3>乒乓球拍系列</h3>
                             <p>精密配重，掌握致勝關鍵。適合從入門到專業的各級選手。</p>
-                            <a href="#">查看更多</a>
+                            <!-- ▼▼▼ 修改此處 ▼▼▼ -->
+                            <a href="/catalog" data-category-name="桌球">查看更多</a>
                         </div>
                     </div>
                     <!-- 產品二 -->
                     <div class="card">
                         <div class="card-image">
-                           <img src="https://images.unsplash.com/photo-1521587595359-65a12a55f0b1?q=80&w=2070&auto=format&fit=crop" alt="一支放置在羽球場上的羽球拍與羽球">
+                            <img src="https://images.unsplash.com/photo-1521587595359-65a12a55f0b1?q=80&w=2070&auto=format&fit=crop"
+                                alt="一支放置在羽球場上的羽球拍與羽球">
                         </div>
                         <div class="card-content">
                             <h3>羽球拍系列</h3>
                             <p>輕量化設計與強化結構，兼具速度與力量，定義場上優勢。</p>
-                            <a href="#">查看更多</a>
+                            <!-- ▼▼▼ 修改此處 ▼▼▼ -->
+                            <a href="/catalog" data-category-name="棒球">查看更多</a>
                         </div>
                     </div>
                     <!-- 產品三 -->
                     <div class="card">
-                         <div class="card-image">
-                           <img src="https://images.unsplash.com/photo-1599447382218-c5178d8a0110?q=80&w=2070&auto=format&fit=crop" alt="專業訓練用的木製棒球棒與跳繩">
+                        <div class="card-image">
+                            <img src="https://images.unsplash.com/photo-1599447382218-c5178d8a0110?q=80&w=2070&auto=format&fit=crop"
+                                alt="專業訓練用的木製棒球棒與跳繩">
                         </div>
                         <div class="card-content">
                             <h3>跳繩與球棒</h3>
                             <p>從日常訓練到專業競技，我們提供耐用且高效能的器材選擇。</p>
-                            <a href="#">查看更多</a>
+                            <!-- ▼▼▼ 修改此處 ▼▼▼ -->
+                            <a href="/catalog" data-category-name="跳繩">查看更多</a>
                         </div>
                     </div>
                 </div>
@@ -460,7 +495,8 @@
                     <li>Tel : <a href="tel:+886-4-7772514">886-4-7772514</a></li>
                     <li>FAX : 886-4-7782884</li>
                     <li>Email : <a href="mailto:khp72514@ms19.hinet.net">khp72514@ms19.hinet.net</a></li>
-                    <li>地址: <a href="https://maps.app.goo.gl/cFRLgjZFL8UhC5VDA" target="_blank" rel="noopener noreferrer">505彰化縣鹿港鎮溝墘里溝墘巷80-1號</a></li>
+                    <li>地址: <a href="https://maps.app.goo.gl/cFRLgjZFL8UhC5VDA" target="_blank"
+                            rel="noopener noreferrer">505彰化縣鹿港鎮溝墘里溝墘巷80-1號</a></li>
                 </ul>
             </div>
         </div>
@@ -470,19 +506,65 @@
     </footer>
 
     <script>
+    // 等待整個網頁的 HTML 結構都載入完成後才執行
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- 功能一：處理主題切換 (Dark Mode) ---
         const themeToggle = document.getElementById('theme-toggle');
         const body = document.body;
 
-        themeToggle.addEventListener('click', () => {
-            body.classList.toggle('dark-mode');
-            
-            if (body.classList.contains('dark-mode')) {
-                themeToggle.textContent = '☀️';
-            } else {
-                themeToggle.textContent = '🌙';
+        if (themeToggle && body) {
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                
+                if (body.classList.contains('dark-mode')) {
+                    themeToggle.textContent = '☀️';
+                } else {
+                    themeToggle.textContent = '🌙';
+                }
+            });
+        }
+
+        // --- 功能二：動態更新首頁產品系列連結 ---
+        async function updateCategoryLinks() {
+            try {
+                // 1. 向後端 API 請求所有分類資料
+                const response = await fetch('/public/all-data');
+                if (!response.ok) throw new Error('無法載入分類資料');
+                
+                const data = await response.json();
+                const allCategories = data.categories || [];
+
+                // 2. 找到所有需要更新的連結 (帶有 data-category-name 屬性的 a 標籤)
+                const linksToUpdate = document.querySelectorAll('a[data-category-name]');
+
+                // 3. 遍歷每一個連結，並更新它的 href 屬性
+                linksToUpdate.forEach(link => {
+                    const targetName = link.dataset.categoryName;
+                    
+                    // 在所有分類中，尋找名稱相符的分類
+                    const category = allCategories.find(c => c.name === targetName);
+
+                    if (category) {
+                        // 如果找到了，就組裝成正確的 URL
+                        const url = `/catalog/category/${category.id}/${encodeURIComponent(category.name)}`;
+                        link.href = url;
+                    } else {
+                        // 如果在資料庫中找不到對應名稱的分類，連結會保持預設的 /catalog
+                        console.warn(`在資料庫中找不到名為 "${targetName}" 的分類。`);
+                    }
+                });
+
+            } catch (error) {
+                console.error("更新首頁分類連結失敗:", error);
             }
-        });
-    </script>
+        }
+
+        // 執行連結更新函式
+        updateCategoryLinks();
+    });
+</script>
 
 </body>
+
 </html>
