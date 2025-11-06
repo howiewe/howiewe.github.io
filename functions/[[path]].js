@@ -69,7 +69,7 @@ export async function onRequest(context) {
         // Cloudflare Pages 的檔案路由會自動處理，這裡只是以防萬一
         return next();
     }
-    
+
     // 預設 Meta 資料
     const defaultImage = 'https://imagedelivery.net/v7-tA232h3t-IAn8qA-pXg/553b85d9-c03b-43d9-485e-526437149f00/public';
     let baseHtmlPath = null;
@@ -78,7 +78,7 @@ export async function onRequest(context) {
     try {
         if (pathname.startsWith('/catalog')) {
             baseHtmlPath = '/catalog.html';
-            
+
             // --- 任務一：產生 Meta 標籤 (用於 URL 預覽) ---
             // 這段邏輯只關心 pathname，完全忽略 ?page=X 參數，確保預覽穩定
             let metaData;
@@ -87,25 +87,25 @@ export async function onRequest(context) {
                 const product = id && !isNaN(id) ? await env.D1_DB.prepare("SELECT name, description, imageUrls FROM products WHERE id = ?").bind(id).first() : null;
                 if (product) {
                     let image = defaultImage;
-                    if (product.imageUrls) try { image = JSON.parse(product.imageUrls)[0].url || defaultImage; } catch (e) {}
+                    if (product.imageUrls) try { image = JSON.parse(product.imageUrls)[0].url || defaultImage; } catch (e) { }
                     metaData = { title: `${product.name} | 光華工業`, description: product.description, image: image, url: url.href };
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
                 const id = pathname.split('/')[3];
                 const category = id && !isNaN(id) ? await env.D1_DB.prepare("SELECT name, description FROM categories WHERE id = ?").bind(id).first() : null;
                 if (category) {
-                     const randomImageResult = await env.D1_DB.prepare("SELECT imageUrls FROM products WHERE categoryId = ? AND imageUrls IS NOT NULL AND imageUrls != '[]' ORDER BY RANDOM() LIMIT 1").bind(id).first();
-                     let image = defaultImage;
-                     if(randomImageResult) try { image = JSON.parse(randomImageResult.imageUrls)[0].url || defaultImage; } catch(e){}
-                     metaData = { title: `${category.name} | 光華工業`, description: category.description, image: image, url: url.href };
+                    const randomImageResult = await env.D1_DB.prepare("SELECT imageUrls FROM products WHERE categoryId = ? AND imageUrls IS NOT NULL AND imageUrls != '[]' ORDER BY RANDOM() LIMIT 1").bind(id).first();
+                    let image = defaultImage;
+                    if (randomImageResult) try { image = JSON.parse(randomImageResult.imageUrls)[0].url || defaultImage; } catch (e) { }
+                    metaData = { title: `${category.name} | 光華工業`, description: category.description || `探索我們在「${category.name}」分類下的所有產品。`, image: image, url: url.href };
                 }
             }
-            
+
             // 如果以上條件都不滿足，或找不到資料，則使用預設 Meta
             if (!metaData) {
                 metaData = { title: '產品目錄 | 光華工業', description: '瀏覽光華工業所有的產品系列。', image: defaultImage, url: url.href };
             }
-            
+
             rewriters.push(['title', new TitleRewriter(metaData.title)]);
             rewriters.push(['head', new HeadRewriter(metaData)]);
 
@@ -119,7 +119,7 @@ export async function onRequest(context) {
 
             let query = "SELECT * FROM products";
             let bindings = [];
-            
+
             const categoryIdStr = pathname.startsWith('/catalog/category/') ? pathname.split('/')[3] : null;
             if (categoryIdStr && !isNaN(categoryIdStr)) {
                 query += " WHERE categoryId = ?";
@@ -135,9 +135,9 @@ export async function onRequest(context) {
 
             // 分類描述的注入 (如果適用)
             const categoryIdForDesc = categoryIdStr && !isNaN(categoryIdStr) ? parseInt(categoryIdStr) : null;
-            if(categoryIdForDesc) {
+            if (categoryIdForDesc) {
                 const category = await env.D1_DB.prepare("SELECT description FROM categories WHERE id = ?").bind(categoryIdForDesc).first();
-                if(category && category.description) {
+                if (category && category.description) {
                     const descHtml = `<p>${category.description.replace(/\n/g, '<br>')}</p>`;
                     rewriters.push(['#category-description-container', new ContentInjector('', descHtml)]);
                 }
@@ -158,10 +158,10 @@ export async function onRequest(context) {
 
     const assetResponse = await env.ASSETS.fetch(new URL(baseHtmlPath, request.url));
     if (rewriters.length === 0) return assetResponse;
-    
+
     let rewriter = new HTMLRewriter();
     rewriters.forEach(([selector, handler]) => {
-        if(handler) rewriter.on(selector, handler);
+        if (handler) rewriter.on(selector, handler);
     });
 
     return rewriter.transform(assetResponse);
