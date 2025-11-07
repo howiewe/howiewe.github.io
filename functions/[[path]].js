@@ -112,7 +112,7 @@ export async function onRequest(context) {
                     metaData = { title: `${product.name} | 光華工業`, description: product.description, image: image, url: url.href };
 
                     // 2. 新增：產生 Product 的 JSON-LD 結構化資料
-                    const structuredData = {
+                    structuredData = { // <--- 這就是我們要給 Google 看的 "產品說明書"
                         "@context": "https://schema.org/",
                         "@type": "Product",
                         "name": product.name,
@@ -124,21 +124,15 @@ export async function onRequest(context) {
                         "brand": {
                             "@type": "Brand",
                             "name": "光華工業"
-                        }
-                    };
-
-                    // 【核心修改】只有當產品價格是有效數字且大於 0 時，才加上 offers 物件
-                    if (product.price && product.price > 0) {
-                        structuredData.offers = {
+                        },
+                        "offers": {
                             "@type": "Offer",
                             "url": url.href,
                             "priceCurrency": "TWD",
                             "price": product.price,
-                            // 【順便解決非重大問題】加上價格有效期，通常設一年後
-                            "priceValidUntil": new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
-                            "availability": "https://schema.org/InStock"
-                        };
-                    }
+                            "availability": "https://schema.org/InStock" // 假設都有庫存
+                        }
+                    };
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
                 const idStr = pathname.split('/')[3];
