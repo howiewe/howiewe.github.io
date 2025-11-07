@@ -88,6 +88,7 @@ export async function onRequest(context) {
 
             // --- 任務一：產生 Meta 標籤 (用於 URL 預覽) ---
             let metaData;
+            let structuredData = null;
             let categoryId = null; // 在此宣告，讓後續任務可以共用
 
             if (pathname.startsWith('/catalog/product/')) {
