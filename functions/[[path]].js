@@ -22,6 +22,19 @@ class TitleRewriter {
     constructor(title) { this.title = title; }
     element(element) { if (this.title) element.setInnerContent(this.title); }
 }
+
+class StructuredDataInjector {
+    constructor(jsonData) {
+        this.jsonData = jsonData;
+    }
+    element(element) {
+        if (this.jsonData) {
+            const scriptContent = JSON.stringify(this.jsonData, null, 2);
+            element.append(`<script type="application/ld+json">${scriptContent}<\/script>`, { html: true });
+        }
+    }
+}
+
 class ContentInjector {
     constructor(selector, content) { this.selector = selector; this.content = content; }
     element(element) { if (this.content) element.setInnerContent(this.content, { html: true }); }
@@ -72,18 +85,53 @@ export async function onRequest(context) {
     try {
         if (pathname.startsWith('/catalog')) {
             baseHtmlPath = '/catalog.html';
-            
+
             // --- 任務一：產生 Meta 標籤 (用於 URL 預覽) ---
             let metaData;
             let categoryId = null; // 在此宣告，讓後續任務可以共用
 
             if (pathname.startsWith('/catalog/product/')) {
                 const id = pathname.split('/')[3];
-                const product = id && !isNaN(id) ? await env.D1_DB.prepare("SELECT name, description, imageUrls FROM products WHERE id = ?").bind(id).first() : null;
+                // 1. 修改 SQL：從資料庫多拿一些欄位 (sku, price, ean13)
+                const product = id && !isNaN(id) ? await env.D1_DB.prepare(
+                    "SELECT id, sku, name, description, imageUrls, price, ean13 FROM products WHERE id = ?"
+                ).bind(id).first() : null;
+
                 if (product) {
+                    // 處理圖片 (和之前一樣，但多了一個 images 陣列)
                     let image = defaultImage;
-                    if (product.imageUrls) try { image = JSON.parse(product.imageUrls)[0].url || defaultImage; } catch (e) {}
+                    let images = []; // 用來放所有圖片 URL 的陣列
+                    if (product.imageUrls) try {
+                        const parsedImages = JSON.parse(product.imageUrls);
+                        images = parsedImages.map(img => img.url);
+                        image = images[0] || defaultImage;
+                    } catch (e) { }
+
+                    // 產生 Meta 標籤 (和之前一樣)
                     metaData = { title: `${product.name} | 光華工業`, description: product.description, image: image, url: url.href };
+
+                    // 2. 新增：產生 Product 的 JSON-LD 結構化資料
+                    structuredData = { // <--- 這就是我們要給 Google 看的 "產品說明書"
+                        "@context": "https://schema.org/",
+                        "@type": "Product",
+                        "name": product.name,
+                        "image": images.length > 0 ? images : [image],
+                        "description": product.description,
+                        "sku": product.sku,
+                        "mpn": product.sku,
+                        "gtin13": product.ean13,
+                        "brand": {
+                            "@type": "Brand",
+                            "name": "光華工業"
+                        },
+                        "offers": {
+                            "@type": "Offer",
+                            "url": url.href,
+                            "priceCurrency": "TWD",
+                            "price": product.price,
+                            "availability": "https://schema.org/InStock" // 假設都有庫存
+                        }
+                    };
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
                 const idStr = pathname.split('/')[3];
@@ -91,8 +139,8 @@ export async function onRequest(context) {
                     categoryId = parseInt(idStr); // 取得當前分類 ID
                     const category = await env.D1_DB.prepare("SELECT name, description FROM categories WHERE id = ?").bind(categoryId).first();
                     if (category) {
-                         // ▼▼▼ 【核心修正】尋找代表圖時，也要遞迴查詢子分類 ▼▼▼
-                         const randomImageResult = await env.D1_DB.prepare(`
+                        // ▼▼▼ 【核心修正】尋找代表圖時，也要遞迴查詢子分類 ▼▼▼
+                        const randomImageResult = await env.D1_DB.prepare(`
                             SELECT p.imageUrls FROM products p
                             WHERE p.categoryId IN (
                                 WITH RECURSIVE descendant_categories(id) AS (
@@ -105,20 +153,23 @@ export async function onRequest(context) {
                             AND p.imageUrls IS NOT NULL AND p.imageUrls != '[]' 
                             ORDER BY RANDOM() LIMIT 1
                         `).bind(categoryId).first();
-                        
-                         let image = defaultImage;
-                         if(randomImageResult) try { image = JSON.parse(randomImageResult.imageUrls)[0].url || defaultImage; } catch(e){}
-                         metaData = { title: `${category.name} | 光華工業`, description: category.description || `探索我們在「${category.name}」分類下的所有產品。`, image: image, url: url.href };
+
+                        let image = defaultImage;
+                        if (randomImageResult) try { image = JSON.parse(randomImageResult.imageUrls)[0].url || defaultImage; } catch (e) { }
+                        metaData = { title: `${category.name} | 光華工業`, description: category.description || `探索我們在「${category.name}」分類下的所有產品。`, image: image, url: url.href };
                     }
                 }
             }
-            
+
             if (!metaData) {
                 metaData = { title: '產品目錄 | 光華工業', description: '瀏覽光華工業所有的產品系列。', image: defaultImage, url: url.href };
             }
-            
+
             rewriters.push(['title', new TitleRewriter(metaData.title)]);
             rewriters.push(['head', new HeadRewriter(metaData)]);
+            if (structuredData) {
+                rewriters.push(['head', new StructuredDataInjector(structuredData)]);
+            }
 
             // --- 任務二：預先渲染 Body 內容 ---
             const searchParams = url.searchParams;
@@ -128,7 +179,7 @@ export async function onRequest(context) {
 
             let whereClauses = [];
             let bindings = [];
-            
+
             // ▼▼▼ 【核心修正】使用遞迴邏輯查詢所有子分類的產品 ▼▼▼
             if (categoryId) {
                 const { results: allCategories } = await env.D1_DB.prepare("SELECT id, parentId FROM categories").run();
@@ -146,7 +197,7 @@ export async function onRequest(context) {
                 whereClauses.push(`categoryId IN (${categoryIdsToQuery.map(() => '?').join(',')})`);
                 bindings.push(...categoryIdsToQuery);
             }
-            
+
             const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
             const query = `SELECT * FROM products ${whereString} ORDER BY price ASC LIMIT ? OFFSET ?`;
             bindings.push(limit, offset);
@@ -156,9 +207,9 @@ export async function onRequest(context) {
             rewriters.push(['#product-list', new ProductListInjector(initialProducts || [])]);
 
             // 分類描述注入
-            if(categoryId) {
+            if (categoryId) {
                 const category = await env.D1_DB.prepare("SELECT description FROM categories WHERE id = ?").bind(categoryId).first();
-                if(category && category.description) {
+                if (category && category.description) {
                     const descHtml = `<p>${category.description.replace(/\n/g, '<br>')}</p>`;
                     rewriters.push(['#category-description-container', new ContentInjector('', descHtml)]);
                 }
@@ -179,10 +230,10 @@ export async function onRequest(context) {
 
     const assetResponse = await env.ASSETS.fetch(new URL(baseHtmlPath, request.url));
     if (rewriters.length === 0) return assetResponse;
-    
+
     let rewriter = new HTMLRewriter();
     rewriters.forEach(([selector, handler]) => {
-        if(handler) rewriter.on(selector, handler);
+        if (handler) rewriter.on(selector, handler);
     });
 
     return rewriter.transform(assetResponse);
