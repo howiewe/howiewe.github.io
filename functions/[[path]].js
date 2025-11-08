@@ -1,4 +1,18 @@
-// functions/[[path]].js (最終修正版)
+// functions/[[path]].js (已整合分類總覽頁路由)
+
+// --- 輔助函式：XML 特殊字符轉義 (從 sitemap.xml.js 借用過來，確保 injector 能用) ---
+const escapeXml = (unsafe) => {
+    const str = String(unsafe || '');
+    return str.replace(/[<>&'"]/g, (c) => {
+        switch (c) {
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '&': return '&amp;';
+            case '\'': return '&apos;';
+            case '"': return '&quot;';
+        }
+    });
+};
 
 // --- Meta 標籤與 Rewriter 輔助函式 (保持不變) ---
 function generateMetaTagsHTML(data) {
@@ -14,19 +28,53 @@ function generateMetaTagsHTML(data) {
         <meta name="twitter:card" content="summary_large_image">
     `;
 }
+
+// --- Rewriter 類別 ---
+
+// [新增] 用於渲染分類總覽頁的卡片
+class CategoryLobbyInjector {
+    constructor(categories, baseUrl) {
+        this.categories = categories;
+        this.baseUrl = baseUrl;
+    }
+    element(element) {
+        if (this.categories && this.categories.length > 0) {
+            let categoriesHtml = '';
+            // 只顯示第一層的分類
+            const topLevelCategories = this.categories.filter(c => c.parentId === null)
+                                                      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+                                                      
+            topLevelCategories.forEach(cat => {
+                const categoryUrlName = encodeURIComponent(cat.name);
+                const categoryHref = `/catalog/category/${cat.id}/${categoryUrlName}`;
+                const description = cat.description ? escapeXml(cat.description.substring(0, 50) + '...') : '點擊查看更多產品';
+
+                categoriesHtml += `
+                    <a href="${categoryHref}" class="category-card">
+                        <h3>${escapeXml(cat.name)}</h3>
+                        <p>${description}</p>
+                    </a>
+                `;
+            });
+            element.setInnerContent(categoriesHtml, { html: true });
+        } else {
+            element.setInnerContent('<p class="empty-message">目前沒有任何分類。</p>', { html: true });
+        }
+    }
+}
+
 class HeadRewriter {
     constructor(metaData) { this.metaData = metaData; }
     element(element) { if (this.metaData) element.append(generateMetaTagsHTML(this.metaData), { html: true }); }
 }
+
 class TitleRewriter {
     constructor(title) { this.title = title; }
     element(element) { if (this.title) element.setInnerContent(this.title); }
 }
 
 class StructuredDataInjector {
-    constructor(jsonData) {
-        this.jsonData = jsonData;
-    }
+    constructor(jsonData) { this.jsonData = jsonData; }
     element(element) {
         if (this.jsonData) {
             const scriptContent = JSON.stringify(this.jsonData, null, 2);
@@ -39,6 +87,7 @@ class ContentInjector {
     constructor(selector, content) { this.selector = selector; this.content = content; }
     element(element) { if (this.content) element.setInnerContent(this.content, { html: true }); }
 }
+
 class ProductListInjector {
     constructor(products) { this.products = products; }
     element(element) {
@@ -53,8 +102,8 @@ class ProductListInjector {
                 const priceHtml = (product.price !== null && product.price !== undefined) ? `<p class="price">$${product.price}</p>` : `<p class="price price-empty">&nbsp;</p>`;
                 productsHtml += `
                     <a href="${productHref}" class="product-card">
-                        <div class="image-container"><img src="${imageUrl}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${imageSize / 100});"></div>
-                        <div class="product-info"><h3>${product.name}</h3>${priceHtml}</div>
+                        <div class="image-container"><img src="${imageUrl}" class="product-image" alt="${escapeXml(product.name)}" loading="lazy" style="transform: scale(${imageSize / 100});"></div>
+                        <div class="product-info"><h3>${escapeXml(product.name)}</h3>${priceHtml}</div>
                     </a>
                 `;
             });
@@ -66,7 +115,7 @@ class ProductListInjector {
 }
 
 
-// --- 主要請求處理函式 (最終修正版) ---
+// --- 主要請求處理函式 (已整合新路由) ---
 export async function onRequest(context) {
     const { request, env, next } = context;
 
@@ -83,36 +132,68 @@ export async function onRequest(context) {
     let rewriters = [];
 
     try {
-        if (pathname.startsWith('/catalog')) {
+        // --- [新邏輯] 處理分類總覽頁 /catalog/category ---
+        if (pathname === '/catalog/category') {
+            baseHtmlPath = '/catalog-lobby.html'; // 使用新的 HTML 模板
+
+            const { results: allCategories } = await env.D1_DB.prepare("SELECT id, name, description, parentId, sortOrder FROM categories").run();
+
+            const metaData = {
+                title: '產品分類總覽 | 光華工業',
+                description: '探索光華工業的所有產品系列，包含桌球、羽球、跳繩等專業運動用品。',
+                image: defaultImage,
+                url: url.href
+            };
+            rewriters.push(['title', new TitleRewriter(metaData.title)]);
+            rewriters.push(['head', new HeadRewriter(metaData)]);
+
+            const structuredData = {
+                "@context": "https://schema.org",
+                "@type": "CollectionPage",
+                "name": "產品分類總覽",
+                "description": "探索光華工業的所有產品系列。",
+                "url": url.href
+            };
+            rewriters.push(['head', new StructuredDataInjector(structuredData)]);
+
+            const breadcrumbData = {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    { "@type": "ListItem", "position": 1, "name": "首頁", "item": url.origin },
+                    { "@type": "ListItem", "position": 2, "name": "產品分類" }
+                ]
+            };
+            rewriters.push(['head', new StructuredDataInjector(breadcrumbData)]);
+            
+            rewriters.push(['#category-grid-container', new CategoryLobbyInjector(allCategories || [], url.origin)]);
+        
+        // --- [原有邏輯] 處理 /catalog, /catalog/product/*, /catalog/category/* ---
+        } else if (pathname.startsWith('/catalog')) {
             baseHtmlPath = '/catalog.html';
 
-            // --- 任務一：產生 Meta 標籤 (用於 URL 預覽) ---
             let metaData;
             let structuredData = null;
-            let categoryId = null; // 在此宣告，讓後續任務可以共用
+            let categoryId = null; 
 
             if (pathname.startsWith('/catalog/product/')) {
                 const id = pathname.split('/')[3];
-                // 1. 修改 SQL：從資料庫多拿一些欄位 (sku, price, ean13)
                 const product = id && !isNaN(id) ? await env.D1_DB.prepare(
-                    "SELECT id, sku, name, description, imageUrls, price, ean13 FROM products WHERE id = ?"
+                    "SELECT id, sku, name, description, imageUrls, price, ean13, categoryId FROM products WHERE id = ?"
                 ).bind(id).first() : null;
 
                 if (product) {
-                    // 處理圖片 (和之前一樣，但多了一個 images 陣列)
                     let image = defaultImage;
-                    let images = []; // 用來放所有圖片 URL 的陣列
+                    let images = []; 
                     if (product.imageUrls) try {
                         const parsedImages = JSON.parse(product.imageUrls);
                         images = parsedImages.map(img => img.url);
                         image = images[0] || defaultImage;
                     } catch (e) { }
 
-                    // 產生 Meta 標籤 (和之前一樣)
                     metaData = { title: `${product.name} | 光華工業`, description: product.description, image: image, url: url.href };
 
-                    // 2. 新增：產生 Product 的 JSON-LD 結構化資料
-                    structuredData = { // <--- 這就是我們要給 Google 看的 "產品說明書"
+                    structuredData = {
                         "@context": "https://schema.org/",
                         "@type": "Product",
                         "name": product.name,
@@ -121,26 +202,22 @@ export async function onRequest(context) {
                         "sku": product.sku,
                         "mpn": product.sku,
                         "gtin13": product.ean13,
-                        "brand": {
-                            "@type": "Brand",
-                            "name": "光華工業"
-                        },
+                        "brand": { "@type": "Brand", "name": "光華工業" },
                         "offers": {
                             "@type": "Offer",
                             "url": url.href,
                             "priceCurrency": "TWD",
                             "price": product.price,
-                            "availability": "https://schema.org/InStock" // 假設都有庫存
+                            "availability": "https://schema.org/InStock"
                         }
                     };
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
                 const idStr = pathname.split('/')[3];
                 if (idStr && !isNaN(idStr)) {
-                    categoryId = parseInt(idStr); // 取得當前分類 ID
+                    categoryId = parseInt(idStr);
                     const category = await env.D1_DB.prepare("SELECT name, description FROM categories WHERE id = ?").bind(categoryId).first();
                     if (category) {
-                        // ▼▼▼ 【核心修正】尋找代表圖時，也要遞迴查詢子分類 ▼▼▼
                         const randomImageResult = await env.D1_DB.prepare(`
                             SELECT p.imageUrls FROM products p
                             WHERE p.categoryId IN (
@@ -172,16 +249,13 @@ export async function onRequest(context) {
                 rewriters.push(['head', new StructuredDataInjector(structuredData)]);
             }
 
-            // --- 任務二：預先渲染 Body 內容 ---
             const searchParams = url.searchParams;
             const page = parseInt(searchParams.get('page')) || 1;
             const limit = 24;
             const offset = (page - 1) * limit;
-
             let whereClauses = [];
             let bindings = [];
 
-            // ▼▼▼ 【核心修正】使用遞迴邏輯查詢所有子分類的產品 ▼▼▼
             if (categoryId) {
                 const { results: allCategories } = await env.D1_DB.prepare("SELECT id, parentId FROM categories").run();
                 const getSubCategoryIds = (startId) => {
@@ -204,10 +278,8 @@ export async function onRequest(context) {
             bindings.push(limit, offset);
 
             const { results: initialProducts } = await env.D1_DB.prepare(query).bind(...bindings).run();
-
             rewriters.push(['#product-list', new ProductListInjector(initialProducts || [])]);
 
-            // 分類描述注入
             if (categoryId) {
                 const category = await env.D1_DB.prepare("SELECT description FROM categories WHERE id = ?").bind(categoryId).first();
                 if (category && category.description) {
@@ -216,6 +288,7 @@ export async function onRequest(context) {
                 }
             }
 
+        // --- [原有邏輯] 處理首頁 / ---
         } else if (pathname === '/') {
             baseHtmlPath = '/index.html';
             const metaData = { title: '光華工業有限公司 - 專業運動用品製造商', description: '光華工業擁有超過50年專業製造經驗，提供高品質乒乓球拍、羽球拍、跳繩、球棒等各式運動用品。', image: defaultImage, url: url.href };
