@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const productList = document.getElementById('product-list');
     const categoryTreeContainer = document.getElementById('category-tree');
     const searchBox = document.getElementById('search-box');
-    const themeToggle = document.getElementById('theme-toggle');
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const pageOverlay = document.getElementById('page-overlay');
     const toolbar = document.getElementById('toolbar');
@@ -456,11 +455,6 @@ document.addEventListener('DOMContentLoaded', () => {
      * @description 網站初始化函式，設定所有事件監聽器
      */
     function init() {
-        // 主題切換 (不變)
-        if (themeToggle) themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme === 'dark') document.body.classList.add('dark-mode');
-
         // 搜尋功能 (不變)
         if (searchBox) { searchBox.addEventListener('input', () => { clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(() => { state.searchTerm = searchBox.value.trim(); state.currentPage = 1; fetchProducts(); }, 300); }); }
 

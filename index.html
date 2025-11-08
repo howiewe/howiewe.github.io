@@ -7,7 +7,7 @@
     <title>光華工業有限公司 - 專業運動用品製造商</title>
 
     <meta name="description" content="光華工業擁有超過50年專業製造經驗，提供高品質乒乓球拍、羽球拍、跳繩、球棒等各式運動用品。我們秉持品質第一、服務至上的理念，是您最值得信賴的合作夥伴。">
-
+    <script src="/theme.js" defer></script>
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -508,22 +508,6 @@
     <script>
     // 等待整個網頁的 HTML 結構都載入完成後才執行
     document.addEventListener('DOMContentLoaded', () => {
-
-        // --- 功能一：處理主題切換 (Dark Mode) ---
-        const themeToggle = document.getElementById('theme-toggle');
-        const body = document.body;
-
-        if (themeToggle && body) {
-            themeToggle.addEventListener('click', () => {
-                body.classList.toggle('dark-mode');
-                
-                if (body.classList.contains('dark-mode')) {
-                    themeToggle.textContent = '☀️';
-                } else {
-                    themeToggle.textContent = '🌙';
-                }
-            });
-        }
 
         // --- 功能二：動態更新首頁產品系列連結 ---
         async function updateCategoryLinks() {

@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('product-form');
     const formTitle = document.getElementById('form-title');
     const productIdInput = document.getElementById('product-id');
-    const themeToggle = document.getElementById('theme-toggle');
     const categorySelect = document.getElementById('product-category-select');
     const editModal = document.getElementById('edit-modal-container');
     const modalCloseBtn = document.getElementById('modal-close-btn');
@@ -524,8 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (orderToggleBtn) { orderToggleBtn.addEventListener('click', () => { state.order = (state.order === 'asc') ? 'desc' : 'asc'; state.currentPage = 1; orderToggleBtn.dataset.order = state.order; fetchProducts(); }); }
         document.addEventListener('click', () => { if (sortOptionsContainer && !sortOptionsContainer.classList.contains('hidden')) { sortOptionsContainer.classList.add('hidden'); } });
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme === 'dark') document.body.classList.add('dark-mode');
         addNewBtn.disabled = true;
         manageCategoriesBtn.disabled = true;
         if (await fetchCategories()) { buildCategoryTree(); populateCategorySelect(); await fetchProducts(); } else { try { const localCategories = await readData('categories'); if (localCategories && localCategories.length > 0) { allCategories = localCategories; buildCategoryTree(); populateCategorySelect(); await fetchProducts(); showToast('雲端分類連接失敗，已載入本地快取', 'error'); } else { showToast('雲端及本地分類均載入失敗', 'error'); } } catch (e) { showToast('載入分類失敗', 'error'); } }
@@ -535,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editModal) editModal.addEventListener('click', (e) => { if (e.target === editModal) closeModal(editModal); });
         if (categoryModal) categoryModal.addEventListener('click', (e) => { if (e.target === categoryModal) closeModal(categoryModal); });
         if (modalCloseBtn) modalCloseBtn.addEventListener('click', () => closeModal(editModal));
-        if (themeToggle) themeToggle.addEventListener('click', () => { document.body.classList.toggle('dark-mode'); localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); });
         if (addNewBtn) addNewBtn.addEventListener('click', () => openProductModal());
         if (menuToggleBtn) menuToggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
         if (pageOverlay) pageOverlay.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
