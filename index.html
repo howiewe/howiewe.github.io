@@ -356,10 +356,15 @@
                 font-size: 2em;
             }
         }
+        body.home-page {
+            display: block; /* 改回預設的塊級佈局，而不是 flex */
+            height: auto;   /* 高度由內容自動決定，而不是 100vh */
+            overflow: visible; /* 允許內容超出時，出現滾動條 */
+        }
     </style>
 </head>
 
-<body>
+<body class="home-page">
 
     <!-- 導覽列 -->
     <header class="site-header">
