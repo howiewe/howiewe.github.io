@@ -19,11 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- 4. 將按鈕放入所有找到的容器中 ---
         buttonContainers.forEach(container => {
             container.innerHTML = buttonHTML;
-            // 針對首頁的特殊 class 處理
-            const button = container.querySelector('#theme-toggle');
-            if (container.classList.contains('is-home')) {
-                button.classList.add('theme-switch');
-            }
         });
     }
 

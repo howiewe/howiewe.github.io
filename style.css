@@ -160,14 +160,20 @@ main {
 .menu-toggle-btn,
 #theme-toggle {
     display: flex;
+    /* 使用 flex 讓 SVG 居中 */
     align-items: center;
     justify-content: center;
     background: none;
     border: none;
     cursor: pointer;
     color: var(--text-secondary);
-    padding: 0.5rem;
-    border-radius: var(--border-radius-md);
+    padding: 0;
+    /* 移除內邊距，由寬高決定大小 */
+    width: 44px;
+    /* 固定寬高 */
+    height: 44px;
+    border-radius: 50%;
+    /* 圓形按鈕 */
     transition: background-color 0.2s, color 0.2s;
 }
 
@@ -177,7 +183,14 @@ main {
     color: var(--text-primary);
 }
 
-.menu-toggle-btn {
+/* 核心：SVG 圖示切換邏輯 (全域生效) */
+/* 預設 (淺色模式) 時，隱藏月亮 */
+body:not(.dark-mode) #theme-toggle .icon-moon {
+    display: none;
+}
+
+/* 在深色模式時，隱藏太陽 */
+body.dark-mode #theme-toggle .icon-sun {
     display: none;
 }
 
@@ -372,8 +385,10 @@ body.dark-mode .icon-sun {
 
 a.product-card,
 a.product-card:hover {
-    text-decoration: none; /* 移除底線 */
-    color: inherit;        /* 讓文字顏色繼承父層 (body)，避免顯示預設的藍色 */
+    text-decoration: none;
+    /* 移除底線 */
+    color: inherit;
+    /* 讓文字顏色繼承父層 (body)，避免顯示預設的藍色 */
 }
 
 /* --- 7. Toolbar & 排序 (Toolbar & Sorting) --- */
@@ -2237,11 +2252,13 @@ body.lightbox-open {
 
 .page-number-vertical {
     position: absolute;
-    bottom: 40px;  /* 離頁面底部 40px */
-    right: 15px;   /* 離頁面右側 15px */
+    bottom: 40px;
+    /* 離頁面底部 40px */
+    right: 15px;
+    /* 離頁面右側 15px */
 
     /* 核心修改：在旋轉後，使用 translateX 將其移回邊界內 */
-    transform: rotate(-90deg) translateX(100%); 
+    transform: rotate(-90deg) translateX(100%);
     transform-origin: bottom right;
 
     /* 其他文字樣式不變 */
