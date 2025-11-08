@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- title 和 meta 會由 SSR 動態填入 -->
     <title>產品分類</title>
     <link rel="stylesheet" href="/style.css">
-    <!-- 我們將在這裡新增一些專屬的 CSS -->
+    <script src="/theme.js" defer></script>
     <style>
         .category-lobby-grid {
             display: grid;
             /* 在手機上預設就是一欄，所以不用特別寫 */
-            grid-template-columns: 1fr; 
+            grid-template-columns: 1fr;
             gap: 1.5rem;
             padding: 2rem 0;
         }
@@ -19,8 +20,10 @@
         .category-card {
             display: flex;
             flex-direction: column;
-            justify-content: center; /* 垂直置中文字 */
-            align-items: center; /* 水平置中文字 */
+            justify-content: center;
+            /* 垂直置中文字 */
+            align-items: center;
+            /* 水平置中文字 */
             text-align: center;
             height: 200px;
             padding: 1rem;
@@ -58,14 +61,34 @@
         }
     </style>
 </head>
+
 <body>
     <!-- 沿用 catalog.html 的 header, 讓 SSR 自動處理 -->
     <header>
         <div class="header-content">
-            <h1><a href="/catalog">產品分類</a></h1>
+            <!-- 我們可以讓標題連結到所有產品頁，提供一個返回的途徑 -->
+            <h1><a href="/catalog" style="text-decoration: none; color: inherit;">產品分類</a></h1>
             <div class="header-actions">
-                 <button id="theme-toggle" title="切換深色/淺色模式">
-                    <!-- SVG Icons... -->
+                <!-- ▼▼▼ 2. 使用和全站統一的 SVG 按鈕結構 ▼▼▼ -->
+                <button id="theme-toggle" title="切換深色/淺色模式">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="icon-sun">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="icon-moon">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
                 </button>
             </div>
         </div>
@@ -75,7 +98,7 @@
         <div class="container">
             <!-- 麵包屑導覽將會放在這裡 -->
             <div id="breadcrumb-container"></div>
-            
+
             <!-- 分類卡片將由 SSR 動態注入到這裡 -->
             <div id="category-grid-container" class="category-lobby-grid">
                 <!-- SSR Pre-rendering Content -->
@@ -83,7 +106,8 @@
             </div>
         </div>
     </main>
-    
+
     <!-- 這裡不需要 script，因為它只是一個被渲染的模板 -->
 </body>
+
 </html>
