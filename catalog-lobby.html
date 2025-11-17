@@ -11,28 +11,26 @@
     <style>
         .category-lobby-grid {
             display: grid;
-            /* 在手機上預設就是一欄，所以不用特別寫 */
-            grid-template-columns: 1fr;
             gap: 1.5rem;
             padding: 2rem 0;
+            /* 手機版預設：子分類為單欄，母分類為雙欄 */
+            grid-template-columns: 1fr;
         }
 
         .category-card {
             display: flex;
             flex-direction: column;
             justify-content: center;
-            /* 垂直置中文字 */
             align-items: center;
-            /* 水平置中文字 */
             text-align: center;
-            height: 200px;
             padding: 1rem;
             background-color: var(--surface-color);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border-color); /* 子分類的預設邊框 */
             border-radius: var(--border-radius-lg);
             text-decoration: none;
             color: var(--text-primary);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            min-height: 120px; /* 給子分類一個最小高度，避免太空 */
         }
 
         .category-card:hover {
@@ -52,11 +50,45 @@
             margin-top: 0.5rem;
         }
 
+        /* ▼▼▼ 【核心新增樣式】針對母分類卡片 ▼▼▼ */
+        .category-card--parent {
+            aspect-ratio: 1 / 1; /* 讓卡片維持 1:1 的正方形比例 */
+            border: 2px solid var(--primary-color); /* 使用主題藍色，並加粗邊框 */
+            min-height: unset; /* 取消最小高度限制，由 aspect-ratio 控制 */
+        }
+
+        /* 
+         * 使用 Grid 的 auto-flow: dense 和 grid-column 來智慧排版
+         * 讓母分類佔據半個寬度 (形成兩欄)，子分類佔據整個寬度 (形成單欄)
+        */
+        .category-lobby-grid {
+            grid-auto-flow: dense;
+        }
+        .category-card--parent {
+            grid-column: span 1;
+        }
+        .category-card:not(.category-card--parent) {
+            grid-column: span 2; /* 在 2 欄的網格中，佔據 2 格寬度，即為滿版 */
+        }
+        /* ▲▲▲ 手機版樣式結束 ▲▲▲ */
+
+
         /* 響應式：當螢幕寬度大於 768px (平板和桌面) */
         @media (min-width: 768px) {
             .category-lobby-grid {
-                /* 自動填充，每欄最小 250px，最大 1fr，實現響應式網格 */
+                /* 恢復成原本的自動填充網格 */
                 grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+
+            /* 在大螢幕上，讓所有卡片都恢復成佔據一格 */
+            .category-card,
+            .category-card--parent {
+                grid-column: span 1;
+            }
+
+            /* 在大螢幕上，子分類的高度也設定為正方形，視覺較統一 */
+            .category-card:not(.category-card--parent) {
+                 aspect-ratio: 1 / 1;
             }
         }
     </style>
