@@ -1,4 +1,4 @@
-// functions/[[path]].js (已整合分類總覽頁路由)
+// functions/[[path]].js (已整合分類總覽頁路由 和 您的特殊需求)
 
 // --- 輔助函式：XML 特殊字符轉義 (從 sitemap.xml.js 借用過來，確保 injector 能用) ---
 const escapeXml = (unsafe) => {
@@ -31,7 +31,7 @@ function generateMetaTagsHTML(data) {
 
 // --- Rewriter 類別 ---
 
-// [新增] 用於渲染分類總覽頁的卡片
+// [核心修改] 用於渲染分類總覽頁的卡片
 class CategoryLobbyInjector {
     constructor(categories, baseUrl) {
         this.categories = categories;
@@ -40,11 +40,26 @@ class CategoryLobbyInjector {
     element(element) {
         if (this.categories && this.categories.length > 0) {
             let categoriesHtml = '';
-            // 只顯示第一層的分類
+
+            // 1. 先照常取得所有頂層分類
             const topLevelCategories = this.categories.filter(c => c.parentId === null)
                                                       .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-                                                      
-            topLevelCategories.forEach(cat => {
+
+            // 2. [新邏輯] 尋找 "運動用品" 分類
+            const sportsCategory = this.categories.find(c => c.name === '運動用品' && c.parentId === null);
+            let specialSubcategories = [];
+
+            // 3. [新邏輯] 如果找到了 "運動用品"，就找出它的所有直屬子分類
+            if (sportsCategory) {
+                specialSubcategories = this.categories.filter(c => c.parentId === sportsCategory.id)
+                                                      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+            }
+
+            // 4. [新邏輯] 將頂層分類和特別找出的子分類合併成一個要顯示的列表
+            const categoriesToDisplay = topLevelCategories.concat(specialSubcategories);
+
+            // 5. [修改] 使用合併後的列表來產生 HTML
+            categoriesToDisplay.forEach(cat => {
                 const categoryUrlName = encodeURIComponent(cat.name);
                 const categoryHref = `/catalog/category/${cat.id}/${categoryUrlName}`;
                 const description = cat.description ? escapeXml(cat.description.substring(0, 50) + '...') : '點擊查看更多產品';
@@ -56,6 +71,7 @@ class CategoryLobbyInjector {
                     </a>
                 `;
             });
+
             element.setInnerContent(categoriesHtml, { html: true });
         } else {
             element.setInnerContent('<p class="empty-message">目前沒有任何分類。</p>', { html: true });
