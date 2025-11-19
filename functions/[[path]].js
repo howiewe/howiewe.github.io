@@ -131,6 +131,56 @@ class ProductListInjector {
     }
 }
 
+// --- [新增] 側邊欄注入器 ---
+class SidebarInjector {
+    constructor(categories) {
+        this.categories = categories || [];
+    }
+
+    element(element) {
+        if (this.categories.length === 0) return;
+
+        // 建構樹狀結構
+        const categoryMap = new Map(this.categories.map(c => [c.id, { ...c, children: [] }]));
+        const tree = [];
+        for (const category of categoryMap.values()) {
+            if (category.parentId === null) tree.push(category);
+            else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
+        }
+
+        // 生成 HTML
+        let html = `<ul><li><a href="/catalog" class="active">所有產品</a></li></ul>`;
+        html += this.createTreeHTML(tree);
+
+        element.setInnerContent(html, { html: true });
+    }
+
+    createTreeHTML(nodes, depth = 0) {
+        nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        let subHtml = `<ul class="${depth >= 2 ? 'hidden' : ''}">`;
+        for (const node of nodes) {
+            const hasChildren = node.children && node.children.length > 0;
+            const categoryUrlName = encodeURIComponent(node.name);
+            // 注意：這裡的 href 格式必須與前端 script-customer.js 中的邏輯一致
+            subHtml += `<li class="${hasChildren ? 'has-children' : ''}">
+                <a href="/catalog/category/${node.id}/${categoryUrlName}">
+                    <span>${escapeXml(node.name)}</span>`;
+            
+            if (hasChildren) {
+                subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
+            }
+            
+            subHtml += `</a>`;
+            
+            if (hasChildren) {
+                subHtml += this.createTreeHTML(node.children, depth + 1);
+            }
+            subHtml += '</li>';
+        }
+        return subHtml + '</ul>';
+    }
+}
+
 
 // --- 主要請求處理函式 (已整合新路由) ---
 export async function onRequest(context) {
@@ -149,11 +199,15 @@ export async function onRequest(context) {
     let rewriters = [];
 
     try {
+        // 預先抓取所有分類資料，供側邊欄使用 (適用於所有頁面)
+        const { results: allCategories } = await env.D1_DB.prepare("SELECT id, name, description, parentId, sortOrder FROM categories").run();
+        
+        // 注入側邊欄 (如果頁面上有 #category-tree)
+        rewriters.push(['#category-tree', new SidebarInjector(allCategories)]);
+
         // --- [新邏輯] 處理分類總覽頁 /catalog/category ---
         if (pathname === '/catalog/category') {
             baseHtmlPath = '/catalog-lobby.html'; // 使用新的 HTML 模板
-
-            const { results: allCategories } = await env.D1_DB.prepare("SELECT id, name, description, parentId, sortOrder FROM categories").run();
 
             const metaData = {
                 title: '產品分類總覽 | 光華工業',
@@ -274,7 +328,7 @@ export async function onRequest(context) {
             let bindings = [];
 
             if (categoryId) {
-                const { results: allCategories } = await env.D1_DB.prepare("SELECT id, parentId FROM categories").run();
+                // const { results: allCategories } = await env.D1_DB.prepare("SELECT id, parentId FROM categories").run(); // 已在上方宣告
                 const getSubCategoryIds = (startId) => {
                     const ids = new Set([startId]);
                     const queue = [startId];

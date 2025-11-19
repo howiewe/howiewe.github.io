@@ -1,5 +1,5 @@
 // script-customer.js (最終整合版：包含所有舊功能 + 彈窗獨立網址路由)
-// 最後更新時間：2025-10-14
+// 最後更新時間：2025-11-19
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 元素宣告 (所有會用到的 HTML 元素都先在這裡宣告) ---
@@ -235,8 +235,14 @@ document.addEventListener('DOMContentLoaded', () => {
      * @description 根據 `allCategories` 資料，建立左側的分類樹結構
      */
     function buildCategoryTree() {
-        // ... (此函式功能不變，保持原樣)
         if (!categoryTreeContainer) return;
+
+        // [核心修改] Hydration 檢查：如果容器內已經有內容 (由 SSR 產生)，就不重新生成 HTML
+        if (categoryTreeContainer.innerHTML.trim() !== '') {
+            console.log('SSR Sidebar detected. Hydrating...');
+            return;
+        }
+
         const categoryMap = new Map(allCategories.map(c => [c.id, { ...c, children: [] }]));
         const tree = [];
         for (const category of categoryMap.values()) {
@@ -332,8 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. 同步側邊欄 UI (邏輯不變)
         updateSidebarActiveState();
     }
-
-
 
     /**
      * @description 更新側邊欄分類的選中 (active) 狀態，使其與目前 URL 匹配
