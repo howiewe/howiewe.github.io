@@ -1,6 +1,6 @@
-// functions/[[path]].js (已整合分類總覽頁路由 和 您的特殊需求)
+// functions/[[path]].js
 
-// --- 輔助函式：XML 特殊字符轉義 (從 sitemap.xml.js 借用過來，確保 injector 能用) ---
+// --- 輔助函式：XML 特殊字符轉義 ---
 const escapeXml = (unsafe) => {
     const str = String(unsafe || '');
     return str.replace(/[<>&'"]/g, (c) => {
@@ -14,7 +14,7 @@ const escapeXml = (unsafe) => {
     });
 };
 
-// --- Meta 標籤與 Rewriter 輔助函式 (保持不變) ---
+// --- Meta 標籤與 Rewriter 輔助函式 ---
 function generateMetaTagsHTML(data) {
     const escape = (str) => str ? str.replace(/"/g, '&quot;') : '';
     const description = (data.description || '').substring(0, 160);
@@ -31,7 +31,6 @@ function generateMetaTagsHTML(data) {
 
 // --- Rewriter 類別 ---
 
-// [核心修改] 用於渲染分類總覽頁的卡片
 class CategoryLobbyInjector {
     constructor(categories, baseUrl) {
         this.categories = categories;
@@ -59,10 +58,8 @@ class CategoryLobbyInjector {
                 const categoryHref = `/catalog/category/${cat.id}/${categoryUrlName}`;
                 const description = cat.description ? escapeXml(cat.description.substring(0, 50) + '...') : '點擊查看更多產品';
 
-                // ▼▼▼ 【核心修改】判斷是否為母分類，並加上額外的 class ▼▼▼
                 const isParent = cat.parentId === null;
                 const cardClass = `category-card ${isParent ? 'category-card--parent' : ''}`;
-                // ▲▲▲ 修改結束 ▲▲▲
 
                 categoriesHtml += `
                     <a href="${categoryHref}" class="${cardClass}">
@@ -78,7 +75,6 @@ class CategoryLobbyInjector {
         }
     }
 }
-
 
 class HeadRewriter {
     constructor(metaData) { this.metaData = metaData; }
@@ -131,7 +127,6 @@ class ProductListInjector {
     }
 }
 
-// --- [新增] 側邊欄注入器 ---
 class SidebarInjector {
     constructor(categories) {
         this.categories = categories || [];
@@ -140,7 +135,6 @@ class SidebarInjector {
     element(element) {
         if (this.categories.length === 0) return;
 
-        // 建構樹狀結構
         const categoryMap = new Map(this.categories.map(c => [c.id, { ...c, children: [] }]));
         const tree = [];
         for (const category of categoryMap.values()) {
@@ -148,7 +142,6 @@ class SidebarInjector {
             else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
         }
 
-        // 生成 HTML
         let html = `<ul><li><a href="/catalog" class="active">所有產品</a></li></ul>`;
         html += this.createTreeHTML(tree);
 
@@ -161,7 +154,6 @@ class SidebarInjector {
         for (const node of nodes) {
             const hasChildren = node.children && node.children.length > 0;
             const categoryUrlName = encodeURIComponent(node.name);
-            // 注意：這裡的 href 格式必須與前端 script-customer.js 中的邏輯一致
             subHtml += `<li class="${hasChildren ? 'has-children' : ''}">
                 <a href="/catalog/category/${node.id}/${categoryUrlName}">
                     <span>${escapeXml(node.name)}</span>`;
@@ -181,8 +173,7 @@ class SidebarInjector {
     }
 }
 
-
-// --- 主要請求處理函式 (已整合新路由) ---
+// --- 主要請求處理函式 ---
 export async function onRequest(context) {
     const { request, env, next } = context;
 
@@ -199,15 +190,12 @@ export async function onRequest(context) {
     let rewriters = [];
 
     try {
-        // 預先抓取所有分類資料，供側邊欄使用 (適用於所有頁面)
         const { results: allCategories } = await env.D1_DB.prepare("SELECT id, name, description, parentId, sortOrder FROM categories").run();
 
-        // 注入側邊欄 (如果頁面上有 #category-tree)
         rewriters.push(['#category-tree', new SidebarInjector(allCategories)]);
 
-        // --- [新邏輯] 處理分類總覽頁 /catalog/category ---
         if (pathname === '/catalog/category') {
-            baseHtmlPath = '/catalog-lobby.html'; // 使用新的 HTML 模板
+            baseHtmlPath = '/catalog-lobby.html';
 
             const metaData = {
                 title: '產品分類總覽 | 光華工業',
@@ -239,7 +227,6 @@ export async function onRequest(context) {
 
             rewriters.push(['#category-grid-container', new CategoryLobbyInjector(allCategories || [], url.origin)]);
 
-            // --- [原有邏輯] 處理 /catalog, /catalog/product/*, /catalog/category/* ---
         } else if (pathname.startsWith('/catalog')) {
             baseHtmlPath = '/catalog.html';
 
@@ -248,6 +235,81 @@ export async function onRequest(context) {
             let categoryId = null;
 
             if (pathname.startsWith('/catalog/product/')) {
+                const id = pathname.split('/')[3];
+                const product = id && !isNaN(id) ? await env.D1_DB.prepare(
+                    "SELECT id, sku, name, description, imageUrls, price, ean13, categoryId FROM products WHERE id = ?"
+                ).bind(id).first() : null;
+
+                if (product) {
+                    let image = defaultImage;
+                    let images = [];
+                    if (product.imageUrls) try {
+                        const parsedImages = JSON.parse(product.imageUrls);
+                        images = parsedImages.map(img => img.url);
+                        image = images[0] || defaultImage;
+                    } catch (e) { }
+
+                    const canonicalUrl = `${url.origin}/catalog/product/${product.id}/${encodeURIComponent(product.name)}`;
+
+                    metaData = { title: `${product.name} | 光華工業`, description: product.description, image: image, url: canonicalUrl };
+
+                    structuredData = {
+                        "@context": "https://schema.org/",
+                        "@type": "Product",
+                        "name": product.name,
+                        "image": images.length > 0 ? images : [image],
+                        "description": product.description,
+                        "sku": product.sku,
+                        "mpn": product.sku,
+                        "gtin13": product.ean13,
+                        "brand": { "@type": "Brand", "name": "光華工業" },
+                        "offers": {
+                            "@type": "Offer",
+                            "url": canonicalUrl,
+                            "priceCurrency": "TWD",
+                            "price": product.price,
+                            "availability": "https://schema.org/InStock"
+                        }
+                    };
+                }
+            } else if (pathname.startsWith('/catalog/category/')) {
+                const idStr = pathname.split('/')[3];
+                if (idStr && !isNaN(idStr)) {
+                    categoryId = parseInt(idStr);
+                    const category = await env.D1_DB.prepare("SELECT id, name, description FROM categories WHERE id = ?").bind(categoryId).first();
+                    if (category) {
+                        const randomImageResult = await env.D1_DB.prepare(`
+                            SELECT p.imageUrls FROM products p
+                            WHERE p.categoryId IN (
+                                WITH RECURSIVE descendant_categories(id) AS (
+                                    SELECT id FROM categories WHERE id = ?
+                                    UNION ALL
+                                    SELECT c.id FROM categories c JOIN descendant_categories dc ON c.parentId = dc.id
+                                )
+                                SELECT id FROM descendant_categories
+                            )
+                            AND p.imageUrls IS NOT NULL AND p.imageUrls != '[]' 
+                            ORDER BY RANDOM() LIMIT 1
+                        `).bind(categoryId).first();
+
+                        let image = defaultImage;
+                        if (randomImageResult) try { image = JSON.parse(randomImageResult.imageUrls)[0].url || defaultImage; } catch (e) { }
+
+                        const canonicalUrl = `${url.origin}/catalog/category/${category.id}/${encodeURIComponent(category.name)}`;
+
+                        metaData = { title: `${category.name} | 光華工業`, description: category.description || `探索我們在「${category.name}」分類下的所有產品。`, image: image, url: canonicalUrl };
+                    }
+                }
+            }
+
+            if (!metaData) {
+                metaData = { title: '產品目錄 | 光華工業', description: '瀏覽光華工業所有的產品系列。', image: defaultImage, url: url.href };
+            }
+
+            rewriters.push(['title', new TitleRewriter(metaData.title)]);
+            rewriters.push(['head', new HeadRewriter(metaData)]);
+            if (structuredData) {
+                rewriters.push(['head', new StructuredDataInjector(structuredData)]);
             }
 
             const searchParams = url.searchParams;
@@ -258,7 +320,6 @@ export async function onRequest(context) {
             let bindings = [];
 
             if (categoryId) {
-                // const { results: allCategories } = await env.D1_DB.prepare("SELECT id, parentId FROM categories").run(); // 已在上方宣告
                 const getSubCategoryIds = (startId) => {
                     const ids = new Set([startId]);
                     const queue = [startId];
@@ -289,7 +350,6 @@ export async function onRequest(context) {
                 }
             }
 
-            // --- [原有邏輯] 處理首頁 / ---
         } else if (pathname === '/') {
             baseHtmlPath = '/index.html';
             const metaData = { title: '光華工業有限公司 - 專業運動用品製造商', description: '光華工業擁有超過50年專業製造經驗，提供高品質乒乓球拍、羽球拍、跳繩、球棒等各式運動用品。', image: defaultImage, url: url.href };
