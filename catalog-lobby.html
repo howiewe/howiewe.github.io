@@ -25,12 +25,14 @@
             text-align: center;
             padding: 1rem;
             background-color: var(--surface-color);
-            border: 1px solid var(--border-color); /* 子分類的預設邊框 */
+            border: 1px solid var(--border-color);
+            /* 子分類的預設邊框 */
             border-radius: var(--border-radius-lg);
             text-decoration: none;
             color: var(--text-primary);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            min-height: 120px; /* 給子分類一個最小高度，避免太空 */
+            min-height: 120px;
+            /* 給子分類一個最小高度，避免太空 */
         }
 
         .category-card:hover {
@@ -52,9 +54,12 @@
 
         /* ▼▼▼ 【核心新增樣式】針對母分類卡片 ▼▼▼ */
         .category-card--parent {
-            aspect-ratio: 1 / 1; /* 讓卡片維持 1:1 的正方形比例 */
-            border: 2px solid var(--primary-color); /* 使用主題藍色，並加粗邊框 */
-            min-height: unset; /* 取消最小高度限制，由 aspect-ratio 控制 */
+            aspect-ratio: 1 / 1;
+            /* 讓卡片維持 1:1 的正方形比例 */
+            border: 2px solid var(--primary-color);
+            /* 使用主題藍色，並加粗邊框 */
+            min-height: unset;
+            /* 取消最小高度限制，由 aspect-ratio 控制 */
         }
 
         /* 
@@ -64,12 +69,16 @@
         .category-lobby-grid {
             grid-auto-flow: dense;
         }
+
         .category-card--parent {
             grid-column: span 1;
         }
+
         .category-card:not(.category-card--parent) {
-            grid-column: span 2; /* 在 2 欄的網格中，佔據 2 格寬度，即為滿版 */
+            grid-column: span 2;
+            /* 在 2 欄的網格中，佔據 2 格寬度，即為滿版 */
         }
+
         /* ▲▲▲ 手機版樣式結束 ▲▲▲ */
 
 
@@ -88,8 +97,97 @@
 
             /* 在大螢幕上，子分類的高度也設定為正方形，視覺較統一 */
             .category-card:not(.category-card--parent) {
-                 aspect-ratio: 1 / 1;
+                aspect-ratio: 1 / 1;
             }
+        }
+
+        /* --- [新增] 精選分類 (Featured Category) 樣式 --- */
+        .featured-category {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            background-color: var(--surface-color);
+            border-radius: var(--border-radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 3rem;
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 768px) {
+            .featured-category {
+                grid-template-columns: 1fr 1fr;
+                align-items: center;
+            }
+        }
+
+        .featured-image-container {
+            width: 100%;
+            height: 300px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .featured-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .featured-category:hover .featured-image {
+            transform: scale(1.05);
+        }
+
+        .featured-content {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .featured-label {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .featured-title {
+            font-size: 2rem;
+            margin: 0 0 1rem 0;
+            color: var(--text-primary);
+        }
+
+        .featured-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .featured-link {
+            display: inline-flex;
+            align-items: center;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .featured-link:hover {
+            color: var(--primary-hover);
+        }
+
+        .featured-link svg {
+            margin-left: 0.5rem;
+            transition: transform 0.2s;
+        }
+
+        .featured-link:hover svg {
+            transform: translateX(4px);
         }
     </style>
 </head>
@@ -110,6 +208,9 @@
         <div class="container">
             <!-- 麵包屑導覽將會放在這裡 -->
             <div id="breadcrumb-container"></div>
+
+            <!-- [新增] 精選分類區塊 -->
+            <div id="featured-category-container"></div>
 
             <!-- 分類卡片將由 SSR 動態注入到這裡 -->
             <div id="category-grid-container" class="category-lobby-grid">

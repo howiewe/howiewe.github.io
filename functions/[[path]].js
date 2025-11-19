@@ -76,6 +76,41 @@ class CategoryLobbyInjector {
     }
 }
 
+// --- [新增] 精選分類注入器 ---
+class FeaturedCategoryInjector {
+    constructor(category, imageUrl) {
+        this.category = category;
+        this.imageUrl = imageUrl;
+    }
+
+    element(element) {
+        if (!this.category) return;
+
+        const categoryUrlName = encodeURIComponent(this.category.name);
+        const categoryHref = `/catalog/category/${this.category.id}/${categoryUrlName}`;
+        const description = this.category.description || '探索我們精選的運動用品系列。';
+
+        const html = `
+            <div class="featured-category">
+                <div class="featured-image-container">
+                    <img src="${this.imageUrl}" alt="${escapeXml(this.category.name)}" class="featured-image" loading="lazy">
+                </div>
+                <div class="featured-content">
+                    <div class="featured-label">Featured Collection</div>
+                    <h2 class="featured-title">${escapeXml(this.category.name)}</h2>
+                    <p class="featured-description">${escapeXml(description)}</p>
+                    <a href="${categoryHref}" class="featured-link">
+                        立即選購
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </a>
+                </div>
+            </div>
+        `;
+
+        element.setInnerContent(html, { html: true });
+    }
+}
+
 class HeadRewriter {
     constructor(metaData) { this.metaData = metaData; }
     element(element) { if (this.metaData) element.append(generateMetaTagsHTML(this.metaData), { html: true }); }
@@ -225,7 +260,34 @@ export async function onRequest(context) {
             };
             rewriters.push(['head', new StructuredDataInjector(breadcrumbData)]);
 
-            rewriters.push(['#category-grid-container', new CategoryLobbyInjector(allCategories || [], url.origin)]);
+            // --- [新邏輯] 處理精選分類 (運動用品) ---
+            const featuredCategoryName = '運動用品';
+            const featuredCategory = allCategories.find(c => c.name === featuredCategoryName);
+            let featuredImage = defaultImage;
+
+            if (featuredCategory) {
+                const randomImageResult = await env.D1_DB.prepare(`
+                    SELECT p.imageUrls FROM products p
+                    WHERE p.categoryId IN (
+                        WITH RECURSIVE descendant_categories(id) AS (
+                            SELECT id FROM categories WHERE id = ?
+                            UNION ALL
+                            SELECT c.id FROM categories c JOIN descendant_categories dc ON c.parentId = dc.id
+                        )
+                        SELECT id FROM descendant_categories
+                    )
+                    AND p.imageUrls IS NOT NULL AND p.imageUrls != '[]' 
+                    ORDER BY RANDOM() LIMIT 1
+                `).bind(featuredCategory.id).first();
+
+                if (randomImageResult) try { featuredImage = JSON.parse(randomImageResult.imageUrls)[0].url || defaultImage; } catch (e) { }
+
+                rewriters.push(['#featured-category-container', new FeaturedCategoryInjector(featuredCategory, featuredImage)]);
+            }
+
+            // 渲染其餘分類 (排除精選分類，避免重複)
+            const categoriesToDisplay = allCategories.filter(c => c.name !== featuredCategoryName);
+            rewriters.push(['#category-grid-container', new CategoryLobbyInjector(categoriesToDisplay, url.origin)]);
 
         } else if (pathname.startsWith('/catalog')) {
             baseHtmlPath = '/catalog.html';
