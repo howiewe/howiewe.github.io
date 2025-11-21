@@ -1,5 +1,5 @@
 // script-customer.js (最終整合版：包含所有舊功能 + 彈窗獨立網址路由)
-// 最後更新時間：2025-11-19
+// 最後更新時間：2025-11-21
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 元素宣告 (所有會用到的 HTML 元素都先在這裡宣告) ---
@@ -275,6 +275,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // 取得路徑和查詢參數
         const path = window.location.pathname;
         const searchParams = new URLSearchParams(window.location.search);
+        const hash = window.location.hash;
+
+        // 0. 處理燈箱關閉邏輯 (當網址中沒有 #lightbox 但燈箱開啟時，代表使用者按了上一頁)
+        if (document.body.classList.contains('lightbox-open') && hash !== '#lightbox') {
+            _closeLightboxDOM();
+        }
 
         // ▼▼▼ 【核心修改】從 URL 讀取 page 參數 ▼▼▼
         const newPage = parseInt(searchParams.get('page')) || 1;
@@ -445,10 +451,37 @@ document.addEventListener('DOMContentLoaded', () => {
     function dragStart(e) { e.preventDefault(); if (totalSlides <= 1) return; isDragging = true; isSwiping = false; startPosX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX; sliderWrapper.style.transition = 'none'; prevTranslate = -currentSlideIndex * sliderWrapper.clientWidth; }
     function dragMove(e) { if (!isDragging) return; isSwiping = true; const currentPosition = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX; currentTranslate = prevTranslate + currentPosition - startPosX; sliderWrapper.style.transform = `translateX(${currentTranslate}px)`; }
     function dragEnd() { if (!isDragging || totalSlides <= 1) return; isDragging = false; const movedBy = currentTranslate - prevTranslate; sliderWrapper.style.transition = 'transform 0.4s ease-in-out'; if (isSwiping) { if (movedBy < -50 && currentSlideIndex < totalSlides - 1) currentSlideIndex++; if (movedBy > 50 && currentSlideIndex > 0) currentSlideIndex--; } showSlide(currentSlideIndex); }
+
     function applyTransform() { if (viewerImage) window.requestAnimationFrame(() => { viewerImage.style.transform = `translate(${lightboxState.pointX}px, ${lightboxState.pointY}px) scale(${lightboxState.scale})`; }); }
     function resetLightbox() { lightboxState = { scale: 1, isPanning: false, pointX: 0, pointY: 0, startX: 0, startY: 0, startPointX: 0, startPointY: 0, didPan: false, initialPinchDistance: 0 }; applyTransform(); }
-    function openLightbox(url) { if (!imageViewerModal || !viewerImage) return; viewerImage.setAttribute('src', url); imageViewerModal.classList.remove('hidden'); document.body.classList.add('lightbox-open'); }
-    function closeLightbox() { if (!imageViewerModal) return; imageViewerModal.classList.add('hidden'); resetLightbox(); document.body.classList.remove('lightbox-open'); }
+
+    // 【新增】內部函式：僅負責操作 DOM 關閉燈箱
+    function _closeLightboxDOM() {
+        if (!imageViewerModal) return;
+        imageViewerModal.classList.add('hidden');
+        resetLightbox();
+        document.body.classList.remove('lightbox-open');
+    }
+
+    // 【修改】打開燈箱時加入 URL Hash
+    function openLightbox(url) {
+        if (!imageViewerModal || !viewerImage) return;
+        viewerImage.setAttribute('src', url);
+        imageViewerModal.classList.remove('hidden');
+        document.body.classList.add('lightbox-open');
+        // 加入 #lightbox 到網址，支援上一頁關閉
+        history.pushState({ lightbox: true }, '', window.location.pathname + window.location.search + '#lightbox');
+    }
+
+    // 【修改】關閉燈箱時，優先使用上一頁 (如果 Hash 存在)
+    function closeLightbox() {
+        if (window.location.hash === '#lightbox') {
+            history.back();
+        } else {
+            _closeLightboxDOM();
+        }
+    }
+
     function getDistance(touches) { return Math.sqrt(Math.pow(touches[0].clientX - touches[1].clientX, 2) + Math.pow(touches[0].clientY - touches[1].clientY, 2)); }
     function interactionStart(e) { e.preventDefault(); lightboxState.didPan = false; if (e.type === 'mousedown') { lightboxState.isPanning = true; lightboxState.startX = e.clientX; lightboxState.startY = e.clientY; } else if (e.type === 'touchstart') { if (e.touches.length === 1) { lightboxState.isPanning = true; lightboxState.startX = e.touches[0].clientX; lightboxState.startY = e.touches[0].clientY; } else if (e.touches.length >= 2) { lightboxState.isPanning = false; lightboxState.initialPinchDistance = getDistance(e.touches); } } lightboxState.startPointX = lightboxState.pointX; lightboxState.startPointY = lightboxState.pointY; if (imageViewerModal) imageViewerModal.classList.add('panning'); }
     function interactionMove(e) { e.preventDefault(); if (lightboxState.isPanning) { const currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX; const currentY = e.type === 'mousemove' ? e.clientY : e.touches[0].clientY; const deltaX = currentX - lightboxState.startX; const deltaY = currentY - lightboxState.startY; if (!lightboxState.didPan && Math.sqrt(deltaX * deltaX + deltaY * deltaY) > 5) lightboxState.didPan = true; lightboxState.pointX = lightboxState.startPointX + deltaX; lightboxState.pointY = lightboxState.startPointY + deltaY; applyTransform(); } else if (e.type === 'touchmove' && e.touches.length >= 2) { lightboxState.didPan = true; const newPinchDistance = getDistance(e.touches); const scaleMultiplier = newPinchDistance / lightboxState.initialPinchDistance; const newScale = lightboxState.scale * scaleMultiplier; lightboxState.scale = Math.max(1, Math.min(newScale, 5)); applyTransform(); lightboxState.initialPinchDistance = newPinchDistance; } }
