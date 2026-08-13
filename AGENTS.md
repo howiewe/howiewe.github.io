@@ -199,11 +199,11 @@ CREATE TABLE products (
 - 在含有 `.theme-toggle-placeholder` 的頁面自動注入按鈕 HTML
 - 在已有靜態 `#theme-toggle` 的頁面（`batch-upload.html`）直接綁定事件
 
-### URL 路由策略（`script-customer.js`）
+### URL 路由與動線策略
 
-- 產品詳情使用 `history.pushState` / `popstate` 模擬前端路由
-- 直接訪問 `/catalog/product/:id/:name` 時，SSR 負責 meta 注入，前端偵測 URL 並開啟 Modal
-- 直接訪問 `/catalog/category/:id/:name` 時，SSR 負責篩選對應分類產品
+- **首頁 (`/`)**：Hero 區塊按鈕「探索我們的產品」直接導向所有產品頁 (`/catalog`)；導覽列獨立提供「所有產品」與「產品分類」入口。
+- **分類總覽大廳 (`/catalog/category`)**：列出精選分類與頂層/特色分類卡片；頂部提供「首頁 > 產品分類」麵包屑及「所有產品 → (`/catalog`)」快速跳轉按鈕，Header 標題指向首頁。
+- **產品目錄頁 (`/catalog` & `/catalog/category/:id/:name`)**：產品列表網格與側邊分類樹；特定產品詳情使用 `history.pushState` / `popstate` 打開 Modal，直接訪問 `/catalog/product/:id/:name` 時由 SSR 注入 Meta 及 JSON-LD。
 
 ### IndexedDB 使用（`script-admin.js`）
 
