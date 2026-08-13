@@ -167,7 +167,8 @@ CREATE TABLE products (
 | Selector | Injector | 功能 |
 |---|---|---|
 | `#category-tree` | `SidebarInjector` | 注入左側分類樹（所有頁面） |
-| `#category-grid-container` | `CategoryLobbyInjector` | 注入分類卡片 |
+| `#homepage-categories` | `HomepageCategoriesInjector` | 注入首頁頂層分類卡片（含 DB 代表圖） |
+| `#category-grid-container` | `CategoryLobbyInjector` | 注入分類總覽卡片 |
 | `#featured-category-container` | `FeaturedCategoryInjector` | 注入精選分類區塊 |
 | `#product-list` | `ProductListInjector` | 注入初始產品列表（前 24 筆） |
 | `#category-description-container` | `ContentInjector` | 注入分類描述 |

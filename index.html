@@ -274,6 +274,33 @@
             opacity: 0.8;
         }
 
+        .card-image img {
+            transition: transform 0.4s ease;
+        }
+
+        .card:hover .card-image img {
+            transform: scale(1.05);
+        }
+
+        /* --- 骨架屏（SSR 內容載入前的佔位） --- */
+        @keyframes shimmer {
+            0%   { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .card-skeleton {
+            height: 340px;
+            background: linear-gradient(
+                90deg,
+                var(--card-bg) 25%,
+                var(--border-color) 50%,
+                var(--card-bg) 75%
+            );
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            pointer-events: none;
+        }
+
         /* --- 頁尾 --- */
         .footer {
             background-color: var(--card-bg);
@@ -396,46 +423,12 @@
         <section id="products" class="section">
             <div class="container">
                 <h2 class="section-title">精選產品系列</h2>
-                <div class="card-grid">
-                    <!-- 產品一 -->
-                    <div class="card">
-                        <div class="card-image">
-                            <img src="https://images.unsplash.com/photo-1593341646782-e01614cff09d?q=80&w=1974&auto=format&fit=crop"
-                                alt="光華工業製造的專業乒乓球拍">
-                        </div>
-                        <div class="card-content">
-                            <h3>乒乓球拍系列</h3>
-                            <p>精密配重，掌握致勝關鍵。適合從入門到專業的各級選手。</p>
-                            <!-- ▼▼▼ 修改此處 ▼▼▼ -->
-                            <a href="/catalog" data-category-name="桌球">查看更多</a>
-                        </div>
-                    </div>
-                    <!-- 產品二 -->
-                    <div class="card">
-                        <div class="card-image">
-                            <img src="https://images.unsplash.com/photo-1521587595359-65a12a55f0b1?q=80&w=2070&auto=format&fit=crop"
-                                alt="一支放置在羽球場上的羽球拍與羽球">
-                        </div>
-                        <div class="card-content">
-                            <h3>羽球拍系列</h3>
-                            <p>輕量化設計與強化結構，兼具速度與力量，定義場上優勢。</p>
-                            <!-- ▼▼▼ 修改此處 ▼▼▼ -->
-                            <a href="/catalog" data-category-name="棒球">查看更多</a>
-                        </div>
-                    </div>
-                    <!-- 產品三 -->
-                    <div class="card">
-                        <div class="card-image">
-                            <img src="https://images.unsplash.com/photo-1599447382218-c5178d8a0110?q=80&w=2070&auto=format&fit=crop"
-                                alt="專業訓練用的木製棒球棒與跳繩">
-                        </div>
-                        <div class="card-content">
-                            <h3>跳繩與球棒</h3>
-                            <p>從日常訓練到專業競技，我們提供耐用且高效能的器材選擇。</p>
-                            <!-- ▼▼▼ 修改此處 ▼▼▼ -->
-                            <a href="/catalog" data-category-name="跳繩">查看更多</a>
-                        </div>
-                    </div>
+                <!-- SSR 注入頂層分類卡片（含 DB 圖片與連結） -->
+                <div class="card-grid" id="homepage-categories">
+                    <!-- 載入中佔位，SSR 會覆蓋此內容 -->
+                    <div class="card card-skeleton"></div>
+                    <div class="card card-skeleton"></div>
+                    <div class="card card-skeleton"></div>
                 </div>
             </div>
         </section>
@@ -487,49 +480,7 @@
         </div>
     </footer>
 
-    <script>
-    // 等待整個網頁的 HTML 結構都載入完成後才執行
-    document.addEventListener('DOMContentLoaded', () => {
-
-        // --- 功能二：動態更新首頁產品系列連結 ---
-        async function updateCategoryLinks() {
-            try {
-                // 1. 向後端 API 請求所有分類資料
-                const response = await fetch('/public/all-data');
-                if (!response.ok) throw new Error('無法載入分類資料');
-                
-                const data = await response.json();
-                const allCategories = data.categories || [];
-
-                // 2. 找到所有需要更新的連結 (帶有 data-category-name 屬性的 a 標籤)
-                const linksToUpdate = document.querySelectorAll('a[data-category-name]');
-
-                // 3. 遍歷每一個連結，並更新它的 href 屬性
-                linksToUpdate.forEach(link => {
-                    const targetName = link.dataset.categoryName;
-                    
-                    // 在所有分類中，尋找名稱相符的分類
-                    const category = allCategories.find(c => c.name === targetName);
-
-                    if (category) {
-                        // 如果找到了，就組裝成正確的 URL
-                        const url = `/catalog/category/${category.id}/${encodeURIComponent(category.name)}`;
-                        link.href = url;
-                    } else {
-                        // 如果在資料庫中找不到對應名稱的分類，連結會保持預設的 /catalog
-                        console.warn(`在資料庫中找不到名為 "${targetName}" 的分類。`);
-                    }
-                });
-
-            } catch (error) {
-                console.error("更新首頁分類連結失敗:", error);
-            }
-        }
-
-        // 執行連結更新函式
-        updateCategoryLinks();
-    });
-</script>
+    <!-- 分類卡片連結已由 SSR 直接注入，無需 client-side fetch -->
 
 </body>
 

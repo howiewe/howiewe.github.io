@@ -208,6 +208,45 @@ class SidebarInjector {
     }
 }
 
+// --- 首頁分類注入器 ---
+class HomepageCategoriesInjector {
+    constructor(categories, categoryImages, defaultImage) {
+        this.categories = categories;
+        this.categoryImages = categoryImages; // Map: categoryId -> imageUrl
+        this.defaultImage = defaultImage;
+    }
+
+    element(element) {
+        if (!this.categories || this.categories.length === 0) {
+            element.setInnerContent('<p class="empty-message">目前暫無產品分類。</p>', { html: true });
+            return;
+        }
+
+        let html = '';
+        this.categories.forEach(cat => {
+            const imageUrl = this.categoryImages.get(cat.id) || this.defaultImage;
+            const categoryHref = `/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}`;
+            const rawDesc = cat.description || `探索我們精選的${cat.name}系列產品。`;
+            const description = escapeXml(rawDesc.length > 60 ? rawDesc.substring(0, 60) + '...' : rawDesc);
+
+            html += `
+                <div class="card">
+                    <div class="card-image">
+                        <img src="${imageUrl}" alt="${escapeXml(cat.name)}" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <h3>${escapeXml(cat.name)}</h3>
+                        <p>${description}</p>
+                        <a href="${categoryHref}">查看更多</a>
+                    </div>
+                </div>
+            `;
+        });
+
+        element.setInnerContent(html, { html: true });
+    }
+}
+
 // --- 主要請求處理函式 ---
 export async function onRequest(context) {
     const { request, env, next } = context;
@@ -414,9 +453,76 @@ export async function onRequest(context) {
 
         } else if (pathname === '/') {
             baseHtmlPath = '/index.html';
-            const metaData = { title: '光華工業有限公司 - 專業運動用品製造商', description: '光華工業擁有超過50年專業製造經驗，提供高品質乒乓球拍、羽球拍、跳繩、球棒等各式運動用品。', image: defaultImage, url: url.href };
+
+            // 首頁 OG / meta
+            const metaData = {
+                title: '光華工業有限公司 - 專業運動用品製造商',
+                description: '光華工業擁有超過50年專業製造經驗，提供高品質乒乓球拍、羽球拍、跳繩、球棒等各式運動用品。',
+                image: defaultImage,
+                url: url.href
+            };
             rewriters.push(['title', new TitleRewriter(metaData.title)]);
             rewriters.push(['head', new HeadRewriter(metaData)]);
+
+            // 首頁 JSON-LD（Organization）
+            const orgStructuredData = {
+                "@context": "https://schema.org",
+                "@type": "SportsGoodsStore",
+                "name": "光華工業有限公司",
+                "url": url.origin,
+                "description": metaData.description,
+                "telephone": "+886-4-7772514",
+                "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": "505彰化縣鹿港鎮鹿東路361巷176號",
+                    "addressLocality": "鹿港鎮",
+                    "addressRegion": "彰化縣",
+                    "postalCode": "505",
+                    "addressCountry": "TW"
+                }
+            };
+            rewriters.push(['head', new StructuredDataInjector(orgStructuredData)]);
+
+            // --- 頂層分類 + 代表圖 (batch 一次請求) ---
+            const topLevelCategories = allCategories
+                .filter(c => c.parentId === null)
+                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+                .slice(0, 6); // 首頁最多顯示 6 個分類
+
+            if (topLevelCategories.length > 0) {
+                // 用 D1 batch 一次拉取，避免 N+1 查詢
+                const imageStmts = topLevelCategories.map(cat =>
+                    env.D1_DB.prepare(`
+                        SELECT p.imageUrls FROM products p
+                        WHERE p.categoryId IN (
+                            WITH RECURSIVE dc(id) AS (
+                                SELECT id FROM categories WHERE id = ?
+                                UNION ALL
+                                SELECT c.id FROM categories c JOIN dc ON c.parentId = dc.id
+                            )
+                            SELECT id FROM dc
+                        )
+                        AND p.imageUrls IS NOT NULL AND p.imageUrls != '[]'
+                        ORDER BY RANDOM() LIMIT 1
+                    `).bind(cat.id)
+                );
+
+                const imageResults = await env.D1_DB.batch(imageStmts);
+                const categoryImages = new Map();
+
+                topLevelCategories.forEach((cat, i) => {
+                    try {
+                        const row = imageResults[i]?.results?.[0];
+                        if (row?.imageUrls) {
+                            const parsed = JSON.parse(row.imageUrls);
+                            const imgUrl = parsed[0]?.url;
+                            if (imgUrl) categoryImages.set(cat.id, imgUrl);
+                        }
+                    } catch (e) { /* 解析失敗，使用 defaultImage */ }
+                });
+
+                rewriters.push(['#homepage-categories', new HomepageCategoriesInjector(topLevelCategories, categoryImages, defaultImage)]);
+            }
         }
 
     } catch (dbError) {
