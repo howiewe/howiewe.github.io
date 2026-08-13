@@ -20,46 +20,67 @@
         .category-card {
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 1rem;
-            background-color: var(--surface-color);
-            border: 1px solid var(--border-color);
-            /* 子分類的預設邊框 */
-            border-radius: var(--border-radius-lg);
+            justify-content: flex-start;
+            align-items: stretch;
+            text-align: left;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--surface-color, #ffffff);
+            border: 1px solid var(--border-color, #e0e0e0);
+            border-radius: var(--border-radius-lg, 12px);
             text-decoration: none;
-            color: var(--text-primary);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            min-height: 120px;
-            /* 給子分類一個最小高度，避免太空 */
+            color: var(--text-primary, #333333);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .category-card-image {
+            width: 100%;
+            height: 160px;
+            overflow: hidden;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        .category-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .category-card:hover .category-card-image img {
+            transform: scale(1.06);
+        }
+
+        .category-card-content {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
         }
 
         .category-card:hover {
             transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--primary-color);
+            box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.12));
+            border-color: var(--primary-color, #007bff);
         }
 
         .category-card h3 {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             margin: 0;
+            color: var(--text-primary);
         }
 
         .category-card p {
             font-size: 0.9rem;
-            color: var(--text-secondary);
+            color: var(--text-secondary, #666666);
             margin-top: 0.5rem;
+            line-height: 1.4;
         }
 
         /* ▼▼▼ 【核心新增樣式】針對母分類卡片 ▼▼▼ */
         .category-card--parent {
-            aspect-ratio: 1 / 1;
-            /* 讓卡片維持 1:1 的正方形比例 */
-            border: 2px solid var(--primary-color);
-            /* 使用主題藍色，並加粗邊框 */
-            min-height: unset;
-            /* 取消最小高度限制，由 aspect-ratio 控制 */
+            border: 2px solid var(--primary-color, #007bff);
         }
 
         /* 
@@ -86,18 +107,14 @@
         @media (min-width: 768px) {
             .category-lobby-grid {
                 /* 恢復成原本的自動填充網格 */
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             }
 
             /* 在大螢幕上，讓所有卡片都恢復成佔據一格 */
             .category-card,
-            .category-card--parent {
-                grid-column: span 1;
-            }
-
-            /* 在大螢幕上，子分類的高度也設定為正方形，視覺較統一 */
+            .category-card--parent,
             .category-card:not(.category-card--parent) {
-                aspect-ratio: 1 / 1;
+                grid-column: span 1;
             }
         }
 

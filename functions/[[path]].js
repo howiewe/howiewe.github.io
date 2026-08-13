@@ -32,9 +32,11 @@ function generateMetaTagsHTML(data) {
 // --- Rewriter 類別 ---
 
 class CategoryLobbyInjector {
-    constructor(categories, baseUrl) {
+    constructor(categories, baseUrl, categoryImages = new Map(), defaultImage = '') {
         this.categories = categories;
         this.baseUrl = baseUrl;
+        this.categoryImages = categoryImages;
+        this.defaultImage = defaultImage;
     }
     element(element) {
         if (this.categories && this.categories.length > 0) {
@@ -60,11 +62,17 @@ class CategoryLobbyInjector {
 
                 const isParent = cat.parentId === null;
                 const cardClass = `category-card ${isParent ? 'category-card--parent' : ''}`;
+                const imageUrl = this.categoryImages.get(cat.id) || this.defaultImage;
 
                 categoriesHtml += `
                     <a href="${categoryHref}" class="${cardClass}">
-                        <h3>${escapeXml(cat.name)}</h3>
-                        <p>${description}</p>
+                        <div class="category-card-image">
+                            <img src="${imageUrl}" alt="${escapeXml(cat.name)}" loading="lazy">
+                        </div>
+                        <div class="category-card-content">
+                            <h3>${escapeXml(cat.name)}</h3>
+                            <p>${description}</p>
+                        </div>
                     </a>
                 `;
             });
@@ -299,9 +307,13 @@ export async function onRequest(context) {
             };
             rewriters.push(['head', new StructuredDataInjector(breadcrumbData)]);
 
-            // --- [新邏輯] 處理精選分類 (運動用品) ---
+            // --- 處理精選分類 (優先尋找「運動用品」，若無則使用第一個頂層分類) ---
             const featuredCategoryName = '運動用品';
-            const featuredCategory = allCategories.find(c => c.name === featuredCategoryName);
+            let featuredCategory = allCategories.find(c => c.name === featuredCategoryName);
+            if (!featuredCategory) {
+                featuredCategory = allCategories.find(c => c.parentId === null) || allCategories[0];
+            }
+
             let featuredImage = defaultImage;
 
             if (featuredCategory) {
@@ -319,14 +331,58 @@ export async function onRequest(context) {
                     ORDER BY RANDOM() LIMIT 1
                 `).bind(featuredCategory.id).first();
 
-                if (randomImageResult) try { featuredImage = JSON.parse(randomImageResult.imageUrls)[0].url || defaultImage; } catch (e) { }
+                if (randomImageResult && randomImageResult.imageUrls) {
+                    try {
+                        const parsed = JSON.parse(randomImageResult.imageUrls);
+                        if (parsed && parsed.length > 0 && parsed[0].url) {
+                            featuredImage = parsed[0].url;
+                        }
+                    } catch (e) { }
+                }
 
                 rewriters.push(['#featured-category-container', new FeaturedCategoryInjector(featuredCategory, featuredImage)]);
             }
 
-            // 渲染其餘分類 (排除精選分類，避免重複)
-            const categoriesToDisplay = allCategories.filter(c => c.name !== featuredCategoryName);
-            rewriters.push(['#category-grid-container', new CategoryLobbyInjector(categoriesToDisplay, url.origin)]);
+            // 渲染其餘分類 (排除精選分類)
+            const categoriesToDisplay = allCategories.filter(c => featuredCategory ? c.id !== featuredCategory.id : true);
+
+            // 批次查詢每個分類的代表圖片
+            const categoryImagesMap = new Map();
+            if (categoriesToDisplay.length > 0) {
+                const imageStmts = categoriesToDisplay.map(cat =>
+                    env.D1_DB.prepare(`
+                        SELECT p.imageUrls FROM products p
+                        WHERE p.categoryId IN (
+                            WITH RECURSIVE dc(id) AS (
+                                SELECT id FROM categories WHERE id = ?
+                                UNION ALL
+                                SELECT c.id FROM categories c JOIN dc ON c.parentId = dc.id
+                            )
+                            SELECT id FROM dc
+                        )
+                        AND p.imageUrls IS NOT NULL AND p.imageUrls != '[]'
+                        ORDER BY RANDOM() LIMIT 1
+                    `).bind(cat.id)
+                );
+
+                try {
+                    const imageResults = await env.D1_DB.batch(imageStmts);
+                    categoriesToDisplay.forEach((cat, i) => {
+                        try {
+                            const row = imageResults[i]?.results?.[0];
+                            if (row?.imageUrls) {
+                                const parsed = JSON.parse(row.imageUrls);
+                                const imgUrl = parsed[0]?.url;
+                                if (imgUrl) categoryImagesMap.set(cat.id, imgUrl);
+                            }
+                        } catch (e) { }
+                    });
+                } catch (batchError) {
+                    console.error("批次獲取分類圖片失敗:", batchError);
+                }
+            }
+
+            rewriters.push(['#category-grid-container', new CategoryLobbyInjector(categoriesToDisplay, url.origin, categoryImagesMap, defaultImage)]);
 
         } else if (pathname.startsWith('/catalog')) {
             baseHtmlPath = '/catalog.html';
