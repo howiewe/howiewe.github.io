@@ -173,8 +173,8 @@ CREATE TABLE products (
 | `#product-list` | `ProductListInjector` | 注入初始產品列表（前 24 筆） |
 | `#category-description-container` | `ContentInjector` | 注入分類描述 |
 | `title` | `TitleRewriter` | 注入頁面標題 |
-| `head` | `HeadRewriter` | 注入 OG/Twitter meta tags |
-| `head` | `StructuredDataInjector` | 注入 JSON-LD 結構化資料 |
+| `head` | `HeadRewriter` | 注入 OG/Twitter meta tags & Canonical URLs |
+| `head` | `StructuredDataInjector` | 注入 Schema.org 結構化資料 (Product, CollectionPage, BreadcrumbList, SportsGoodsStore) |
 
 ---
 
@@ -199,11 +199,18 @@ CREATE TABLE products (
 - 在含有 `.theme-toggle-placeholder` 的頁面自動注入按鈕 HTML
 - 在已有靜態 `#theme-toggle` 的頁面（`batch-upload.html`）直接綁定事件
 
-### URL 路由與動線策略
+### URL 路由與動線階層策略（一層接一層）
 
-- **首頁 (`/`)**：Hero 區塊按鈕「探索我們的產品」直接導向所有產品頁 (`/catalog`)；導覽列獨立提供「所有產品」與「產品分類」入口。
-- **分類總覽大廳 (`/catalog/category`)**：列出精選分類與頂層/特色分類卡片；頂部提供「首頁 > 產品分類」麵包屑及「所有產品 → (`/catalog`)」快速跳轉按鈕，Header 標題指向首頁。
-- **產品目錄頁 (`/catalog` & `/catalog/category/:id/:name`)**：產品列表網格與側邊分類樹；特定產品詳情使用 `history.pushState` / `popstate` 打開 Modal，直接訪問 `/catalog/product/:id/:name` 時由 SSR 注入 Meta 及 JSON-LD。
+1. **第一層：主頁 (`/`)**
+   - 提供「探索我們的產品」與「產品系列」按鈕，指向第二層 `探索頁 (/catalog/category)`。
+2. **第二層：探索頁 / 分類大廳 (`/catalog/category`)**
+   - 展出精選分類與所有分類卡片，點擊分類卡片後前往第三層 `特定分類產品目錄 (/catalog/category/:id/:name)`。
+   - Header 標題指向第一層 `主頁 (/)`。
+3. **第三層：產品目錄頁 (`/catalog` & `/catalog/category/:id/:name`)**
+   - 展示特定分類下的產品列表，點擊產品卡片開啟 Modal 彈窗瀏覽第四層 `產品詳情`。
+   - Header 標題指向第二層 `探索頁 (/catalog/category)`。
+4. **第四層：產品詳情 (`/catalog/product/:id/:name`)**
+   - 彈窗或直接訪問，由 SSR 注入 Meta/JSON-LD 結構化資料。
 
 ### IndexedDB 使用（`script-admin.js`）
 

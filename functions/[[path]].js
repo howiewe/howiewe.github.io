@@ -18,14 +18,21 @@ const escapeXml = (unsafe) => {
 function generateMetaTagsHTML(data) {
     const escape = (str) => str ? str.replace(/"/g, '&quot;') : '';
     const description = (data.description || '').substring(0, 160);
+    const canonicalUrl = data.url || '';
+    const imageUrl = data.image || '';
     return `
-        <meta property="og:title" content="${escape(data.title)}" />
+        <link rel="canonical" href="${escape(canonicalUrl)}" />
         <meta name="description" content="${escape(description)}" />
+        <meta property="og:title" content="${escape(data.title)}" />
         <meta property="og:description" content="${escape(description)}" />
-        <meta property="og:image" content="${data.image || ''}" />
-        <meta property="og:url" content="${data.url || ''}" />
+        <meta property="og:image" content="${escape(imageUrl)}" />
+        <meta property="og:url" content="${escape(canonicalUrl)}" />
         <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image">
+        <meta property="og:site_name" content="光華工業有限公司" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="${escape(data.title)}" />
+        <meta name="twitter:description" content="${escape(description)}" />
+        <meta name="twitter:image" content="${escape(imageUrl)}" />
     `;
 }
 
@@ -415,19 +422,30 @@ export async function onRequest(context) {
                         "@type": "Product",
                         "name": product.name,
                         "image": images.length > 0 ? images : [image],
-                        "description": product.description,
-                        "sku": product.sku,
-                        "mpn": product.sku,
-                        "gtin13": product.ean13,
+                        "description": product.description || product.name,
+                        "sku": product.sku || `KWH-${product.id}`,
+                        "mpn": product.sku || `KWH-${product.id}`,
+                        "gtin13": product.ean13 || undefined,
                         "brand": { "@type": "Brand", "name": "光華工業" },
                         "offers": {
                             "@type": "Offer",
                             "url": canonicalUrl,
                             "priceCurrency": "TWD",
-                            "price": product.price,
+                            "price": product.price || 0,
                             "availability": "https://schema.org/InStock"
                         }
                     };
+
+                    const productBreadcrumb = {
+                        "@context": "https://schema.org",
+                        "@type": "BreadcrumbList",
+                        "itemListElement": [
+                            { "@type": "ListItem", "position": 1, "name": "首頁", "item": url.origin },
+                            { "@type": "ListItem", "position": 2, "name": "產品分類", "item": `${url.origin}/catalog/category` },
+                            { "@type": "ListItem", "position": 3, "name": product.name }
+                        ]
+                    };
+                    rewriters.push(['head', new StructuredDataInjector(productBreadcrumb)]);
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
                 const idStr = pathname.split('/')[3];
@@ -455,6 +473,17 @@ export async function onRequest(context) {
                         const canonicalUrl = `${url.origin}/catalog/category/${category.id}/${encodeURIComponent(category.name)}`;
 
                         metaData = { title: `${category.name} | 光華工業`, description: category.description || `探索我們在「${category.name}」分類下的所有產品。`, image: image, url: canonicalUrl };
+
+                        const categoryBreadcrumb = {
+                            "@context": "https://schema.org",
+                            "@type": "BreadcrumbList",
+                            "itemListElement": [
+                                { "@type": "ListItem", "position": 1, "name": "首頁", "item": url.origin },
+                                { "@type": "ListItem", "position": 2, "name": "產品分類", "item": `${url.origin}/catalog/category` },
+                                { "@type": "ListItem", "position": 3, "name": category.name }
+                            ]
+                        };
+                        rewriters.push(['head', new StructuredDataInjector(categoryBreadcrumb)]);
                     }
                 }
             }

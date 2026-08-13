@@ -40,7 +40,8 @@ export async function onRequest(context) {
 
         // --- 1. 新增靜態頁面 ---
         urlEntries.push(createUrlEntry(`${baseUrl}/`, null, '1.00'));
-        urlEntries.push(createUrlEntry(`${baseUrl}/catalog`, null, '0.90'));
+        urlEntries.push(createUrlEntry(`${baseUrl}/catalog/category`, null, '0.90'));
+        urlEntries.push(createUrlEntry(`${baseUrl}/catalog`, null, '0.85'));
 
         // --- 2. 獲取所有分類頁面 (增加獨立的錯誤處理) ---
         try {
