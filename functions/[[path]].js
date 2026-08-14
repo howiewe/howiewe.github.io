@@ -14,6 +14,22 @@ import {
     HomepageCategoriesInjector
 } from './_lib/injectors.js';
 
+// 輔助函式：取得分類的父子祖先階層陣列（由頂層至當前分類）
+function getCategoryAncestors(categoryId, allCategories) {
+    if (!categoryId || !allCategories || allCategories.length === 0) return [];
+    const ancestors = [];
+    let currentId = categoryId;
+    const visited = new Set();
+    while (currentId && !visited.has(currentId)) {
+        visited.add(currentId);
+        const cat = allCategories.find(c => c.id === currentId);
+        if (!cat) break;
+        ancestors.unshift(cat);
+        currentId = cat.parentId;
+    }
+    return ancestors;
+}
+
 // --- 主要請求處理函式 ---
 export async function onRequest(context) {
     const { request, env, next } = context;
@@ -33,10 +49,10 @@ export async function onRequest(context) {
     try {
         const { results: allCategories } = await env.D1_DB.prepare("SELECT id, name, description, parentId, sortOrder FROM categories").run();
 
-        rewriters.push(['#category-tree', new SidebarInjector(allCategories)]);
-
         if (pathname === '/catalog/category') {
             baseHtmlPath = '/catalog-lobby.html';
+
+            rewriters.push(['#category-tree', new SidebarInjector(allCategories, null)]);
 
             const metaData = {
                 title: '產品分類總覽 | 光華工業',
@@ -149,6 +165,7 @@ export async function onRequest(context) {
             let metaData;
             let structuredData = null;
             let categoryId = null;
+            let activeSidebarId = 'all';
 
             if (pathname.startsWith('/catalog/product/')) {
                 const id = pathname.split('/')[3];
@@ -157,6 +174,7 @@ export async function onRequest(context) {
                 ).bind(id).first() : null;
 
                 if (product) {
+                    if (product.categoryId) activeSidebarId = product.categoryId;
                     let image = defaultImage;
                     let images = [];
                     if (product.imageUrls) try {
@@ -188,28 +206,39 @@ export async function onRequest(context) {
                         }
                     };
 
-                    const productBreadcrumb = {
+                    const ancestors = product.categoryId ? getCategoryAncestors(product.categoryId, allCategories) : [];
+                    const breadcrumbItems = [
+                        { name: '首頁', href: '/' },
+                        { name: '產品分類', href: '/catalog/category' }
+                    ];
+                    const breadcrumbElements = [
+                        { "@type": "ListItem", "position": 1, "name": "首頁", "item": url.origin },
+                        { "@type": "ListItem", "position": 2, "name": "產品分類", "item": `${url.origin}/catalog/category` }
+                    ];
+
+                    let pos = 3;
+                    for (const cat of ancestors) {
+                        const catUrl = `${url.origin}/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}`;
+                        breadcrumbItems.push({ name: cat.name, href: `/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}` });
+                        breadcrumbElements.push({ "@type": "ListItem", "position": pos++, "name": cat.name, "item": catUrl });
+                    }
+                    breadcrumbItems.push({ name: product.name });
+                    breadcrumbElements.push({ "@type": "ListItem", "position": pos++, "name": product.name });
+
+                    rewriters.push(['head', new StructuredDataInjector({
                         "@context": "https://schema.org",
                         "@type": "BreadcrumbList",
-                        "itemListElement": [
-                            { "@type": "ListItem", "position": 1, "name": "首頁", "item": url.origin },
-                            { "@type": "ListItem", "position": 2, "name": "產品分類", "item": `${url.origin}/catalog/category` },
-                            { "@type": "ListItem", "position": 3, "name": product.name }
-                        ]
-                    };
-                    rewriters.push(['head', new StructuredDataInjector(productBreadcrumb)]);
+                        "itemListElement": breadcrumbElements
+                    })]);
 
                     // 視覺麵包屑
-                    rewriters.push(['#breadcrumb-container', new BreadcrumbInjector([
-                        { name: '首頁', href: '/' },
-                        { name: '產品分類', href: '/catalog/category' },
-                        { name: product.name }
-                    ])]);
+                    rewriters.push(['#breadcrumb-container', new BreadcrumbInjector(breadcrumbItems)]);
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
                 const idStr = pathname.split('/')[3];
                 if (idStr && !isNaN(idStr)) {
                     categoryId = parseInt(idStr);
+                    activeSidebarId = categoryId;
                     const category = await env.D1_DB.prepare("SELECT id, name, description FROM categories WHERE id = ?").bind(categoryId).first();
                     if (category) {
                         const randomImageResult = await env.D1_DB.prepare(`
@@ -233,31 +262,61 @@ export async function onRequest(context) {
 
                         metaData = { title: `${category.name} | 光華工業`, description: category.description || `光華工業「${category.name}」系列專業運動器材，涵蓋各式球拍、球具與訓練配件，歡迎批發採購與外銷洽詢。`, image: image, url: canonicalUrl };
 
-                        const categoryBreadcrumb = {
+                        const ancestors = getCategoryAncestors(categoryId, allCategories);
+                        const breadcrumbItems = [
+                            { name: '首頁', href: '/' },
+                            { name: '產品分類', href: '/catalog/category' }
+                        ];
+                        const breadcrumbElements = [
+                            { "@type": "ListItem", "position": 1, "name": "首頁", "item": url.origin },
+                            { "@type": "ListItem", "position": 2, "name": "產品分類", "item": `${url.origin}/catalog/category` }
+                        ];
+
+                        let pos = 3;
+                        for (let i = 0; i < ancestors.length; i++) {
+                            const isLast = i === ancestors.length - 1;
+                            const cat = ancestors[i];
+                            const catUrl = `${url.origin}/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}`;
+                            if (isLast) {
+                                breadcrumbItems.push({ name: cat.name });
+                                breadcrumbElements.push({ "@type": "ListItem", "position": pos++, "name": cat.name });
+                            } else {
+                                breadcrumbItems.push({ name: cat.name, href: `/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}` });
+                                breadcrumbElements.push({ "@type": "ListItem", "position": pos++, "name": cat.name, "item": catUrl });
+                            }
+                        }
+
+                        rewriters.push(['head', new StructuredDataInjector({
                             "@context": "https://schema.org",
                             "@type": "BreadcrumbList",
-                            "itemListElement": [
-                                { "@type": "ListItem", "position": 1, "name": "首頁", "item": url.origin },
-                                { "@type": "ListItem", "position": 2, "name": "產品分類", "item": `${url.origin}/catalog/category` },
-                                { "@type": "ListItem", "position": 3, "name": category.name }
-                            ]
-                        };
-                        rewriters.push(['head', new StructuredDataInjector(categoryBreadcrumb)]);
+                            "itemListElement": breadcrumbElements
+                        })]);
 
                         // 視覺麵包屑
-                        rewriters.push(['#breadcrumb-container', new BreadcrumbInjector([
-                            { name: '首頁', href: '/' },
-                            { name: '產品分類', href: '/catalog/category' },
-                            { name: category.name }
-                        ])]);
+                        rewriters.push(['#breadcrumb-container', new BreadcrumbInjector(breadcrumbItems)]);
                     }
                 }
             }
 
             if (!metaData) {
-                metaData = { title: '產品目錄 | 光華工業', description: '探索光華工業完整的運動用品目錄，包含乒乓球拍、羽球拍、跳繩、球棒等多種專業運動器材，提供批發與外銷客製服務。', image: defaultImage, url: url.href };
+                metaData = { title: '全部產品 | 光華工業', description: '探索光華工業完整的運動用品目錄，包含乒乓球拍、羽球拍、跳繩、球棒等多種專業運動器材，提供批發與外銷客製服務。', image: defaultImage, url: `${url.origin}/catalog` };
+
+                rewriters.push(['head', new StructuredDataInjector({
+                    "@context": "https://schema.org",
+                    "@type": "BreadcrumbList",
+                    "itemListElement": [
+                        { "@type": "ListItem", "position": 1, "name": "首頁", "item": url.origin },
+                        { "@type": "ListItem", "position": 2, "name": "全部產品" }
+                    ]
+                })]);
+
+                rewriters.push(['#breadcrumb-container', new BreadcrumbInjector([
+                    { name: '首頁', href: '/' },
+                    { name: '全部產品' }
+                ])]);
             }
 
+            rewriters.push(['#category-tree', new SidebarInjector(allCategories, activeSidebarId)]);
             rewriters.push(['title', new TitleRewriter(metaData.title)]);
             rewriters.push(['head', new HeadRewriter(metaData)]);
             if (structuredData) {

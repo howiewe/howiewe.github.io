@@ -29,9 +29,13 @@
         <div class="container">
             <!-- 頂部導覽區塊 -->
             <div class="lobby-top-bar">
-                <div class="breadcrumb-trail">
-                    <a href="/">主頁</a> &gt; <span>探索產品系列</span>
-                </div>
+                <nav id="breadcrumb-container" aria-label="麵包屑導覽">
+                    <ol class="breadcrumb-trail">
+                        <li><a href="/" class="breadcrumb-link">首頁</a></li>
+                        <li class="breadcrumb-sep" aria-hidden="true">›</li>
+                        <li><span class="breadcrumb-current" aria-current="page">產品分類</span></li>
+                    </ol>
+                </nav>
             </div>
 
             <!-- [新增] 精選分類區塊 -->

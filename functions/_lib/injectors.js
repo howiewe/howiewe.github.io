@@ -170,8 +170,9 @@ export class ProductListInjector {
 }
 
 export class SidebarInjector {
-    constructor(categories) {
+    constructor(categories, activeCategoryId = null) {
         this.categories = categories || [];
+        this.activeCategoryId = activeCategoryId;
     }
 
     element(element) {
@@ -184,10 +185,20 @@ export class SidebarInjector {
             else if (categoryMap.has(category.parentId)) categoryMap.get(category.parentId).children.push(category);
         }
 
-        let html = `<ul><li><a href="/catalog" class="active">所有產品</a></li></ul>`;
+        const isAllActive = this.activeCategoryId === 'all';
+        let html = `<ul><li><a href="/catalog" class="${isAllActive ? 'active' : ''}">所有產品</a></li></ul>`;
         html += this.createTreeHTML(tree);
 
         element.setInnerContent(html, { html: true });
+    }
+
+    hasActiveDescendant(node) {
+        if (!this.activeCategoryId || this.activeCategoryId === 'all') return false;
+        if (node.id === this.activeCategoryId) return true;
+        if (node.children && node.children.length > 0) {
+            return node.children.some(child => this.hasActiveDescendant(child));
+        }
+        return false;
     }
 
     createTreeHTML(nodes, depth = 0) {
@@ -196,12 +207,16 @@ export class SidebarInjector {
         for (const node of nodes) {
             const hasChildren = node.children && node.children.length > 0;
             const categoryUrlName = encodeURIComponent(node.name);
+            const isActive = node.id === this.activeCategoryId;
+            const containsActive = this.hasActiveDescendant(node);
+            const isExpanded = containsActive;
+
             subHtml += `<li class="${hasChildren ? 'has-children' : ''}">
-                <a href="/catalog/category/${node.id}/${categoryUrlName}">
+                <a href="/catalog/category/${node.id}/${categoryUrlName}" class="${isActive ? 'active' : ''}">
                     <span>${escapeXml(node.name)}</span>`;
 
             if (hasChildren) {
-                subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
+                subHtml += `<span class="category-toggle-icon ${isExpanded ? 'expanded' : ''}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
             }
 
             subHtml += `</a>`;

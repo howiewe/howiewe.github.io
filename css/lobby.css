@@ -5,23 +5,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 0;
-    margin-bottom: 1rem;
+    padding: 0.5rem 0;
+    margin-bottom: 1.5rem;
     border-bottom: 1px solid var(--border-color);
-}
-
-.breadcrumb-trail {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-}
-
-.breadcrumb-trail a {
-    color: var(--primary-color);
-    text-decoration: none;
-}
-
-.breadcrumb-trail a:hover {
-    text-decoration: underline;
 }
 
 .btn-view-all-products {

@@ -1,10 +1,11 @@
-// js/customer/script-customer.js
-// 前台客戶端主調度控制器 (History 狀態同步、產品分頁渲染、分類樹與工具列)
+// js/customer/customer-app.js
+// 前台客戶端主調度控制器 (History 狀態同步、產品分頁渲染、分類樹、多層麵包屑與工具列)
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 元素宣告 ---
     const productList = document.getElementById('product-list');
     const categoryTreeContainer = document.getElementById('category-tree');
+    const breadcrumbContainer = document.getElementById('breadcrumb-container');
     const searchBox = document.getElementById('search-box');
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
     const pageOverlay = document.getElementById('page-overlay');
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 前端狀態管理 ---
     let allCategories = [];
     let currentProducts = [];
+    let activeProduct = null;
     let state = {
         currentPage: 1,
         totalPages: 1,
@@ -41,6 +43,33 @@ document.addEventListener('DOMContentLoaded', () => {
         order: 'asc'
     };
     let searchDebounceTimer;
+
+    // --- 輔助函式：HTML 轉義 ---
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return String(unsafe)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // --- 輔助函式：取得分類祖先鏈 ---
+    function getCategoryAncestors(categoryId, categories) {
+        if (!categoryId || !categories || categories.length === 0) return [];
+        const ancestors = [];
+        let currentId = parseInt(categoryId, 10);
+        const visited = new Set();
+        while (currentId && !visited.has(currentId)) {
+            visited.add(currentId);
+            const cat = categories.find(c => c.id === currentId);
+            if (!cat) break;
+            ancestors.unshift(cat);
+            currentId = cat.parentId;
+        }
+        return ancestors;
+    }
 
     // --- 初始化 Slider 與 Lightbox 元件 ---
     if (window.ProductLightbox) {
@@ -89,9 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(`網路回應不正常: ${response.statusText}`);
             const data = await response.json();
 
-            currentProducts = data.products;
-            state.totalPages = data.pagination.totalPages;
-            state.currentPage = data.pagination.currentPage;
+            currentProducts = data.products || [];
+            state.totalPages = data.pagination?.totalPages || 1;
+            state.currentPage = data.pagination?.currentPage || 1;
 
             renderProducts();
             renderPagination();
@@ -147,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cardLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 if (window.location.pathname !== cardLink.pathname) {
-                    history.pushState({ productId: product.id }, '', cardLink.href);
+                    history.pushState({ isModal: true, productId: product.id }, '', cardLink.href);
                 }
                 openDetailModal(product);
             });
@@ -159,7 +188,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<p class="price">$${product.price}</p>`
                 : `<p class="price price-empty">&nbsp;</p>`;
 
-            cardLink.innerHTML = `<div class="image-container"><img src="${imageUrl}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${imageSize / 100});"></div><div class="product-info"><h3>${product.name}</h3>${priceHtml}</div>`;
+            cardLink.innerHTML = `
+                <div class="image-container">
+                    <img src="${imageUrl}" class="product-image" alt="${escapeHtml(product.name)}" loading="lazy" style="transform: scale(${imageSize / 100});">
+                </div>
+                <div class="product-info">
+                    <h3>${escapeHtml(product.name)}</h3>
+                    ${priceHtml}
+                </div>
+            `;
 
             productList.appendChild(cardLink);
         });
@@ -214,6 +251,60 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderBreadcrumb(items) {
+        if (!breadcrumbContainer) return;
+        if (!items || items.length === 0) {
+            breadcrumbContainer.innerHTML = '';
+            return;
+        }
+        const parts = items.map((item, i) => {
+            const isLast = i === items.length - 1;
+            if (isLast) {
+                return `<span class="breadcrumb-current" aria-current="page">${escapeHtml(item.name)}</span>`;
+            }
+            return `<a href="${escapeHtml(item.href)}" class="breadcrumb-link">${escapeHtml(item.name)}</a>`;
+        });
+        breadcrumbContainer.innerHTML = `<ol class="breadcrumb-trail">${parts.map(p => `<li>${p}</li>`).join('<li class="breadcrumb-sep" aria-hidden="true">›</li>')}</ol>`;
+    }
+
+    function updateBreadcrumbsAndTitle(product = null) {
+        const items = [{ name: '首頁', href: '/' }];
+
+        if (product) {
+            items.push({ name: '產品分類', href: '/catalog/category' });
+            const ancestors = product.categoryId ? getCategoryAncestors(product.categoryId, allCategories) : [];
+            for (const cat of ancestors) {
+                items.push({
+                    name: cat.name,
+                    href: `/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}`
+                });
+            }
+            items.push({ name: product.name });
+            document.title = `${product.name} | 光華工業`;
+        } else if (state.categoryId !== 'all') {
+            items.push({ name: '產品分類', href: '/catalog/category' });
+            const ancestors = getCategoryAncestors(state.categoryId, allCategories);
+            for (let i = 0; i < ancestors.length; i++) {
+                const cat = ancestors[i];
+                const isLast = i === ancestors.length - 1;
+                if (isLast) {
+                    items.push({ name: cat.name });
+                    document.title = `${cat.name} | 光華工業`;
+                } else {
+                    items.push({
+                        name: cat.name,
+                        href: `/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}`
+                    });
+                }
+            }
+        } else {
+            items.push({ name: '全部產品' });
+            document.title = '全部產品 | 光華工業';
+        }
+
+        renderBreadcrumb(items);
+    }
+
     function buildCategoryTree() {
         if (!categoryTreeContainer) return;
 
@@ -234,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const node of nodes) {
                 const hasChildren = node.children && node.children.length > 0;
                 const categoryUrlName = encodeURIComponent(node.name);
-                subHtml += `<li class="${hasChildren ? 'has-children' : ''}"><a href="/catalog/category/${node.id}/${categoryUrlName}"><span>${node.name}</span>`;
+                subHtml += `<li class="${hasChildren ? 'has-children' : ''}"><a href="/catalog/category/${node.id}/${categoryUrlName}"><span>${escapeHtml(node.name)}</span>`;
                 if (hasChildren) {
                     subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
                 }
@@ -271,30 +362,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isProductPath) {
             const productId = parseInt(catalogPath.split('/')[2], 10);
-            if (!isNaN(productId) && !isModalOpen) {
-                productList.innerHTML = '<p class="empty-message">正在載入產品...</p>';
-                const product = await fetchProductById(productId);
-                if (product) {
-                    await fetchProducts();
-                    openDetailModal(product);
-                } else {
-                    history.replaceState({}, '產品展示', '/catalog');
-                    await fetchProducts();
+            if (!isNaN(productId)) {
+                if (!activeProduct || activeProduct.id !== productId) {
+                    const product = await fetchProductById(productId);
+                    if (product) {
+                        if (currentProducts.length === 0) {
+                            state.categoryId = product.categoryId || 'all';
+                            await fetchProducts();
+                        }
+                        openDetailModal(product);
+                    } else {
+                        history.replaceState({}, '光華工業有限公司', '/catalog');
+                        state.categoryId = 'all';
+                        await fetchProducts();
+                        updateBreadcrumbsAndTitle(null);
+                    }
+                } else if (!isModalOpen) {
+                    openDetailModal(activeProduct);
                 }
             }
         } else if (isCategoryPath) {
+            activeProduct = null;
             const newCategoryId = parseInt(catalogPath.split('/')[2], 10) || 'all';
-            if (state.categoryId !== newCategoryId || state.currentPage !== newPage) {
+            if (state.categoryId !== newCategoryId || state.currentPage !== newPage || currentProducts.length === 0) {
                 state.categoryId = newCategoryId;
                 state.currentPage = newPage;
                 await fetchProducts();
             }
+            updateBreadcrumbsAndTitle(null);
         } else {
+            activeProduct = null;
             if (state.categoryId !== 'all' || currentProducts.length === 0 || state.currentPage !== newPage) {
                 state.categoryId = 'all';
                 state.currentPage = newPage;
                 await fetchProducts();
             }
+            updateBreadcrumbsAndTitle(null);
         }
 
         if (categoryDescriptionContainer) {
@@ -302,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (state.categoryId !== 'all') {
                 const currentCategory = allCategories.find(c => c.id === state.categoryId);
                 if (currentCategory && currentCategory.description) {
-                    description = `<p>${currentCategory.description.replace(/\n/g, '<br>')}</p>`;
+                    description = `<p>${escapeHtml(currentCategory.description).replace(/\n/g, '<br>')}</p>`;
                 }
             }
             categoryDescriptionContainer.innerHTML = description;
@@ -317,6 +420,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (path.startsWith('/catalog/category/')) {
             activeId = path.split('/')[3];
+        } else if (path.startsWith('/catalog/product/')) {
+            if (activeProduct && activeProduct.categoryId) {
+                activeId = String(activeProduct.categoryId);
+            } else if (state.categoryId !== 'all') {
+                activeId = String(state.categoryId);
+            }
         }
 
         document.querySelectorAll('#category-tree a').forEach(a => {
@@ -331,6 +440,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (String(activeId) === linkId) {
                 a.classList.add('active');
+
+                // 自動展開父層目錄
+                let parentLi = a.closest('li');
+                while (parentLi) {
+                    const parentUl = parentLi.parentElement;
+                    if (parentUl && parentUl.tagName === 'UL') {
+                        parentUl.classList.remove('hidden');
+                        parentUl.style.maxHeight = 'none';
+                        const toggleIcon = parentLi.querySelector(':scope > a > .category-toggle-icon');
+                        if (toggleIcon) toggleIcon.classList.add('expanded');
+                    }
+                    parentLi = parentUl ? parentUl.closest('li') : null;
+                }
             } else {
                 a.classList.remove('active');
             }
@@ -339,16 +461,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openDetailModal(product) {
         if (!product || !detailInfo) return;
+        activeProduct = product;
 
         const category = allCategories.find(c => c.id === product.categoryId);
         detailInfo.innerHTML = `
-            <h2>${product.name}</h2>
+            <h2>${escapeHtml(product.name)}</h2>
             <p class="price">$${product.price}</p>
-            <p class="product-description-display">${product.description || ''}</p>
+            <p class="product-description-display">${escapeHtml(product.description || '')}</p>
             <dl class="details-grid">
-                <dt>分類</dt><dd>${category ? category.name : '未分類'}</dd>
-                <dt>編號</dt><dd>${product.sku || 'N/A'}</dd>
-                <dt>EAN-13</dt><dd>${product.ean13 || 'N/A'}</dd>
+                <dt>分類</dt><dd>${category ? escapeHtml(category.name) : '未分類'}</dd>
+                <dt>編號</dt><dd>${escapeHtml(product.sku || 'N/A')}</dd>
+                <dt>EAN-13</dt><dd>${escapeHtml(product.ean13 || 'N/A')}</dd>
             </dl>
             ${product.ean13 ? `<div class="barcode-display"><svg id="detail-barcode"></svg></div>` : ''}
         `;
@@ -359,6 +482,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         detailModal.classList.remove('hidden');
         document.body.classList.add('modal-open');
+
+        updateBreadcrumbsAndTitle(product);
+        updateSidebarActiveState();
 
         if (product.ean13) {
             setTimeout(() => {
@@ -386,9 +512,26 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('modal-open');
 
         if (updateHistory && window.location.pathname.startsWith('/catalog/product/')) {
-            const newTitle = '光華工業有限公司';
-            history.pushState({}, newTitle, '/catalog');
-            document.title = newTitle;
+            if (history.state && history.state.isModal) {
+                // 如果是站內點擊卡片開啟的彈窗，直接返回上一頁以恢復原 URL
+                history.back();
+            } else {
+                // 如果是直接開啟商品網址，回到該商品所屬分類或目錄
+                let targetUrl = '/catalog';
+                if (activeProduct && activeProduct.categoryId) {
+                    const cat = allCategories.find(c => c.id === activeProduct.categoryId);
+                    if (cat) {
+                        targetUrl = `/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}`;
+                    }
+                }
+                history.pushState({}, '', targetUrl);
+                activeProduct = null;
+                handleRouteChange();
+            }
+        } else {
+            activeProduct = null;
+            updateBreadcrumbsAndTitle(null);
+            updateSidebarActiveState();
         }
     }
 
@@ -438,15 +581,40 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        if (breadcrumbContainer) {
+            breadcrumbContainer.addEventListener('click', e => {
+                const link = e.target.closest('a');
+                if (!link) return;
+                const href = link.getAttribute('href');
+                if (href && href.startsWith('/catalog/category/')) {
+                    e.preventDefault();
+                    if (window.location.pathname !== href) {
+                        history.pushState({ path: href }, '', href);
+                        handleRouteChange();
+                    }
+                } else if (href === '/catalog') {
+                    e.preventDefault();
+                    if (window.location.pathname !== href) {
+                        history.pushState({ path: href }, '', href);
+                        handleRouteChange();
+                    }
+                }
+            });
+        }
+
         window.addEventListener('popstate', handleRouteChange);
 
         if (menuToggleBtn) menuToggleBtn.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
         if (pageOverlay) pageOverlay.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
 
         document.addEventListener('keydown', e => {
-            if (detailModal && !detailModal.classList.contains('hidden') && window.ProductSlider) {
-                if (e.key === 'ArrowLeft') ProductSlider.prev();
-                if (e.key === 'ArrowRight') ProductSlider.next();
+            if (detailModal && !detailModal.classList.contains('hidden')) {
+                if (e.key === 'Escape') {
+                    closeModal(true);
+                } else if (window.ProductSlider) {
+                    if (e.key === 'ArrowLeft') ProductSlider.prev();
+                    if (e.key === 'ArrowRight') ProductSlider.next();
+                }
             }
         });
 
