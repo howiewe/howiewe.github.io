@@ -6,20 +6,25 @@
 
 ## 1. 邊緣 SSR 主路由 (`functions/[[path]].js`)
 
-邊緣 Worker 攔截前台訪問請求，讀取靜態 HTML 模板後，透過 `HTMLRewriter` 動態注入資料庫內容與 Meta 標籤：
+邊緣 Worker 攔截前台訪問請求，讀取靜態 HTML 模板後，透過 `HTMLRewriter` 動態注入資料庫內容、Meta 標籤與模態預渲染：
 
 ### HTMLRewriter 注入對應
 
 | 選擇器 | 注入器 (Injector) | 注入內容與時機 |
 |---|---|---|
-| `#category-tree` | `SidebarInjector` | 左側分類樹（所有目錄頁面） |
-| `#homepage-categories` | `HomepageCategoriesInjector` | 首頁頂層分類卡片（含 D1 代表產品圖） |
-| `#featured-category-container` | `FeaturedCategoryInjector` | 探索大廳之精選大卡片（優先尋找運動用品，可 fallback） |
-| `#category-grid-container` | `CategoryLobbyInjector` | 探索大廳之全部分類卡片網格 |
-| `#product-list` | `ProductListInjector` | 目錄頁初始產品列表（首批 24 筆）；接收 `categoryName` 強化圖片 alt 語意 |
-| `#breadcrumb-container` | `BreadcrumbInjector` | 視覺麵包屑 `<ol>`（分類頁三層、產品頁三層） |
+| `#category-tree` | `SidebarInjector` | 左側分類樹（標記當前分類 `active` 並自動展開父目錄） |
+| `#homepage-categories` | `HomepageCategoriesInjector` | 首頁頂層分類卡片（含 D1 代表產品圖與 `size` 比例縮放） |
+| `#featured-category-container` | `FeaturedCategoryInjector` | 探索大廳精選大卡片（含代表圖與 `size` 比例縮放） |
+| `#category-grid-container` | `CategoryLobbyInjector` | 探索大廳全部分類卡片網格（含代表圖與 `size` 比例縮放） |
+| `#product-list` | `ProductListInjector` | 目錄頁初始產品列表（首批 24 筆；套用 `size` 縮放與圖片 alt 語意） |
+| `#breadcrumb-container` | `BreadcrumbInjector` | 視覺語意麵包屑 `<ol>`（全部產品、多層父子分類頁與產品頁） |
 | `#category-description-container` | `ContentInjector` | 分類說明文字（有 description 時注入） |
-| `title` | `TitleRewriter` | 頁面標題（動態代入產品名或分類名） |
+| `#detail-modal-container` | `ProductDetailModalInjector` | 產品直連 SSR 預渲染：移除 `hidden` 保持彈窗開啟 |
+| `#slider-wrapper` | `ProductSliderSSRInjector` | 產品直連 SSR 預渲染：主輪播大圖（套用後台 `size` 縮放） |
+| `#detail-thumbnail-list` | `ProductThumbnailsSSRInjector` | 產品直連 SSR 預渲染：縮圖清單（100% 原始尺寸無縮小） |
+| `#product-detail-info` | `ProductDetailInfoSSRInjector` | 產品直連 SSR 預渲染：標題、價格、分類、SKU 與 EAN-13 |
+| `body` | `BodyModalClassInjector` | 產品直連 SSR 預渲染：加入 `modal-open` class |
+| `title` | `TitleRewriter` | 頁面標題（動態代入產品名、分類名或全部產品） |
 | `head` | `HeadRewriter` | Canonical 規範網址、Open Graph 與 Twitter Cards 標籤 |
 | `head` | `StructuredDataInjector` | Schema.org 結構化資料（Product, CollectionPage, BreadcrumbList, SportsGoodsStore） |
 
@@ -31,28 +36,32 @@
 
 - **`js/customer/customer-app.js`**：
   - **頁面類型**：以 `catalog.html` 為基底的輕量級 SPA 互動。
-  - **URL 狀態同步**：點擊產品卡片時以 `history.pushState` 開啟產品詳情 Modal，URL 同步為 `/catalog/product/:id/:name`；點擊返回鍵（`popstate`）或關閉 Modal 恢復目錄狀態。
+  - **URL 與彈窗歷程**：點擊產品卡片以 `history.pushState({ isModal: true })` 開啟 Modal，URL 同步為 `/catalog/product/:id/:name`；站內關閉執行 `history.back()` 乾淨返回原分類 URL；外部直連關閉自動導向所屬分類。
+  - **多層麵包屑與標題同步**：動態追溯父子分類祖先鏈，即時更新 `#breadcrumb-container` 與 `document.title`。
   - **Toolbar 工具列**：整合防抖搜尋、排序切換與單/雙欄網格檢視切換。
 - **`js/customer/slider.js`**：
-  - 商品詳情彈窗專屬圖片輪播元件，支援 Touch 滑動、滑鼠拖曳、箭頭與圓點導航。
+  - 商品詳情彈窗圖片輪播，主圖套用後台設定的 `size` 縮放比例，縮圖清單維持 100% 原始尺寸，支援滑動拖曳與點擊開啟燈箱。
 - **`js/customer/lightbox.js`**：
-  - 全螢幕大圖檢視元件，支援雙指縮放 (Pinch-to-zoom)、滑鼠滾輪放大、手勢平移與 URL Hash (`#lightbox`) 返回鍵關閉。
+  - 全螢幕大圖檢視元件，繼承圖片之 `size` 作為初始比例，支援雙指縮放 (Pinch-to-zoom)、滑鼠滾輪放大、手勢平移與 URL Hash (`#lightbox`) 返回鍵關閉。
 - **`js/shared/theme.js`**：
   - 以 `defer` 載入，根據 `localStorage.theme` 切換 `document.body` 之 `dark-mode` class。
 
 ---
 
-## 3. SEO 與 Sitemap 規範
+## 3. SEO、圖片與導覽規範
 
 所有 SEO 標籤（title / description / canonical / OG / JSON-LD）均由 SSR 動態注入，HTML 靜態檔只保留 Googlebot 冷快取時的最低限度 fallback，無硬編碼重複項。
 
 - **Canonical URL**：每個頁面均由 `seo.js` 動態生成規範網址，注入 `<link rel="canonical">`，防止 URL 參數造成重複頁面。
 - **結構化資料 (JSON-LD)**：
-  - 首頁：`SportsGoodsStore`（含電話、地址、描述，全由 SSR 注入，`index.html` 不硬編碼）
+  - 首頁：`SportsGoodsStore`（含電話、地址、描述）
   - 探索頁：`CollectionPage` + `BreadcrumbList`
-  - 分類目錄頁：`BreadcrumbList`（三層：首頁 › 產品分類 › 分類名）
-  - 產品詳情：`Product` Rich Snippet（含價格、EAN13、在庫狀態、品牌、所有圖片陣列）
-- **視覺麵包屑 HTML**：`BreadcrumbInjector` 在分類頁與產品頁注入語意 `<ol>` 麵包屑，`aria-current="page"` 標記當前頁，hover 效果與截斷樣式定義在 `components.css`。
+  - 全部產品頁：`BreadcrumbList`（兩層：首頁 › 全部產品）
+  - 分類目錄頁：`BreadcrumbList`（多層：首頁 › 產品分類 › [父分類 ›] 當前分類）
+  - 產品詳情頁：`Product` Rich Snippet + `BreadcrumbList`（多層祖先鏈 + 產品名）
+- **圖片短邊約束與比例縮放**：
+  - 1:1 正方形透明圖片置於各類長寬比展示框時，容器採用 Flex 居中與 `overflow: hidden`，圖片以 `object-fit: contain` 受限於框框短邊，並以 `transform: scale(size / 100)` 呈現後台微調比例。
+- **視覺麵包屑 HTML**：全站統一語意 `<nav id="breadcrumb-container">` 與 `<ol class="breadcrumb-trail">`，`aria-current="page"` 標記當前頁，樣式由 `components.css` 統一管理。
 - **圖片 alt 語意**：`ProductListInjector` 接收 `categoryName`，輸出「`{分類} - {產品名}`」格式；分類卡片輸出「`光華工業 {分類名} 系列`」。
 - **動態 Sitemap (`functions/sitemap.xml.js`)**：自動抓取 D1 所有分類與產品，產品條目附加 `<image:image>` 標籤讓 Google 圖片搜尋收錄，快取 24 小時。
 - **Meta description 關鍵字**：分類頁、目錄頁、大廳頁描述文案均含「乒乓球拍、羽球拍、跳繩、球棒、批發、外銷」等核心搜尋意圖詞。
