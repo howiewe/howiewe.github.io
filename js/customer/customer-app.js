@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             cardLink.innerHTML = `
                 <div class="image-container">
-                    <img src="${imageUrl}" class="product-image" alt="${escapeHtml(product.name)}" loading="lazy" style="transform: scale(${imageSize / 100});">
+                    <img src="${imageUrl}" class="product-image" alt="${escapeHtml(product.name)}" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});">
                 </div>
                 <div class="product-info">
                     <h3>${escapeHtml(product.name)}</h3>

@@ -89,7 +89,7 @@ export async function onRequest(context) {
                 featuredCategory = allCategories.find(c => c.parentId === null) || allCategories[0];
             }
 
-            let featuredImage = defaultImage;
+            let featuredImageObj = { url: defaultImage, size: 90 };
 
             if (featuredCategory) {
                 const randomImageResult = await env.D1_DB.prepare(`
@@ -110,18 +110,21 @@ export async function onRequest(context) {
                     try {
                         const parsed = JSON.parse(randomImageResult.imageUrls);
                         if (parsed && parsed.length > 0 && parsed[0].url) {
-                            featuredImage = parsed[0].url;
+                            featuredImageObj = {
+                                url: parsed[0].url,
+                                size: parsed[0].size || 90
+                            };
                         }
                     } catch (e) { }
                 }
 
-                rewriters.push(['#featured-category-container', new FeaturedCategoryInjector(featuredCategory, featuredImage)]);
+                rewriters.push(['#featured-category-container', new FeaturedCategoryInjector(featuredCategory, featuredImageObj, defaultImage)]);
             }
 
             // 渲染其餘分類 (排除精選分類)
             const categoriesToDisplay = allCategories.filter(c => featuredCategory ? c.id !== featuredCategory.id : true);
 
-            // 批次查詢每個分類的代表圖片
+            // 批次查詢每個分類的代表圖片 (含自訂尺寸 size)
             const categoryImagesMap = new Map();
             if (categoriesToDisplay.length > 0) {
                 const imageStmts = categoriesToDisplay.map(cat =>
@@ -148,7 +151,8 @@ export async function onRequest(context) {
                             if (row?.imageUrls) {
                                 const parsed = JSON.parse(row.imageUrls);
                                 const imgUrl = parsed[0]?.url;
-                                if (imgUrl) categoryImagesMap.set(cat.id, imgUrl);
+                                const imgSize = parsed[0]?.size || 90;
+                                if (imgUrl) categoryImagesMap.set(cat.id, { url: imgUrl, size: imgSize });
                             }
                         } catch (e) { }
                     });
@@ -444,7 +448,8 @@ export async function onRequest(context) {
                         if (row?.imageUrls) {
                             const parsed = JSON.parse(row.imageUrls);
                             const imgUrl = parsed[0]?.url;
-                            if (imgUrl) categoryImages.set(cat.id, imgUrl);
+                            const imgSize = parsed[0]?.size || 90;
+                            if (imgUrl) categoryImages.set(cat.id, { url: imgUrl, size: imgSize });
                         }
                     } catch (e) { /* 解析失敗，使用 defaultImage */ }
                 });

@@ -35,12 +35,14 @@ export class CategoryLobbyInjector {
 
                 const isParent = cat.parentId === null;
                 const cardClass = `category-card ${isParent ? 'category-card--parent' : ''}`;
-                const imageUrl = this.categoryImages.get(cat.id) || this.defaultImage;
+                const imgData = this.categoryImages.get(cat.id);
+                const imageUrl = (typeof imgData === 'object' && imgData?.url) ? imgData.url : (typeof imgData === 'string' ? imgData : this.defaultImage);
+                const imageSize = (typeof imgData === 'object' && imgData?.size) ? imgData.size : 90;
 
                 categoriesHtml += `
                     <a href="${categoryHref}" class="${cardClass}">
                         <div class="category-card-image">
-                            <img src="${imageUrl}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy">
+                            <img src="${imageUrl}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});">
                         </div>
                         <div class="category-card-content">
                             <h3>${escapeXml(cat.name)}</h3>
@@ -58,9 +60,10 @@ export class CategoryLobbyInjector {
 }
 
 export class FeaturedCategoryInjector {
-    constructor(category, imageUrl) {
+    constructor(category, imageObj, defaultImage = '') {
         this.category = category;
-        this.imageUrl = imageUrl;
+        this.imageObj = imageObj;
+        this.defaultImage = defaultImage;
     }
 
     element(element) {
@@ -70,10 +73,13 @@ export class FeaturedCategoryInjector {
         const categoryHref = `/catalog/category/${this.category.id}/${categoryUrlName}`;
         const description = this.category.description || '探索我們精選的運動用品系列。';
 
+        const imageUrl = (typeof this.imageObj === 'object' && this.imageObj?.url) ? this.imageObj.url : (typeof this.imageObj === 'string' ? this.imageObj : this.defaultImage);
+        const imageSize = (typeof this.imageObj === 'object' && this.imageObj?.size) ? this.imageObj.size : 90;
+
         const html = `
             <a href="${categoryHref}" class="featured-category">
                 <div class="featured-image-container">
-                    <img src="${this.imageUrl}" alt="${escapeXml(this.category.name)}" class="featured-image" loading="lazy">
+                    <img src="${imageUrl}" alt="${escapeXml(this.category.name)}" class="featured-image" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});">
                 </div>
                 <div class="featured-content">
                     <div class="featured-label">Featured Collection</div>
@@ -157,7 +163,7 @@ export class ProductListInjector {
                 const priceHtml = (product.price !== null && product.price !== undefined) ? `<p class="price">$${product.price}</p>` : `<p class="price price-empty">&nbsp;</p>`;
                 productsHtml += `
                     <a href="${productHref}" class="product-card">
-                        <div class="image-container"><img src="${imageUrl}" class="product-image" alt="${altText}" loading="lazy" style="transform: scale(${imageSize / 100});"></div>
+                        <div class="image-container"><img src="${imageUrl}" class="product-image" alt="${altText}" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});"></div>
                         <div class="product-info"><h3>${escapeXml(product.name)}</h3>${priceHtml}</div>
                     </a>
                 `;
@@ -245,7 +251,9 @@ export class HomepageCategoriesInjector {
 
         let html = '';
         this.categories.forEach(cat => {
-            const imageUrl = this.categoryImages.get(cat.id) || this.defaultImage;
+            const imgData = this.categoryImages.get(cat.id);
+            const imageUrl = (typeof imgData === 'object' && imgData?.url) ? imgData.url : (typeof imgData === 'string' ? imgData : this.defaultImage);
+            const imageSize = (typeof imgData === 'object' && imgData?.size) ? imgData.size : 90;
             const categoryHref = `/catalog/category/${cat.id}/${encodeURIComponent(cat.name)}`;
             const rawDesc = cat.description || `探索我們精選的${cat.name}系列產品。`;
             const description = escapeXml(rawDesc.length > 60 ? rawDesc.substring(0, 60) + '...' : rawDesc);
@@ -253,7 +261,7 @@ export class HomepageCategoriesInjector {
             html += `
                 <a href="${categoryHref}" class="card">
                     <div class="card-image">
-                        <img src="${imageUrl}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy">
+                        <img src="${imageUrl}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});">
                     </div>
                     <div class="card-content">
                         <h3>${escapeXml(cat.name)}</h3>
