@@ -23,24 +23,14 @@
 
 ---
 
-## 2. 前端客戶端架構 (`js/`)
+## 2. 前端客戶端架構 (`script-customer.js`)
 
-前端腳本與樣式統一收納於 `js/` 與 `css/` 目錄，並落實低耦合與模組化共用：
-
-- **展示端業務 (`js/script-customer.js`)**：
-  - 以 `catalog.html` 為基底的輕量級 SPA-like 互動。
-  - 點擊產品卡片以 `history.pushState` 開啟詳情 Modal，URL 同步為 `/catalog/product/:id/:name`。
-  - 關閉 Modal 或瀏覽器返回鍵（`popstate`）恢復目錄狀態。
-- **共用工具庫 (`js/`)**：
-  - `ui-utils.js`：通用 UI 元件與提示工具（如 `showToast`）。
-  - `category-utils.js`：分類資料純運算工具（如 `flatToTree` 扁平轉樹狀、`buildCategoryTreeHTML` 樹狀 HTML 產生器）。
-  - `cropper-helper.js`：多圖裁切與旋轉佇列控制器（`CropperQueue` 封裝）。
-- **深淺色主題 (`js/theme.js`)**：
+- **頁面類型**：以 `catalog.html` 為基底的輕量級 SPA-like 互動。
+- **URL 狀態同步**：
+  - 點擊產品卡片時以 `history.pushState` 開啟產品詳情 Modal，URL 更新為 `/catalog/product/:id/:name`。
+  - 關閉 Modal 或點擊瀏覽器返回鍵（`popstate`）時恢復產品目錄狀態。
+- **深淺色主題 (`theme.js`)**：
   - 以 `defer` 載入，根據 `localStorage.theme` 切換 `document.body` 之 `dark-mode` class。
-- **樣式分流 (`css/`)**：
-  - `style.css`：全站變數與前台共用元件。
-  - `admin.css`：後台管理與批次建檔專屬樣式。
-  - `print-catalog.css`：A4 PDF 目錄列印專屬樣式。
 
 ---
 
