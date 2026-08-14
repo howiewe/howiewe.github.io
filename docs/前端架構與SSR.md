@@ -43,3 +43,21 @@
   - 產品目錄頁：特定分類之 `BreadcrumbList`
   - 產品詳情：`Product` Rich Snippet（含價格、條碼、在庫狀態、品牌與圖片）
 - **動態 Sitemap (`functions/sitemap.xml.js`)**：自動抓取 D1 所有分類與產品生成 XML，快取 24 小時。
+
+---
+
+## 4. 模組化 CSS 樣式架構 (`css/`)
+
+系統採用職責單一、高內聚低耦合的模組化 CSS 設計，各頁面依需求按需載入，零 inline styles 依賴：
+
+| 模組 | 職責說明 | 載入頁面 |
+|---|---|---|
+| `base.css` | 全域設計 Token（顏色、陰影、圓角、字體）、深淺色切換、基礎 reset 與響應式容器 | **全頁面** |
+| `layout.css` | 頁首 Header、導覽列、側邊欄分類樹、遮罩、深淺色切換圖示 | 除 `print` 外所有頁面 |
+| `components.css` | 通用按鈕 (`.btn`)、Toast 提示、通用 Modal 彈窗骨架、表單元件、分頁器 | 除 `print` 外所有頁面 |
+| `catalog.css` | 目錄頁工具列 (搜尋/排序)、產品卡網格 (單/雙欄)、產品詳情彈窗、輪播 Slider、Lightbox 燈箱 | `catalog.html`, `admin.html` |
+| `index.css` | 首頁專屬：全螢幕沉浸式 Hero、分類卡片網格、骨架屏載入動畫、頁尾 | `index.html` |
+| `lobby.css` | 探索大廳專屬：精選大卡片、母/子分類網格排版、麵包屑導覽 | `catalog-lobby.html` |
+| `admin.css` | 後台管理專屬：批次建檔工作台、分類管理 Modal (雙視圖平移)、圖片裁切與縮圖排序 | `admin.html`, `batch-upload.html` |
+| `print-catalog.css` | A4 目錄產生器專用排版與列印樣式 | `print-catalog.html` |
+
