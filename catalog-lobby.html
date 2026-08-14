@@ -30,7 +30,9 @@
             border-radius: var(--border-radius-lg, 12px);
             text-decoration: none;
             color: var(--text-primary, #333333);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.05));
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
         }
 
         .category-card-image {
@@ -61,8 +63,7 @@
 
         .category-card:hover {
             transform: translateY(-5px);
-            box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.12));
-            border-color: var(--primary-color, #007bff);
+            box-shadow: var(--shadow-lg, 0 10px 24px rgba(0,0,0,0.1));
         }
 
         .category-card h3 {
@@ -76,11 +77,6 @@
             color: var(--text-secondary, #666666);
             margin-top: 0.5rem;
             line-height: 1.4;
-        }
-
-        /* ▼▼▼ 【核心新增樣式】針對母分類卡片 ▼▼▼ */
-        .category-card--parent {
-            border: 2px solid var(--primary-color, #007bff);
         }
 
         /* 
@@ -123,12 +119,21 @@
             display: grid;
             grid-template-columns: 1fr;
             gap: 2rem;
-            background-color: var(--surface-color);
-            border-radius: var(--border-radius-lg);
+            background-color: var(--surface-color, #ffffff);
+            border-radius: var(--border-radius-lg, 12px);
             overflow: hidden;
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.06));
             margin-bottom: 3rem;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border-color, #e0e0e0);
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .featured-category:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg, 0 10px 24px rgba(0,0,0,0.1));
         }
 
         @media (min-width: 768px) {

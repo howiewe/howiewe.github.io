@@ -106,7 +106,7 @@ class FeaturedCategoryInjector {
         const description = this.category.description || '探索我們精選的運動用品系列。';
 
         const html = `
-            <div class="featured-category">
+            <a href="${categoryHref}" class="featured-category">
                 <div class="featured-image-container">
                     <img src="${this.imageUrl}" alt="${escapeXml(this.category.name)}" class="featured-image" loading="lazy">
                 </div>
@@ -114,12 +114,12 @@ class FeaturedCategoryInjector {
                     <div class="featured-label">Featured Collection</div>
                     <h2 class="featured-title">${escapeXml(this.category.name)}</h2>
                     <p class="featured-description">${escapeXml(description)}</p>
-                    <a href="${categoryHref}" class="featured-link">
+                    <span class="featured-link">
                         立即選購
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                    </a>
+                    </span>
                 </div>
-            </div>
+            </a>
         `;
 
         element.setInnerContent(html, { html: true });
@@ -245,16 +245,16 @@ class HomepageCategoriesInjector {
             const description = escapeXml(rawDesc.length > 60 ? rawDesc.substring(0, 60) + '...' : rawDesc);
 
             html += `
-                <div class="card">
+                <a href="${categoryHref}" class="card">
                     <div class="card-image">
                         <img src="${imageUrl}" alt="${escapeXml(cat.name)}" loading="lazy">
                     </div>
                     <div class="card-content">
                         <h3>${escapeXml(cat.name)}</h3>
                         <p>${description}</p>
-                        <a href="${categoryHref}">查看更多</a>
+                        <span class="card-link-text">查看更多 &rarr;</span>
                     </div>
-                </div>
+                </a>
             `;
         });
 

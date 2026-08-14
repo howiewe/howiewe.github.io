@@ -234,11 +234,16 @@
         }
 
         .card {
+            display: flex;
+            flex-direction: column;
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 15px;
             overflow: hidden;
+            text-decoration: none;
+            color: var(--body-text);
             transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
         }
 
         .card:hover {
@@ -262,16 +267,34 @@
 
         .card-content {
             padding: 25px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
         }
 
         .card h3 {
             font-size: 1.5em;
             margin-bottom: 10px;
+            color: var(--body-text);
         }
 
         .card p {
             margin-bottom: 20px;
             opacity: 0.8;
+        }
+
+        .card-link-text {
+            display: inline-flex;
+            align-items: center;
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-top: auto;
+            transition: color 0.3s, transform 0.3s;
+        }
+
+        .card:hover .card-link-text {
+            color: var(--primary-hover);
+            transform: translateX(4px);
         }
 
         .card-image img {
@@ -438,20 +461,20 @@
             <div class="container">
                 <h2 class="section-title">運動新知</h2>
                 <div class="card-grid">
-                    <div class="card">
+                    <a href="#" class="card">
                         <div class="card-content">
                             <h3>如何挑選一支適合初學者的羽球拍？</h3>
                             <p>從重量、平衡點到中管硬度，我們將帶您了解挑選第一支球拍的關鍵因素。</p>
-                            <a href="#">閱讀全文</a>
+                            <span class="card-link-text">閱讀全文 &rarr;</span>
                         </div>
-                    </div>
-                    <div class="card">
+                    </a>
+                    <a href="#" class="card">
                         <div class="card-content">
                             <h3>乒乓球拍膠皮保養全攻略</h3>
                             <p>正確的清潔與保養，能有效延長膠皮壽命，維持最佳擊球表現。</p>
-                            <a href="#">閱讀全文</a>
+                            <span class="card-link-text">閱讀全文 &rarr;</span>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
         </section>
