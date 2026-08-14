@@ -12,7 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/print-catalog.css">
 </head>
 
 <body class="print-tool-page">
@@ -20,22 +21,45 @@
     <div id="toast-container"></div>
 
     <div class="print-layout">
-        <!-- 左欄：設定區 -->
-        <aside class="print-settings">
-            <div class="print-settings-header">
-                <h2>目錄產生設定</h2>
-                <a href="/admin.html" class="btn btn-secondary">返回後台</a>
+        <!-- 左欄：控制面板與分類樹 -->
+        <aside class="print-controls">
+            <div class="header-content">
+                <h1><a href="/admin.html">目錄產生器</a></h1>
+                <button id="theme-toggle" title="切換深色/淺色模式">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="icon-sun">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="icon-moon">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
             </div>
-            <div class="print-settings-body">
-                <div class="form-group">
-                    <label>選擇要包含的產品分類</label>
-                    <div id="category-tree-wrapper">
-                        <!-- JS 會在這裡動態建立帶有複選框的分類樹 -->
-                        <p class="empty-message">正在載入分類...</p>
-                    </div>
+
+            <!-- 分類樹 (含 Checkbox) -->
+            <div class="category-selection-area">
+                <div class="selection-actions">
+                    <button id="select-all-btn" class="btn btn-secondary btn-sm">全選</button>
+                    <button id="deselect-all-btn" class="btn btn-secondary btn-sm">清除</button>
+                </div>
+                <div id="print-category-tree" class="category-tree-container">
+                    <!-- 分類樹將由 JS 動態生成 -->
                 </div>
             </div>
-            <div class="print-settings-footer">
+
+            <!-- 動作按鈕 -->
+            <div class="print-actions">
                 <button id="generate-preview-btn" class="btn btn-primary">產生預覽</button>
                 <button id="download-pdf-btn" class="btn btn-success" disabled>下載 PDF</button>
             </div>
@@ -52,7 +76,9 @@
         </main>
     </div>
 
-    <script src="script-print-catalog.js"></script>
+    <script src="/js/ui-utils.js"></script>
+    <script src="/js/category-utils.js"></script>
+    <script src="/js/script-print-catalog.js"></script>
 </body>
 
 </html>

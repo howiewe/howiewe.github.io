@@ -1,0 +1,808 @@
+/* --- 13. Admin 專屬頁面與元件 (Admin-Specific Pages & Components) --- */
+/* Batch Upload Page */
+.batch-page .batch-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    height: calc(100vh - 60px);
+    overflow: hidden;
+}
+
+.batch-page .batch-panel {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.batch-page .batch-panel h2 {
+    margin-top: 0;
+}
+
+.batch-page #image-dropzone {
+    border: 2px dashed var(--border-color);
+}
+
+.batch-page #image-dropzone:hover,
+.batch-page #image-dropzone.dragover {
+    background-color: color-mix(in srgb, var(--primary-color) 5%, transparent);
+    border-color: var(--primary-color);
+}
+
+#image-pool {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    padding: 0.5rem;
+}
+
+.img-thumbnail {
+    position: relative;
+    width: 100%;
+    padding-top: 100%;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: border-color 0.2s, opacity 0.3s, transform 0.2s;
+}
+
+.img-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+.img-thumbnail img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.img-thumbnail.selected {
+    border-color: var(--primary-color);
+}
+
+.img-thumbnail.assigned {
+    opacity: 0.3;
+    cursor: not-allowed;
+    filter: grayscale(80%);
+}
+
+#data-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-top: 1rem;
+}
+
+.data-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.data-item:hover {
+    background-color: var(--bg-color);
+}
+
+.data-item.assigned {
+    background-color: color-mix(in srgb, var(--success-color) 10%, transparent);
+}
+
+.data-item-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+}
+
+.data-item-status {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.data-item-status.assigned {
+    color: var(--success-color);
+}
+
+.data-item-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.data-item-images img {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--border-radius-sm);
+    object-fit: cover;
+}
+
+#final-submit-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background-color: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+    text-align: right;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+/* Category Management Modal (重構後) */
+.modal-container.category-manager .modal-content {
+    width: 95%;
+    max-width: 720px;
+    height: 85vh;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.category-manager-header {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    gap: 1rem;
+}
+
+.category-manager-header h2 {
+    margin: 0 auto 0 0;
+    font-size: 1.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.category-manager-header .btn {
+    padding: 0.5rem 1rem;
+}
+
+#category-back-btn svg {
+    margin-right: 0.25rem;
+}
+
+.category-manager-header .close-btn {
+    position: static;
+    transform: none;
+    font-size: 1.8rem;
+    order: 10;
+}
+
+/* --- ▼▼▼ 【新增】視圖切換的核心樣式 ▼▼▼ --- */
+.category-views-container {
+    flex-grow: 1;
+    position: relative;
+    /* 讓子視圖可以絕對定位 */
+    overflow: hidden;
+}
+
+#category-manager-view,
+#category-edit-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--surface-color);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    overscroll-behavior: contain;
+    /* 防止滾動穿透 */
+}
+
+/* 預設的進入/離開動畫 */
+#category-edit-view {
+    opacity: 0;
+    transform: translateX(20px);
+    pointer-events: none;
+    /* 隱藏時不可點擊 */
+}
+
+#category-edit-view:not(.hidden) {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+#category-manager-view.hidden {
+    opacity: 0;
+    transform: translateX(-20px);
+    pointer-events: none;
+}
+
+/* --- ▲▲▲ 新增結束 ▲▲▲ --- */
+
+.category-manager-list {
+    padding: 1rem;
+}
+
+/* 以下是列表項目的樣式，保持不變 */
+.cm-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: var(--border-radius-md);
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    margin-bottom: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.cm-item:hover {
+    background-color: var(--bg-color);
+}
+
+.cm-drag-handle {
+    cursor: grab;
+    color: var(--text-secondary);
+    margin-right: 1rem;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.cm-item:hover .cm-drag-handle {
+    opacity: 1;
+}
+
+.cm-name {
+    flex-grow: 1;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.cm-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cm-actions .action-btn {
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.cm-item:hover .cm-actions .action-btn {
+    opacity: 1;
+}
+
+.cm-item.sortable-ghost {
+    background-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
+    border-style: dashed;
+}
+
+.cm-item.sortable-chosen {
+    cursor: grabbing;
+    box-shadow: var(--shadow-lg);
+}
+
+/* 編輯表單的內距，由 inline style 改為 class 控制 */
+#category-edit-view .modal-body {
+    padding: 1.5rem;
+}
+
+#category-edit-view .modal-footer {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    margin-top: 0;
+}
+
+/* Admin Edit Modal Specific Layouts */
+.modal-column-left {
+    flex: 0 0 40%;
+    display: flex;
+    flex-direction: column;
+    min-width: 400px;
+}
+
+.modal-column-right {
+    flex: 1 1 60%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.right-column-content-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.form-group.full-height {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#image-upload-area {
+    flex-grow: 1;
+    display: flex;
+    height: 100%;
+    min-height: 200px;
+}
+
+.image-gallery-admin {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+#edit-modal-container .modal-header h2,
+#edit-modal-container .modal-column-left>.form-group>label {
+    display: none;
+}
+
+#edit-modal-container .modal-header {
+    padding: 0;
+    border-bottom: none;
+    height: 0;
+}
+
+#edit-modal-container .modal-content {
+    position: relative;
+}
+
+#edit-modal-container .close-btn {
+    position: absolute;
+    z-index: 10;
+}
+
+/* 1. 針對手機版「編輯產品」彈窗的主滾動區 */
+#edit-modal-container .modal-body {
+    overscroll-behavior: contain;
+}
+
+/* 2. 針對「分類管理」彈窗的滾動列表 */
+.category-manager-list {
+    overscroll-behavior: contain;
+}
+
+
+/* --- 手機版 (<= 768px) --- */
+@media (max-width: 768px) {
+
+    /* --- 新增：從 991px 規則合併過來的 Admin Edit Modal 手機版佈局 --- */
+    #edit-modal-container .modal-content {
+        width: 95vw;
+        height: 90vh;
+        overflow: hidden;
+    }
+
+    #edit-modal-container .modal-body {
+        flex-direction: column;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 1rem;
+        padding-top: 3.5rem;
+        /* 稍微增加頂部空間給關閉按鈕 */
+    }
+
+    #edit-modal-container .modal-column-left,
+    #edit-modal-container .modal-column-right {
+        flex: none;
+        min-width: 0;
+        width: 100%;
+    }
+
+    #edit-modal-container .right-column-content-wrapper {
+        overflow-y: visible;
+        height: auto;
+    }
+
+    #edit-modal-container .close-btn {
+        top: 0.75rem;
+        right: 0.75rem;
+    }
+
+    /* ▼▼▼【核心修改】讓縮圖列表顯示出來，並設定為可水平滾動 ▼▼▼ */
+    #edit-modal-container #thumbnail-list-admin {
+        display: flex;
+        /* 從 none 改為 flex */
+        overflow-x: auto;
+        /* 允許水平滾動 */
+        overflow-y: hidden;
+        /* 隱藏垂直滾動條 */
+        padding: 0.5rem 0;
+        /* 增加一點垂直內距 */
+        /* 讓滾動在 iOS 上更平滑 */
+        -webkit-overflow-scrolling: touch;
+        /* 為了美觀，可以嘗試隱藏滾動條 */
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    #edit-modal-container #thumbnail-list-admin::-webkit-scrollbar {
+        display: none;
+        /* Chrome, Safari */
+    }
+
+    /* ▲▲▲ 修改結束 ▲▲▲ */
+
+
+    #edit-modal-container .main-image-wrapper {
+        border: none;
+        background-color: var(--bg-color);
+        border-radius: var(--border-radius-md);
+        padding: 1rem;
+        /* 為了佈局穩定，給一個固定的高度 */
+        height: 250px;
+    }
+
+    #edit-modal-container .image-gallery-admin {
+        gap: 0.5rem;
+        /* 增加主圖和縮圖列表之間的間距 */
+    }
+
+    /* --- 合併規則結束 --- */
+
+
+    /* General Layout */
+    .container {
+        padding: 1.5rem 1rem;
+    }
+
+    header h1 {
+        font-size: 1.25rem;
+    }
+
+    .menu-toggle-btn {
+        display: flex;
+    }
+
+    #category-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 1002;
+        transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
+        border-right: none;
+    }
+
+    body.sidebar-open #category-sidebar {
+        transform: translateX(0);
+    }
+
+    /* General Modals */
+    .modal-content {
+        padding: 1.5rem;
+        height: auto;
+        max-height: 85vh;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        transform: scale(1) !important;
+    }
+
+    #cropper-modal .button-group.cropper-actions {
+        grid-template-columns: 1fr;
+    }
+
+    /* Product Grid & View Toggle */
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-actions .view-toggle {
+        display: flex;
+    }
+
+    .product-grid.view-two-columns {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .product-grid.view-two-columns .product-card:has(.price.price-empty) h3 {
+        white-space: initial;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+
+    .product-grid.view-two-columns .product-card:has(.price.price-empty) .price {
+        display: none;
+    }
+
+    .slider-nav-btn {
+        display: none !important;
+    }
+
+    /* Customer Page: Toolbar */
+    .customer-page .toolbar {
+        display: grid;
+        grid-template-columns: 44px 1fr 1fr 44px;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .customer-page #search-box {
+        display: none;
+    }
+
+    .customer-page #search-toggle-btn,
+    .customer-page #category-toggle-btn,
+    .customer-page #sort-btn,
+    .customer-page #order-toggle-btn {
+        display: inline-flex;
+        width: 100%;
+        height: 44px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .customer-page #category-toggle-btn,
+    .customer-page #sort-btn {
+        padding: 0 0.75rem;
+    }
+
+    .customer-page .toolbar.search-active {
+        grid-template-columns: 1fr 44px 44px;
+    }
+
+    .customer-page .toolbar.search-active #search-box {
+        display: block;
+        width: 100%;
+        height: 44px;
+    }
+
+    .customer-page .toolbar.search-active #search-toggle-btn,
+    .customer-page .toolbar.search-active #category-toggle-btn {
+        display: none;
+    }
+
+    .customer-page .toolbar.search-active .sort-container {
+        width: auto;
+    }
+
+    .customer-page .toolbar.search-active #sort-btn {
+        width: 44px;
+        padding: 0;
+    }
+
+    .customer-page .toolbar.search-active #sort-btn span {
+        display: none;
+    }
+
+    /* Admin Page: Toolbar */
+    .admin-page .toolbar {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        row-gap: 1rem;
+    }
+
+    .admin-page .toolbar-actions {
+        grid-column: 1 / -1;
+        order: 2;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    .admin-page #search-box {
+        grid-column: 1 / -1;
+        order: 1;
+        display: block;
+    }
+
+    .admin-page #search-toggle-btn {
+        display: none !important;
+    }
+
+    .admin-page .sort-container {
+        order: 3;
+    }
+
+    .admin-page #order-toggle-btn {
+        order: 4;
+    }
+
+    /* Category Manager Modal: Mobile */
+    .modal-container.category-manager .modal-content {
+        width: 90%;
+        height: auto;
+        max-height: 85vh;
+        border-radius: var(--border-radius-lg);
+        transform: scale(1) !important;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .category-manager-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .category-manager-header h2 {
+        font-size: 1.1rem;
+    }
+
+    .cm-actions .action-btn {
+        opacity: 1;
+    }
+
+    /* Customer Detail Modal Fix: Mobile */
+    #detail-modal-container .modal-content {
+        height: auto;
+        max-height: 85vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 95%;
+    }
+}
+
+/* --- 平板與桌面 (>= 768px) --- */
+@media (min-width: 768px) {
+
+    /* Layouts */
+    #product-detail-layout {
+        grid-template-columns: 350px 1fr;
+        align-items: flex-start;
+    }
+
+    .image-gallery-customer {
+        max-width: 350px;
+    }
+
+    .batch-page .batch-workspace {
+        flex-direction: row;
+    }
+
+    .batch-page #image-panel {
+        width: 40%;
+    }
+
+    .batch-page #data-panel {
+        width: 60%;
+    }
+
+    /* Toolbar: General Base Styles */
+    .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        /* 【核心修正】強制工具列本身撐滿整個容器寬度 */
+    }
+
+    #search-toggle-btn,
+    #category-toggle-btn {
+        display: none;
+    }
+
+    #search-box {
+        display: block;
+    }
+
+    .sort-container {
+        flex-shrink: 0;
+    }
+
+    /* Toolbar: Customer Page Specific Layout */
+    .customer-page .toolbar #search-box {
+        /* 這條規則現在可以正常運作，因為父容器有剩餘空間了 */
+        flex-grow: 1;
+    }
+
+    /* Toolbar: Admin Page Specific Layout (Grid) - 保持不變 */
+    .admin-page .toolbar {
+        display: grid;
+        grid-template-columns: minmax(200px, 1fr) auto auto auto;
+        width: auto;
+        /* 管理頁面使用 Grid，不需要 100% 寬度 */
+    }
+
+    .admin-page .toolbar .toolbar-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    .admin-page #search-box {
+        max-width: none;
+    }
+
+
+
+    /* Admin Home Button */
+    #home-btn-mobile {
+        display: none;
+    }
+
+    #home-btn-desktop {
+        display: inline-flex;
+    }
+
+
+
+    /* Customer Detail Modal Fix: Desktop */
+    #detail-modal-container .modal-content {
+        height: auto;
+        max-height: 85vh;
+        overflow-y: auto;
+        width: 90%;
+        max-width: 900px;
+    }
+}
+
+/* --- 大型桌面 (>= 992px) --- */
+@media (min-width: 992px) {
+
+    /* Admin Edit Modal: Desktop Layout */
+    #edit-modal-container.modal-container {
+        padding-top: 3vh;
+        padding-bottom: 3vh;
+    }
+
+    #edit-modal-container .modal-content {
+        max-width: 1200px;
+        width: 90%;
+        height: auto;
+        /* Let content decide height */
+        max-height: 94vh;
+        /* Adjust based on new padding */
+        display: flex;
+        flex-direction: column;
+    }
+
+    #edit-modal-container .modal-body {
+        padding: 1.5rem 1.5rem 1rem 1.5rem;
+    }
+
+    #edit-modal-container .modal-footer {
+        padding-top: 1rem;
+        margin-top: 0;
+    }
+
+    #edit-modal-container .close-btn {
+        top: 1rem;
+        right: 1.5rem;
+    }
+
+    /* Admin Edit Modal: Image Gallery Layout */
+    .image-gallery-admin {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        gap: 0.75rem;
+    }
+
+    #edit-modal-container .main-image-wrapper {
+        flex: 2;
+        min-height: 0;
+        border: none;
+        background-color: var(--bg-color);
+        border-radius: var(--border-radius-md);
+        padding: 1rem;
+        /* Remove fixed padding-top for flex to work */
+        height: auto;
+        padding-top: 0;
+    }
+
+    #edit-modal-container #thumbnail-list-admin {
+        flex: 1;
+        min-height: 0;
+        border: none;
+        border-radius: var(--border-radius-md);
+        padding: 0.5rem;
+        overflow-y: auto;
+    }
+}
+

@@ -1,0 +1,305 @@
+/* === 14. 目錄產生器專屬樣式 (Print Catalog Generator) === */
+
+/* --- 頁面主佈局 --- */
+.print-tool-page {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.print-layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.print-settings {
+    width: 350px;
+    flex-shrink: 0;
+    background-color: var(--surface-color);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.print-settings-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.print-settings-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.print-settings-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.print-settings-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+/* --- 分類樹 (含複選框) --- */
+#category-tree-wrapper ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#category-tree-wrapper li {
+    margin-top: 0.5rem;
+}
+
+#category-tree-wrapper label {
+    margin-left: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* --- 預覽區 --- */
+.print-preview {
+    flex-grow: 1;
+    background-color: var(--bg-color);
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+#preview-container {
+    width: 100%;
+}
+
+.preview-placeholder {
+    text-align: center;
+    padding: 4rem;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius-lg);
+    color: var(--text-secondary);
+}
+
+.preview-placeholder p.error {
+    color: var(--danger-color);
+}
+
+/* --- A4 頁面模擬 --- */
+.page {
+    background: #fff;
+    width: 816px;
+    /* A4 寬度 @ 96dpi */
+    height: 1100px;
+    /* 約 A4 高度，預留一些空間 */
+    margin: 0 auto 1.5rem auto;
+    box-shadow: var(--shadow-lg);
+    padding-top: 20px;
+    /* 只把上邊距從 40px 改成 20px */
+    padding-left: 40px;
+    padding-right: 40px;
+    padding-bottom: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.page-header,
+.page-footer {
+    flex-shrink: 0;
+    color: #999;
+    font-size: 0.8rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+
+
+.page-content {
+    margin-top: auto;
+    margin-bottom: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    align-content: flex-start;
+    /* 讓內容從頂部開始排列 */
+}
+
+.page-category-title {
+    font-size: 1.5rem;
+    /* 24px */
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 0px;
+    margin-top: 0;
+    padding-bottom: 1px;
+    border-bottom: 2px solid var(--primary-color);
+    /* 確保標題和其後的第一個產品項在同一頁，避免標題單獨留在頁尾 */
+    break-after: avoid;
+    grid-column: 1 / -1;
+}
+
+.product-item-print {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    overflow: hidden;
+    break-inside: avoid;
+    /* 【核心】將整個產品框設為定位的父容器 */
+    position: relative;
+}
+
+.product-item-print-img {
+    width: 160px;
+    /* 恢復成之前的大小，您可以自行調整 */
+    height: 160px;
+    flex-shrink: 0;
+}
+
+.product-item-print-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.product-item-print-info {
+    flex-grow: 1;
+    overflow: hidden;
+    /* ▼▼▼ 【核心修正】在資訊區塊底部增加內邊距，為價格標籤騰出空間 ▼▼▼ */
+    padding-bottom: 30px;
+    /* 這個值可以根據您的價格標籤高度微調 */
+}
+
+.product-item-print-info .product-name {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* ▼▼▼ 【核心】使用正確的選擇器來定位價格 ▼▼▼ */
+.product-item-print .product-price {
+    position: absolute;
+    bottom: 10px;
+    /* 對齊父容器的 10px padding */
+    right: 10px;
+    /* 對齊父容器的 10px padding */
+    margin: 0;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    background-color: #ffffff;
+    /* 確保背景不是透明的 */
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm);
+    /* 可選：加個小圓角更好看 */
+}
+
+.product-barcode-svg {
+    width: 100%;
+    max-width: 180px;
+    height: 45px;
+}
+
+.product-item-print-info .product-ean13 {
+    margin: 2px 0 0 0;
+    /* 微調與品名間的距離 */
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.product-sku {
+    display: inline-block;
+    /* 核心：讓元素自適應內容寬度，又能設定內外距 */
+    border: 1px solid var(--border-color);
+    /* 淺灰色邊框 */
+    padding: 2px 6px;
+    /* 上下 2px，左右 6px 的內距 */
+    font-size: 0.75rem;
+    /* 較小的字體 (約 12px) */
+    color: var(--text-secondary);
+    /* 次要文字顏色 */
+    border-radius: var(--border-radius-sm);
+    /* 小圓角，與整體風格一致 */
+    margin-bottom: 0.5rem;
+    /* 與下方的產品名稱保持間距 */
+}
+
+.product-item-print-info .product-name {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    overflow: hidden;
+    white-space: nowrap;
+    /* 確保 JS 能偵測寬度 */
+}
+
+/* 瀏覽器列印優化 */
+@media print {
+    body.print-tool-page {
+        overflow: visible;
+    }
+
+    .print-settings {
+        display: none;
+    }
+
+    .print-preview {
+        padding: 0;
+        overflow: visible;
+    }
+
+    .page {
+        margin: 0;
+        box-shadow: none;
+        width: 100%;
+        height: 100%;
+    }
+}
+
+/* --- NEW: Category Description (SEO Content) --- */
+.category-description-wrapper {
+    margin-bottom: 2rem;
+    /* 在描述區塊和下方的工具列之間增加間距 */
+    padding: 1.5rem;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+}
+
+/* 如果沒有內容 (由 JS 清空)，則不顯示此區塊，避免佔用空間 */
+.category-description-wrapper:empty {
+    display: none;
+}
+
+.page-number-vertical {
+    position: absolute;
+    bottom: 40px;
+    /* 離頁面底部 40px */
+    right: 15px;
+    /* 離頁面右側 15px */
+
+    /* 核心修改：在旋轉後，使用 translateX 將其移回邊界內 */
+    transform: rotate(-90deg) translateX(100%);
+    transform-origin: bottom right;
+
+    /* 其他文字樣式不變 */
+    font-size: 12px;
+    color: #aaa;
+    letter-spacing: 2px;
+    white-space: nowrap;
+}
