@@ -1,6 +1,6 @@
 # 前端架構與 SSR
 
-本專案前台採用原生 JavaScript (ES6+) 與 CSS，結合 Cloudflare Edge HTMLRewriter 提供高效能 SSR（伺服器渲染）與完整的 SEO 優化。
+本專案前台採用原生 JavaScript (ES6+) 與模組化 CSS，結合 Cloudflare Edge HTMLRewriter 提供高效能 SSR（伺服器渲染）與完整的 SEO 優化。
 
 ---
 
@@ -23,13 +23,19 @@
 
 ---
 
-## 2. 前端客戶端架構 (`script-customer.js`)
+## 2. 前台客戶端模組架構 (`js/customer/`)
 
-- **頁面類型**：以 `catalog.html` 為基底的輕量級 SPA-like 互動。
-- **URL 狀態同步**：
-  - 點擊產品卡片時以 `history.pushState` 開啟產品詳情 Modal，URL 更新為 `/catalog/product/:id/:name`。
-  - 關閉 Modal 或點擊瀏覽器返回鍵（`popstate`）時恢復產品目錄狀態。
-- **深淺色主題 (`theme.js`)**：
+前台客戶端採取高內聚、低耦合的模組化拆分：
+
+- **`js/customer/customer-app.js`**：
+  - **頁面類型**：以 `catalog.html` 為基底的輕量級 SPA 互動。
+  - **URL 狀態同步**：點擊產品卡片時以 `history.pushState` 開啟產品詳情 Modal，URL 同步為 `/catalog/product/:id/:name`；點擊返回鍵（`popstate`）或關閉 Modal 恢復目錄狀態。
+  - **Toolbar 工具列**：整合防抖搜尋、排序切換與單/雙欄網格檢視切換。
+- **`js/customer/slider.js`**：
+  - 商品詳情彈窗專屬圖片輪播元件，支援 Touch 滑動、滑鼠拖曳、箭頭與圓點導航。
+- **`js/customer/lightbox.js`**：
+  - 全螢幕大圖檢視元件，支援雙指縮放 (Pinch-to-zoom)、滑鼠滾輪放大、手勢平移與 URL Hash (`#lightbox`) 返回鍵關閉。
+- **`js/shared/theme.js`**：
   - 以 `defer` 載入，根據 `localStorage.theme` 切換 `document.body` 之 `dark-mode` class。
 
 ---
@@ -46,7 +52,20 @@
 
 ---
 
-## 4. 模組化 CSS 樣式架構 (`css/`)
+## 4. 全站 JavaScript 模組目錄組織 (`js/`)
+
+全站 JS 按職責分為四大專屬資料夾，全面標準化為 `/js/...` 路徑引用：
+
+| 分類資料夾 | 模組檔案 | 職責說明 |
+|---|---|---|
+| **`js/customer/`** | `customer-app.js`<br>`slider.js`<br>`lightbox.js` | 前台型錄 SPA 主控制、輪播元件與大圖縮放燈箱 |
+| **`js/admin/`** | `admin-app.js`<br>`category-manager.js`<br>`idb-cache.js` | 後台商品管理主控制、分類管理 Modal (雙視圖平移) 與 IndexedDB 快取 |
+| **`js/tools/`** | `batch-upload.js`<br>`print-catalog.js` | 批次建檔工作台 (CSV+圖片) 與 A4 PDF 型錄列印排版 |
+| **`js/shared/`** | `theme.js`<br>`ui-utils.js`<br>`cropper-helper.js`<br>`category-utils.js` | 全站深淺色主題切換、Toast 提示通知、圖片裁切佇列與分類純字串輔助 |
+
+---
+
+## 5. 模組化 CSS 樣式架構 (`css/`)
 
 系統採用職責單一、高內聚低耦合的模組化 CSS 設計，各頁面依需求按需載入，零 inline styles 依賴：
 
@@ -60,4 +79,3 @@
 | `lobby.css` | 探索大廳專屬：精選大卡片、母/子分類網格排版、麵包屑導覽 | `catalog-lobby.html` |
 | `admin.css` | 後台管理專屬：批次建檔工作台、分類管理 Modal (雙視圖平移)、圖片裁切與縮圖排序 | `admin.html`, `batch-upload.html` |
 | `print-catalog.css` | A4 目錄產生器專用排版與列印樣式 | `print-catalog.html` |
-
