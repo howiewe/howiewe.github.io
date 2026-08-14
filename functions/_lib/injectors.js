@@ -13,14 +13,16 @@ export class CategoryLobbyInjector {
         if (this.categories && this.categories.length > 0) {
             let categoriesHtml = '';
 
-            const topLevelCategories = this.categories.filter(c => c.parentId === null)
+            const topLevelCategories = this.categories
+                .filter(c => c.parentId === null && c.name !== '居家用品')
                 .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
             const sportsCategory = this.categories.find(c => c.name === '運動用品' && c.parentId === null);
             let specialSubcategories = [];
 
             if (sportsCategory) {
-                specialSubcategories = this.categories.filter(c => c.parentId === sportsCategory.id)
+                specialSubcategories = this.categories
+                    .filter(c => c.parentId === sportsCategory.id && c.name !== '居家用品')
                     .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
             }
 

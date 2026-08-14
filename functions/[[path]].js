@@ -320,10 +320,21 @@ export async function onRequest(context) {
             rewriters.push(['head', new StructuredDataInjector(orgStructuredData)]);
 
             // --- 頂層分類 + 代表圖 (batch 一次請求) ---
-            const topLevelCategories = allCategories
-                .filter(c => c.parentId === null)
-                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-                .slice(0, 6); // 首頁最多顯示 6 個分類
+            let topLevelCategories = allCategories
+                .filter(c => c.parentId === null && c.name !== '居家用品')
+                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+            // 若頂層僅有單一「運動用品」大類，自動帶出其旗下子分類展示
+            if (topLevelCategories.length === 1 && topLevelCategories[0].name === '運動用品') {
+                const sportsParentId = topLevelCategories[0].id;
+                const subCats = allCategories
+                    .filter(c => c.parentId === sportsParentId && c.name !== '居家用品')
+                    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+                if (subCats.length > 0) {
+                    topLevelCategories = subCats;
+                }
+            }
+            topLevelCategories = topLevelCategories.slice(0, 6);
 
             if (topLevelCategories.length > 0) {
                 // 用 D1 batch 一次拉取，避免 N+1 查詢
