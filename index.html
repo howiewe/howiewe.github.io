@@ -40,23 +40,13 @@
         <div class="container navbar">
             <a href="/" class="logo">光華工業</a>
             <nav class="nav-links" id="nav-links">
-                <a href="/catalog/category" class="nav-item">產品系列</a>
-                <a href="/catalog" class="nav-item">全部產品</a>
-                <a href="#contact" class="nav-item">聯絡我們</a>
+                <a href="/catalog/category">產品系列</a>
+                <a href="/catalog">全部產品</a>
+                <a href="#contact">聯絡我們</a>
             </nav>
             <div class="nav-actions">
                 <div class="theme-toggle-placeholder"></div>
-                <button class="hamburger" id="hamburger-btn" aria-label="切換選單" aria-expanded="false">
-                    <svg class="hamburger-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
-                    </svg>
-                    <svg class="close-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
+                <button class="hamburger" id="hamburger-btn" aria-label="切換選單">☰</button>
             </div>
         </div>
     </header>
@@ -65,25 +55,19 @@
     <div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
 
     <main>
-        <!-- 主視覺區塊 -->
+        <!-- 主視覺區塊 (全螢幕沉浸式) -->
         <section class="hero-immersive">
-            <div class="container hero-content">
+            <div class="container">
                 <h1>淬鍊五十載，專注每一次揮擊</h1>
-                <p>專業製造乒乓球拍、羽球拍、跳繩、球棒等各式運動用品，秉持品質第一、價格合理與服務至上的理念，是您最值得信賴的合作夥伴。</p>
-                <div class="hero-actions">
-                    <a href="/catalog/category" class="btn btn-primary btn-hero">探索產品系列</a>
-                    <a href="/catalog" class="btn btn-secondary btn-hero-secondary">瀏覽全部產品</a>
-                </div>
+                <p>自創立至今，我們秉持「品質第一、價格合理、服務至上」的理念，持續精進，為世界各地的客戶提供最值得信賴的運動產品與服務。</p>
+                <a href="/catalog/category" class="btn">探索我們的產品</a>
             </div>
         </section>
 
         <!-- 產品系列區塊 -->
         <section id="products" class="section">
             <div class="container">
-                <div class="section-header">
-                    <h2 class="section-title">精選產品系列</h2>
-                    <p class="section-subtitle">探索光華工業專業製造的運動用品系列</p>
-                </div>
+                <h2 class="section-title">精選產品系列</h2>
                 <!-- SSR 注入頂層分類卡片（含 DB 圖片與連結） -->
                 <div class="card-grid" id="homepage-categories">
                     <!-- 載入中骨架屏 -->
@@ -97,7 +81,7 @@
 
     <!-- 頁尾 -->
     <footer id="contact" class="footer">
-        <div class="container footer-inner">
+        <div class="container">
             <div class="footer-about">
                 <h3>關於光華工業</h3>
                 <p>創立逾五十年，專業製造各式運動用品，包括乒乓球拍、羽球拍、跳繩、木鋁球棒及多樣球類產品，內外銷業務遍及各地，是您最可靠的夥伴。</p>
@@ -108,7 +92,8 @@
                     <li>Tel : <a href="tel:+886-4-7772514">886-4-7772514</a></li>
                     <li>FAX : 886-4-7782884</li>
                     <li>Email : <a href="mailto:khp72514@ms19.hinet.net">khp72514@ms19.hinet.net</a></li>
-                    <li>地址: <a href="https://maps.app.goo.gl/cFRLgjZFL8UhC5VDA" target="_blank" rel="noopener noreferrer">505彰化縣鹿港鎮鹿東路361巷176號</a></li>
+                    <li>地址: <a href="https://maps.app.goo.gl/cFRLgjZFL8UhC5VDA" target="_blank"
+                            rel="noopener noreferrer">505彰化縣鹿港鎮鹿東路361巷176號</a></li>
                 </ul>
             </div>
         </div>
@@ -128,14 +113,14 @@
             function toggleMenu() {
                 const isOpen = header.classList.toggle('nav-open');
                 if (overlay) overlay.classList.toggle('active', isOpen);
-                hamburgerBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                hamburgerBtn.textContent = isOpen ? '✕' : '☰';
                 document.body.classList.toggle('menu-open', isOpen);
             }
 
             function closeMenu() {
                 header.classList.remove('nav-open');
                 if (overlay) overlay.classList.remove('active');
-                hamburgerBtn.setAttribute('aria-expanded', 'false');
+                hamburgerBtn.textContent = '☰';
                 document.body.classList.remove('menu-open');
             }
 
@@ -153,6 +138,7 @@
             }
         });
     </script>
+
 </body>
 
 </html>
