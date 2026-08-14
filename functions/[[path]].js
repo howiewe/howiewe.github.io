@@ -39,7 +39,7 @@ export async function onRequest(context) {
 
             const metaData = {
                 title: '產品分類總覽 | 光華工業',
-                description: '探索光華工業的所有產品系列，包含桌球、羽球、跳繩等專業運動用品。',
+                description: '探索光華工業全系列運動用品，含乒乓球拍、羽球拍、跳繩、球棒等多元品類，超過50年專業製造經驗，提供批發採購與外銷客製詢問。',
                 image: defaultImage,
                 url: url.href
             };
@@ -223,7 +223,7 @@ export async function onRequest(context) {
 
                         const canonicalUrl = `${url.origin}/catalog/category/${category.id}/${encodeURIComponent(category.name)}`;
 
-                        metaData = { title: `${category.name} | 光華工業`, description: category.description || `探索我們在「${category.name}」分類下的所有產品。`, image: image, url: canonicalUrl };
+                        metaData = { title: `${category.name} | 光華工業`, description: category.description || `光華工業「${category.name}」系列專業運動器材，涵蓋各式球拍、球具與訓練配件，歡迎批發採購與外銷洽詢。`, image: image, url: canonicalUrl };
 
                         const categoryBreadcrumb = {
                             "@context": "https://schema.org",
@@ -240,7 +240,7 @@ export async function onRequest(context) {
             }
 
             if (!metaData) {
-                metaData = { title: '產品目錄 | 光華工業', description: '瀏覽光華工業所有的產品系列。', image: defaultImage, url: url.href };
+                metaData = { title: '產品目錄 | 光華工業', description: '探索光華工業完整的運動用品目錄，包含乒乓球拍、羽球拍、跳繩、球棒等多種專業運動器材，提供批發與外銷客製服務。', image: defaultImage, url: url.href };
             }
 
             rewriters.push(['title', new TitleRewriter(metaData.title)]);
@@ -277,7 +277,14 @@ export async function onRequest(context) {
             bindings.push(limit, offset);
 
             const { results: initialProducts } = await env.D1_DB.prepare(query).bind(...bindings).run();
-            rewriters.push(['#product-list', new ProductListInjector(initialProducts || [])]);
+
+            // 取得當前分類名稱以強化產品圖片 alt 語意
+            let currentCategoryName = '';
+            if (categoryId) {
+                const catRow = allCategories.find(c => c.id === categoryId);
+                if (catRow) currentCategoryName = catRow.name;
+            }
+            rewriters.push(['#product-list', new ProductListInjector(initialProducts || [], currentCategoryName)]);
 
             if (categoryId) {
                 const category = await env.D1_DB.prepare("SELECT description FROM categories WHERE id = ?").bind(categoryId).first();

@@ -58,23 +58,44 @@ export async function onRequest(context) {
             // 即使分類失敗，也繼續執行，不要讓整個 sitemap 崩潰
         }
 
-        // --- 3. 獲取所有產品頁面 (增加獨立的錯誤處理) ---
+        // --- 3. 獲取所有產品頁面 (增加獨立的錯誤處理，並包含圖片 Sitemap 標籤) ---
         try {
-            const { results: products } = await db.prepare("SELECT id, name, updatedAt FROM products").run();
+            const { results: products } = await db.prepare("SELECT id, name, updatedAt, imageUrls FROM products").run();
             if (products) {
                 products.forEach(product => {
-                    const productUrlName = encodeURIComponent(product.name);
-                    const loc = `${baseUrl}/catalog/product/${product.id}/${productUrlName}`;
-                    urlEntries.push(createUrlEntry(loc, product.updatedAt, '0.70'));
+                    const loc = `${baseUrl}/catalog/product/${product.id}/${encodeURIComponent(product.name)}`;
+                    const lastmodDate = product.updatedAt ? new Date(product.updatedAt) : new Date();
+                    const formattedLastmod = !isNaN(lastmodDate) ? lastmodDate.toISOString() : new Date().toISOString();
+
+                    let imageTag = '';
+                    if (product.imageUrls) {
+                        try {
+                            const parsed = JSON.parse(product.imageUrls);
+                            if (parsed && parsed.length > 0 && parsed[0].url) {
+                                imageTag = `
+    <image:image>
+      <image:loc>${escapeXml(parsed[0].url)}</image:loc>
+      <image:title>${escapeXml(`光華工業 - ${product.name}`)}</image:title>
+    </image:image>`;
+                            }
+                        } catch (e) { }
+                    }
+
+                    urlEntries.push(`
+  <url>
+    <loc>${escapeXml(loc)}</loc>
+    <lastmod>${formattedLastmod}</lastmod>
+    <priority>0.70</priority>${imageTag}
+  </url>`);
                 });
             }
         } catch (e) {
             console.error("Sitemap: 獲取產品資料失敗:", e);
-            // 即使產品失敗，也繼續執行
         }
 
         const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urlEntries.join('')}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">${urlEntries.join('')}
 </urlset>`;
 
         return new Response(sitemapContent, {

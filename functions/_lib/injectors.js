@@ -40,7 +40,7 @@ export class CategoryLobbyInjector {
                 categoriesHtml += `
                     <a href="${categoryHref}" class="${cardClass}">
                         <div class="category-card-image">
-                            <img src="${imageUrl}" alt="${escapeXml(cat.name)}" loading="lazy">
+                            <img src="${imageUrl}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy">
                         </div>
                         <div class="category-card-content">
                             <h3>${escapeXml(cat.name)}</h3>
@@ -117,7 +117,10 @@ export class ContentInjector {
 }
 
 export class ProductListInjector {
-    constructor(products) { this.products = products; }
+    constructor(products, categoryName = '') {
+        this.products = products;
+        this.categoryName = categoryName;
+    }
     element(element) {
         if (this.products && this.products.length > 0) {
             let productsHtml = '';
@@ -127,10 +130,13 @@ export class ProductListInjector {
                 const firstImageObject = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : null;
                 const imageUrl = firstImageObject ? firstImageObject.url : '';
                 const imageSize = firstImageObject ? firstImageObject.size : 90;
+                const altText = this.categoryName
+                    ? `${escapeXml(this.categoryName)} - ${escapeXml(product.name)}`
+                    : escapeXml(product.name);
                 const priceHtml = (product.price !== null && product.price !== undefined) ? `<p class="price">$${product.price}</p>` : `<p class="price price-empty">&nbsp;</p>`;
                 productsHtml += `
                     <a href="${productHref}" class="product-card">
-                        <div class="image-container"><img src="${imageUrl}" class="product-image" alt="${escapeXml(product.name)}" loading="lazy" style="transform: scale(${imageSize / 100});"></div>
+                        <div class="image-container"><img src="${imageUrl}" class="product-image" alt="${altText}" loading="lazy" style="transform: scale(${imageSize / 100});"></div>
                         <div class="product-info"><h3>${escapeXml(product.name)}</h3>${priceHtml}</div>
                     </a>
                 `;
@@ -211,7 +217,7 @@ export class HomepageCategoriesInjector {
             html += `
                 <a href="${categoryHref}" class="card">
                     <div class="card-image">
-                        <img src="${imageUrl}" alt="${escapeXml(cat.name)}" loading="lazy">
+                        <img src="${imageUrl}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy">
                     </div>
                     <div class="card-content">
                         <h3>${escapeXml(cat.name)}</h3>
