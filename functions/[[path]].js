@@ -292,7 +292,7 @@ export async function onRequest(context) {
 
             // 首頁 OG / meta
             const metaData = {
-                title: '光華工業有限公司 - 專業運動用品製造商',
+                title: '光華工業有限公司',
                 description: '光華工業擁有超過50年專業製造經驗，提供高品質乒乓球拍、羽球拍、跳繩、球棒等各式運動用品。',
                 image: defaultImage,
                 url: url.href

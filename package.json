@@ -1,4 +1,11 @@
 {
+  "name": "howiewe-catalog",
+  "version": "1.0.0",
+  "description": "Product catalog website for Howie We Industrial",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev ."
+  },
   "dependencies": {
     "wrangler": "^4.45.4"
   }
