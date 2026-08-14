@@ -16,7 +16,9 @@
 | `#homepage-categories` | `HomepageCategoriesInjector` | 首頁頂層分類卡片（含 D1 代表產品圖） |
 | `#featured-category-container` | `FeaturedCategoryInjector` | 探索大廳之精選大卡片（優先尋找運動用品，可 fallback） |
 | `#category-grid-container` | `CategoryLobbyInjector` | 探索大廳之全部分類卡片網格 |
-| `#product-list` | `ProductListInjector` | 目錄頁初始產品列表（首批 24 筆資料） |
+| `#product-list` | `ProductListInjector` | 目錄頁初始產品列表（首批 24 筆）；接收 `categoryName` 強化圖片 alt 語意 |
+| `#breadcrumb-container` | `BreadcrumbInjector` | 視覺麵包屑 `<ol>`（分類頁三層、產品頁三層） |
+| `#category-description-container` | `ContentInjector` | 分類說明文字（有 description 時注入） |
 | `title` | `TitleRewriter` | 頁面標題（動態代入產品名或分類名） |
 | `head` | `HeadRewriter` | Canonical 規範網址、Open Graph 與 Twitter Cards 標籤 |
 | `head` | `StructuredDataInjector` | Schema.org 結構化資料（Product, CollectionPage, BreadcrumbList, SportsGoodsStore） |
@@ -42,13 +44,18 @@
 
 ## 3. SEO 與 Sitemap 規範
 
-- **Canonical URL**：每個頁面均動態生成規範網址，避免重複內容扣分。
+所有 SEO 標籤（title / description / canonical / OG / JSON-LD）均由 SSR 動態注入，HTML 靜態檔只保留 Googlebot 冷快取時的最低限度 fallback，無硬編碼重複項。
+
+- **Canonical URL**：每個頁面均由 `seo.js` 動態生成規範網址，注入 `<link rel="canonical">`，防止 URL 參數造成重複頁面。
 - **結構化資料 (JSON-LD)**：
-  - 首頁：`SportsGoodsStore` 商家資料
+  - 首頁：`SportsGoodsStore`（含電話、地址、描述，全由 SSR 注入，`index.html` 不硬編碼）
   - 探索頁：`CollectionPage` + `BreadcrumbList`
-  - 產品目錄頁：特定分類之 `BreadcrumbList`
-  - 產品詳情：`Product` Rich Snippet（含價格、條碼、在庫狀態、品牌與圖片）
-- **動態 Sitemap (`functions/sitemap.xml.js`)**：自動抓取 D1 所有分類與產品生成 XML，快取 24 小時。
+  - 分類目錄頁：`BreadcrumbList`（三層：首頁 › 產品分類 › 分類名）
+  - 產品詳情：`Product` Rich Snippet（含價格、EAN13、在庫狀態、品牌、所有圖片陣列）
+- **視覺麵包屑 HTML**：`BreadcrumbInjector` 在分類頁與產品頁注入語意 `<ol>` 麵包屑，`aria-current="page"` 標記當前頁，hover 效果與截斷樣式定義在 `components.css`。
+- **圖片 alt 語意**：`ProductListInjector` 接收 `categoryName`，輸出「`{分類} - {產品名}`」格式；分類卡片輸出「`光華工業 {分類名} 系列`」。
+- **動態 Sitemap (`functions/sitemap.xml.js`)**：自動抓取 D1 所有分類與產品，產品條目附加 `<image:image>` 標籤讓 Google 圖片搜尋收錄，快取 24 小時。
+- **Meta description 關鍵字**：分類頁、目錄頁、大廳頁描述文案均含「乒乓球拍、羽球拍、跳繩、球棒、批發、外銷」等核心搜尋意圖詞。
 
 ---
 
@@ -73,7 +80,7 @@
 |---|---|---|
 | `base.css` | 全域設計 Token（顏色、陰影、圓角、字體）、深淺色切換、基礎 reset 與響應式容器 | **全頁面** |
 | `layout.css` | 頁首 Header、導覽列、側邊欄分類樹、遮罩、深淺色切換圖示 | 除 `print` 外所有頁面 |
-| `components.css` | 通用按鈕 (`.btn`)、Toast 提示、通用 Modal 彈窗骨架、表單元件、分頁器 | 除 `print` 外所有頁面 |
+| `components.css` | 通用按鈕 (`.btn`)、Toast 提示、通用 Modal 彈窗骨架、表單元件、分頁器、**共用麵包屑樣式** | 除 `print` 外所有頁面 |
 | `catalog.css` | 目錄頁工具列 (搜尋/排序)、產品卡網格 (單/雙欄)、產品詳情彈窗、輪播 Slider、Lightbox 燈箱 | `catalog.html`, `admin.html` |
 | `index.css` | 首頁專屬：全螢幕沉浸式 Hero、分類卡片網格、骨架屏載入動畫、頁尾 | `index.html` |
 | `lobby.css` | 探索大廳專屬：精選大卡片、母/子分類網格排版、麵包屑導覽 | `catalog-lobby.html` |
