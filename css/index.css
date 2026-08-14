@@ -109,9 +109,20 @@ body.home-page {
 }
 
 .hero-immersive .btn {
-    border-radius: 50px;
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: #ffffff;
     padding: 12px 32px;
+    border-radius: 50px;
     font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.hero-immersive .btn:hover {
+    background-color: var(--primary-color-hover);
+    transform: scale(1.05);
 }
 
 /* --- 4. 內容區塊與卡片 (Sections & Cards) --- */
