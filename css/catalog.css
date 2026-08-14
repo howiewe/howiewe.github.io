@@ -1,0 +1,518 @@
+/* === PRODUCT CATALOG & CUSTOMER DETAILS === */
+
+/* --- 1. 工具列、搜尋與排序 (Toolbar, Search & Sorting) --- */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    align-items: center;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+#search-box {
+    flex-grow: 1;
+    min-width: 200px;
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    transition: border-color .2s, box-shadow .2s;
+}
+
+#search-box:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+.sort-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.sort-options {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+    z-index: 100;
+    overflow: hidden;
+    width: max-content;
+}
+
+.sort-options a {
+    display: block;
+    padding: 0.75rem 1.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+}
+
+.sort-options a:hover {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+}
+
+#order-toggle-btn .icon-desc {
+    display: none;
+}
+
+#order-toggle-btn[data-order="desc"] .icon-asc {
+    display: none;
+}
+
+#order-toggle-btn[data-order="desc"] .icon-desc {
+    display: block;
+}
+
+/* --- 2. 產品卡片與網格 (Product Grid & Cards) --- */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.product-card {
+    background: var(--surface-color);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.product-card .image-container {
+    width: 100%;
+    padding-top: 100%;
+    position: relative;
+    background-color: var(--bg-color);
+}
+
+.product-card .product-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 1rem;
+}
+
+.product-card .product-info {
+    padding: 1.25rem;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+}
+
+.product-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-card .price {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.product-card .price.price-empty {
+    visibility: hidden;
+}
+
+/* --- 3. 顧客端產品詳情彈窗與輪播 (Customer Details Modal & Slider) --- */
+#product-detail-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding-top: 1rem;
+}
+
+.image-gallery-customer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.main-image-wrapper {
+    width: 100%;
+    position: relative;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.main-image-wrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0.5rem;
+    box-sizing: border-box;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+#detail-thumbnail-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.thumbnail-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.thumbnail-item {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.thumbnail-item:hover {
+    border-color: var(--primary-color);
+}
+
+.thumbnail-item.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 40%, transparent);
+}
+
+.thumbnail-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 詳情資訊 */
+#product-detail-info .price {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.product-description-display {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: var(--text-secondary);
+}
+
+#product-detail-info .details-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1.5rem;
+    align-items: center;
+    color: var(--text-secondary);
+}
+
+#product-detail-info .details-grid > dt {
+    font-weight: 700;
+}
+
+#product-detail-info .barcode-display {
+    background: #fff;
+    padding: 10px;
+    border-radius: var(--border-radius-sm);
+    max-width: 250px;
+    margin-top: 1rem;
+}
+
+#product-detail-info .barcode-display svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* 輪播 Slider */
+.slider-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: var(--border-radius-md);
+    background-color: var(--bg-color);
+    height: 0;
+    padding-top: 100%;
+}
+
+.slider-wrapper {
+    display: flex;
+    transition: transform 0.4s ease-in-out;
+    cursor: grab;
+    user-select: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.slide {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+}
+
+.slide img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.slider-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.4);
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.2s ease, background-color 0.2s;
+}
+
+.slider-container:hover .slider-nav-btn {
+    opacity: 1;
+}
+
+.slider-nav-btn.prev {
+    left: 10px;
+}
+
+.slider-nav-btn.next {
+    right: 10px;
+}
+
+.slider-nav-btn:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.slider-dots {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.dot.active {
+    background-color: white;
+}
+
+/* --- 4. 圖片檢視燈箱 (Lightbox) --- */
+.image-viewer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 1020;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+.image-viewer:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.image-viewer img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    cursor: grab;
+    transition: transform 0.1s linear;
+    transform-origin: center center;
+    user-select: none;
+    touch-action: pan-x pan-y;
+}
+
+.image-viewer img.panning {
+    cursor: grabbing;
+}
+
+/* --- 5. 響應式：手機版 (<= 768px) --- */
+@media (max-width: 768px) {
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .product-grid.view-two-columns {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .product-grid.view-two-columns .product-card:has(.price.price-empty) h3 {
+        white-space: initial;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+
+    .product-grid.view-two-columns .product-card:has(.price.price-empty) .price {
+        display: none;
+    }
+
+    .slider-nav-btn {
+        display: none !important;
+    }
+
+    /* 顧客頁工具列 */
+    .customer-page .toolbar {
+        display: grid;
+        grid-template-columns: 44px 1fr 1fr 44px;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .customer-page #search-box {
+        display: none;
+    }
+
+    .customer-page #search-toggle-btn,
+    .customer-page #category-toggle-btn,
+    .customer-page #sort-btn,
+    .customer-page #order-toggle-btn {
+        display: inline-flex;
+        width: 100%;
+        height: 44px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .customer-page #category-toggle-btn,
+    .customer-page #sort-btn {
+        padding: 0 0.75rem;
+    }
+
+    .customer-page .toolbar.search-active {
+        grid-template-columns: 1fr 44px 44px;
+    }
+
+    .customer-page .toolbar.search-active #search-box {
+        display: block;
+        width: 100%;
+        height: 44px;
+    }
+
+    .customer-page .toolbar.search-active #search-toggle-btn,
+    .customer-page .toolbar.search-active #category-toggle-btn {
+        display: none;
+    }
+
+    .customer-page .toolbar.search-active .sort-container {
+        width: auto;
+    }
+
+    .customer-page .toolbar.search-active #sort-btn {
+        width: 44px;
+        padding: 0;
+    }
+
+    .customer-page .toolbar.search-active #sort-btn span {
+        display: none;
+    }
+
+    #detail-modal-container .modal-content {
+        height: auto;
+        max-height: 85vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 95%;
+    }
+}
+
+/* --- 6. 響應式：平板與桌面 (>= 768px) --- */
+@media (min-width: 768px) {
+    #product-detail-layout {
+        grid-template-columns: 350px 1fr;
+        align-items: flex-start;
+    }
+
+    .image-gallery-customer {
+        max-width: 350px;
+    }
+
+    #search-toggle-btn,
+    #category-toggle-btn {
+        display: none;
+    }
+
+    #search-box {
+        display: block;
+    }
+
+    .customer-page .toolbar #search-box {
+        flex-grow: 1;
+    }
+
+    #detail-modal-container .modal-content {
+        height: auto;
+        max-height: 85vh;
+        overflow-y: auto;
+        width: 90%;
+        max-width: 900px;
+    }
+}

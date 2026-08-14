@@ -1,0 +1,106 @@
+/* === BASE & DESIGN TOKENS === */
+
+/* --- 1. 全域與變數設定 (Global & Variables) --- */
+:root {
+    /* 色彩 Palette (Light Mode) */
+    --bg-color: #f9fafb;
+    --surface-color: #ffffff;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+    --input-bg: #ffffff;
+    --primary-color: #3b82f6;
+    --primary-color-hover: #2563eb;
+    --secondary-color: #6b7280;
+    --secondary-color-hover: #4b5563;
+    --danger-color: #ef4444;
+    --danger-color-hover: #dc2626;
+    --success-color: #22c55e;
+    --success-color-hover: #16a34a;
+
+    /* 陰影 & 圓角 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --border-radius-sm: 0.25rem;
+    --border-radius-md: 0.5rem;
+    --border-radius-lg: 0.75rem;
+
+    /* 字體 */
+    --font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body.dark-mode {
+    --bg-color: #121212;
+    --surface-color: #1e1e1e;
+    --text-primary: #e9ecef;
+    --text-secondary: #9ca3af;
+    --border-color: #495057;
+    --input-bg: #2a2a2a;
+}
+
+/* --- 2. 基本樣式與 Reset --- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    line-height: 1.6;
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+body.modal-open main,
+body.lightbox-open {
+    overflow: hidden;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+h1,
+h2,
+h3 {
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-top: 0;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.empty-message {
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    padding: 4rem 0;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1.5rem 1rem;
+    }
+}

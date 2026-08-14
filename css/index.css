@@ -1,0 +1,302 @@
+/* === HOMEPAGE SPECIFIC STYLES === */
+
+/* --- 1. 首頁 Body 布局重置 --- */
+body.home-page {
+    display: block;
+    height: auto;
+    overflow: visible;
+}
+
+/* --- 2. 首頁導覽列 (Site Header) --- */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100%;
+    background-color: var(--surface-color);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: background-color 0.3s;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 80px;
+}
+
+.logo {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+}
+
+.nav-links a {
+    color: var(--text-primary);
+    font-size: 1.1em;
+    font-weight: 500;
+    position: relative;
+    padding: 10px 0;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover {
+    color: var(--primary-color);
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.hamburger {
+    display: none;
+}
+
+/* --- 3. 全螢幕主視覺 (Hero Immersive) --- */
+.hero-immersive {
+    width: 100%;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 100px 20px;
+    box-sizing: border-box;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+        url('https://images.unsplash.com/photo-1543351368-0414336065e9?q=80&w=2070&auto-format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.hero-immersive h1 {
+    font-size: 3.8em;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.hero-immersive p {
+    font-size: 1.2em;
+    color: #f0f0f0;
+    max-width: 700px;
+    margin: 0 auto 40px;
+}
+
+.hero-immersive .btn {
+    border-radius: 50px;
+    padding: 12px 32px;
+    font-size: 1.1rem;
+}
+
+/* --- 4. 內容區塊與卡片 (Sections & Cards) --- */
+.section {
+    padding: 80px 0;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.5em;
+    margin-bottom: 50px;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: transform 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-image {
+    height: 220px;
+    background-color: var(--bg-color);
+    overflow: hidden;
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.card:hover .card-image img {
+    transform: scale(1.05);
+}
+
+.card-content {
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.card h3 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.card p {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+.card-link-text {
+    display: inline-flex;
+    align-items: center;
+    color: var(--primary-color);
+    font-weight: bold;
+    margin-top: auto;
+    transition: color 0.3s, transform 0.3s;
+}
+
+.card:hover .card-link-text {
+    color: var(--primary-color-hover);
+    transform: translateX(4px);
+}
+
+/* --- 5. 骨架屏載入動畫 (Skeleton Shimmer) --- */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.card-skeleton {
+    height: 340px;
+    background: linear-gradient(90deg, var(--surface-color) 25%, var(--border-color) 50%, var(--surface-color) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    pointer-events: none;
+}
+
+/* --- 6. 首頁頁尾 (Footer) --- */
+.footer {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+    padding: 50px 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.footer .container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 30px;
+}
+
+.footer-about,
+.footer-contact {
+    flex: 1;
+    min-width: 280px;
+}
+
+.footer h3 {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+}
+
+.footer p,
+.footer ul li {
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+}
+
+.footer ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer a {
+    color: var(--text-primary);
+    transition: color 0.3s;
+}
+
+.footer a:hover {
+    color: var(--primary-color);
+}
+
+.copyright {
+    text-align: center;
+    padding: 20px 0;
+    border-top: 1px solid var(--border-color);
+    margin-top: 40px;
+    color: var(--text-secondary);
+}
+
+/* --- 7. 首頁響應式設計 --- */
+@media (max-width: 768px) {
+    .nav-links {
+        display: none;
+    }
+
+    .hamburger {
+        display: block;
+        background: none;
+        border: none;
+        font-size: 2em;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .hero-immersive h1 {
+        font-size: 2.5em;
+    }
+
+    .hero-immersive p {
+        font-size: 1em;
+    }
+
+    .section-title {
+        font-size: 2em;
+    }
+}
