@@ -86,9 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
             prevBtn: prevSlideBtn,
             nextBtn: nextSlideBtn,
             thumbnailsContainer: detailThumbnailList,
-            onImageClick: (src) => {
+            onImageClick: (src, size) => {
                 if (window.ProductLightbox) {
-                    ProductLightbox.open(src);
+                    ProductLightbox.open(src, size);
                 }
             }
         });

@@ -46,7 +46,7 @@ window.ProductLightbox = (function () {
     }
 
     function reset() {
-        state.scale = 1;
+        state.scale = state.baseScale || 1;
         state.isPanning = false;
         state.pointX = 0;
         state.pointY = 0;
@@ -59,9 +59,20 @@ window.ProductLightbox = (function () {
         applyTransform();
     }
 
-    function open(imageUrl) {
+    function open(imageUrl, imageSize = 90) {
         if (!state.modal || !state.imageEl) return;
         state.imageEl.setAttribute('src', imageUrl);
+        state.baseScale = (imageSize || 90) / 100;
+        state.scale = state.baseScale;
+        state.pointX = 0;
+        state.pointY = 0;
+        state.startX = 0;
+        state.startY = 0;
+        state.startPointX = 0;
+        state.startPointY = 0;
+        state.didPan = false;
+        state.initialPinchDistance = 0;
+        applyTransform();
         state.modal.classList.remove('hidden');
         document.body.classList.add('lightbox-open');
 
@@ -135,7 +146,7 @@ window.ProductLightbox = (function () {
             const newPinchDistance = getDistance(e.touches);
             const scaleMultiplier = newPinchDistance / state.initialPinchDistance;
             const newScale = state.scale * scaleMultiplier;
-            state.scale = Math.max(1, Math.min(newScale, 5));
+            state.scale = Math.max(0.2, Math.min(newScale, 5));
             applyTransform();
             state.initialPinchDistance = newPinchDistance;
         }
@@ -156,7 +167,7 @@ window.ProductLightbox = (function () {
         state.didPan = true;
         const delta = -e.deltaY;
         const newScale = state.scale * (delta > 0 ? 1.2 : 1 / 1.2);
-        state.scale = Math.max(1, Math.min(newScale, 5));
+        state.scale = Math.max(0.2, Math.min(newScale, 5));
         applyTransform();
     }
 

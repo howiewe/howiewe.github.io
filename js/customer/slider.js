@@ -72,22 +72,26 @@ window.ProductSlider = (function () {
 
         if (state.totalSlides > 0) {
             imageUrls.forEach((item, index) => {
-                state.wrapper.innerHTML += `<div class="slide"><img src="${item.url}" alt="${productName} - 圖片 ${index + 1}"></div>`;
+                const imgUrl = item.url || '';
+                const imgSize = item.size || 90;
+                state.wrapper.innerHTML += `<div class="slide"><img src="${imgUrl}" alt="${productName} - 圖片 ${index + 1}" style="--img-scale: ${imgSize / 100}; transform: scale(${imgSize / 100});"></div>`;
                 if (state.thumbnailsContainer) {
-                    state.thumbnailsContainer.innerHTML += `<div class="thumbnail-item"><img src="${item.url}" data-index="${index}" alt="縮圖 ${index + 1}"></div>`;
+                    state.thumbnailsContainer.innerHTML += `<div class="thumbnail-item ${index === 0 ? 'active' : ''}"><img src="${imgUrl}" data-index="${index}" alt="縮圖 ${index + 1}"></div>`;
                 }
                 if (state.dotsContainer) {
-                    state.dotsContainer.innerHTML += `<div class="dot" data-index="${index}"></div>`;
+                    state.dotsContainer.innerHTML += `<div class="dot ${index === 0 ? 'active' : ''}" data-index="${index}"></div>`;
                 }
             });
 
             setTimeout(() => {
-                state.wrapper.querySelectorAll('.slide img').forEach(img => {
+                state.wrapper.querySelectorAll('.slide img').forEach((img, idx) => {
                     img.addEventListener('click', (e) => {
                         if (state.isSwiping) return;
                         e.stopPropagation();
+                        const currentImg = imageUrls[idx];
+                        const currentSize = currentImg ? (currentImg.size || 90) : 90;
                         if (typeof state.onImageClick === 'function') {
-                            state.onImageClick(e.target.src);
+                            state.onImageClick(e.target.src, currentSize);
                         }
                     });
                 });

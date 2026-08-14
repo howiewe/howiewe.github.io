@@ -275,3 +275,79 @@ export class HomepageCategoriesInjector {
         element.setInnerContent(html, { html: true });
     }
 }
+
+export class ProductDetailModalInjector {
+    element(element) {
+        element.setAttribute('class', 'modal-container');
+    }
+}
+
+export class ProductSliderSSRInjector {
+    constructor(imageUrls, productName) {
+        this.imageUrls = imageUrls || [];
+        this.productName = productName || '';
+    }
+
+    element(element) {
+        if (this.imageUrls.length === 0) return;
+        let html = '';
+        this.imageUrls.forEach((img, i) => {
+            const url = img.url || '';
+            const size = img.size || 90;
+            html += `<div class="slide"><img src="${url}" alt="${escapeXml(this.productName)} - 圖片 ${i + 1}" style="--img-scale: ${size / 100}; transform: scale(${size / 100});"></div>`;
+        });
+        element.setInnerContent(html, { html: true });
+    }
+}
+
+export class ProductThumbnailsSSRInjector {
+    constructor(imageUrls) {
+        this.imageUrls = imageUrls || [];
+    }
+
+    element(element) {
+        if (this.imageUrls.length <= 1) {
+            element.setAttribute('class', 'thumbnail-list hidden');
+            return;
+        }
+        let html = '';
+        this.imageUrls.forEach((img, i) => {
+            const url = img.url || '';
+            html += `<div class="thumbnail-item ${i === 0 ? 'active' : ''}"><img src="${url}" data-index="${i}" alt="縮圖 ${i + 1}"></div>`;
+        });
+        element.setInnerContent(html, { html: true });
+    }
+}
+
+export class ProductDetailInfoSSRInjector {
+    constructor(product, categoryName = '') {
+        this.product = product;
+        this.categoryName = categoryName;
+    }
+
+    element(element) {
+        if (!this.product) return;
+        const p = this.product;
+        const priceHtml = (p.price !== null && p.price !== undefined) ? `<p class="price">$${p.price}</p>` : `<p class="price price-empty">&nbsp;</p>`;
+        const descHtml = p.description ? `<p class="product-description-display">${escapeXml(p.description)}</p>` : '';
+        const html = `
+            <h2>${escapeXml(p.name)}</h2>
+            ${priceHtml}
+            ${descHtml}
+            <dl class="details-grid">
+                <dt>分類</dt><dd>${escapeXml(this.categoryName || '未分類')}</dd>
+                <dt>編號</dt><dd>${escapeXml(p.sku || 'N/A')}</dd>
+                <dt>EAN-13</dt><dd>${escapeXml(p.ean13 || 'N/A')}</dd>
+            </dl>
+        `;
+        element.setInnerContent(html, { html: true });
+    }
+}
+
+export class BodyModalClassInjector {
+    element(element) {
+        const currentClass = element.getAttribute('class') || '';
+        element.setAttribute('class', `${currentClass} modal-open`.trim());
+    }
+}
+

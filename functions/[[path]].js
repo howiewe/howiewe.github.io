@@ -11,7 +11,12 @@ import {
     ContentInjector,
     ProductListInjector,
     SidebarInjector,
-    HomepageCategoriesInjector
+    HomepageCategoriesInjector,
+    ProductDetailModalInjector,
+    ProductSliderSSRInjector,
+    ProductThumbnailsSSRInjector,
+    ProductDetailInfoSSRInjector,
+    BodyModalClassInjector
 } from './_lib/injectors.js';
 
 // 輔助函式：取得分類的父子祖先階層陣列（由頂層至當前分類）
@@ -181,8 +186,9 @@ export async function onRequest(context) {
                     if (product.categoryId) activeSidebarId = product.categoryId;
                     let image = defaultImage;
                     let images = [];
+                    let parsedImages = [];
                     if (product.imageUrls) try {
-                        const parsedImages = JSON.parse(product.imageUrls);
+                        parsedImages = JSON.parse(product.imageUrls);
                         images = parsedImages.map(img => img.url);
                         image = images[0] || defaultImage;
                     } catch (e) { }
@@ -237,6 +243,14 @@ export async function onRequest(context) {
 
                     // 視覺麵包屑
                     rewriters.push(['#breadcrumb-container', new BreadcrumbInjector(breadcrumbItems)]);
+
+                    // SSR 產品詳情 Modal 預渲染（含大圖 scale 縮放與縮圖原尺寸展示）
+                    const catRow = allCategories.find(c => c.id === product.categoryId);
+                    rewriters.push(['body', new BodyModalClassInjector()]);
+                    rewriters.push(['#detail-modal-container', new ProductDetailModalInjector()]);
+                    rewriters.push(['#slider-wrapper', new ProductSliderSSRInjector(parsedImages, product.name)]);
+                    rewriters.push(['#detail-thumbnail-list', new ProductThumbnailsSSRInjector(parsedImages)]);
+                    rewriters.push(['#product-detail-info', new ProductDetailInfoSSRInjector(product, catRow ? catRow.name : '')]);
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
                 const idStr = pathname.split('/')[3];
