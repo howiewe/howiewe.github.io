@@ -111,6 +111,27 @@ export class StructuredDataInjector {
     }
 }
 
+// 渲染視覺麵包屑，同時輸出符合 SEO 語意的 <nav> 內容
+export class BreadcrumbInjector {
+    constructor(items) {
+        // items: [{ name, href? }]  最後一項無 href（當前頁）
+        this.items = items;
+    }
+    element(element) {
+        if (!this.items || this.items.length === 0) return;
+        const parts = this.items.map((item, i) => {
+            const isLast = i === this.items.length - 1;
+            if (isLast) {
+                return `<span class="breadcrumb-current" aria-current="page">${escapeXml(item.name)}</span>`;
+            }
+            return `<a href="${escapeXml(item.href)}" class="breadcrumb-link">${escapeXml(item.name)}</a>`;
+        });
+        const html = `<ol class="breadcrumb-trail">${parts.map(p => `<li>${p}</li>`).join('<li class="breadcrumb-sep" aria-hidden="true">›</li>')}</ol>`;
+        element.setInnerContent(html, { html: true });
+    }
+}
+
+
 export class ContentInjector {
     constructor(selector, content) { this.selector = selector; this.content = content; }
     element(element) { if (this.content) element.setInnerContent(this.content, { html: true }); }

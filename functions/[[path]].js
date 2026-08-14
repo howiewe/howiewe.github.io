@@ -7,6 +7,7 @@ import {
     HeadRewriter,
     TitleRewriter,
     StructuredDataInjector,
+    BreadcrumbInjector,
     ContentInjector,
     ProductListInjector,
     SidebarInjector,
@@ -197,6 +198,13 @@ export async function onRequest(context) {
                         ]
                     };
                     rewriters.push(['head', new StructuredDataInjector(productBreadcrumb)]);
+
+                    // 視覺麵包屑
+                    rewriters.push(['#breadcrumb-container', new BreadcrumbInjector([
+                        { name: '首頁', href: '/' },
+                        { name: '產品分類', href: '/catalog/category' },
+                        { name: product.name }
+                    ])]);
                 }
             } else if (pathname.startsWith('/catalog/category/')) {
                 const idStr = pathname.split('/')[3];
@@ -235,6 +243,13 @@ export async function onRequest(context) {
                             ]
                         };
                         rewriters.push(['head', new StructuredDataInjector(categoryBreadcrumb)]);
+
+                        // 視覺麵包屑
+                        rewriters.push(['#breadcrumb-container', new BreadcrumbInjector([
+                            { name: '首頁', href: '/' },
+                            { name: '產品分類', href: '/catalog/category' },
+                            { name: category.name }
+                        ])]);
                     }
                 }
             }
