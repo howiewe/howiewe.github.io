@@ -194,11 +194,8 @@ export async function onRequest(context) {
                     } catch (e) { }
 
                     const canonicalUrl = `${url.origin}/catalog/product/${product.id}/${encodeURIComponent(product.name)}`;
-                    const ogImage = (parsedImages.length > 0 && parsedImages[0].url)
-                        ? `${url.origin}/public/og-image/${product.id}`
-                        : defaultImage;
 
-                    metaData = { title: `${product.name} | 光華工業`, description: product.description, image: ogImage, url: canonicalUrl };
+                    metaData = { title: `${product.name} | 光華工業`, description: product.description, image: image, url: canonicalUrl };
 
                     structuredData = {
                         "@context": "https://schema.org/",
@@ -276,21 +273,12 @@ export async function onRequest(context) {
                             ORDER BY RANDOM() LIMIT 1
                         `).bind(categoryId).first();
 
-                        let ogImage = defaultImage;
-                        if (randomImageResult) {
-                            try {
-                                const parsed = JSON.parse(randomImageResult.imageUrls);
-                                if (parsed && parsed.length > 0 && parsed[0].url) {
-                                    const imgUrl = parsed[0].url;
-                                    const imgSize = parsed[0].size || 90;
-                                    ogImage = `${url.origin}/public/og-image?url=${encodeURIComponent(imgUrl)}&size=${imgSize}`;
-                                }
-                            } catch (e) { }
-                        }
+                        let image = defaultImage;
+                        if (randomImageResult) try { image = JSON.parse(randomImageResult.imageUrls)[0].url || defaultImage; } catch (e) { }
 
                         const canonicalUrl = `${url.origin}/catalog/category/${category.id}/${encodeURIComponent(category.name)}`;
 
-                        metaData = { title: `${category.name} | 光華工業`, description: category.description || `光華工業「${category.name}」系列專業運動器材，涵蓋各式球拍、球具與訓練配件，歡迎批發採購與外銷洽詢。`, image: ogImage, url: canonicalUrl };
+                        metaData = { title: `${category.name} | 光華工業`, description: category.description || `光華工業「${category.name}」系列專業運動器材，涵蓋各式球拍、球具與訓練配件，歡迎批發採購與外銷洽詢。`, image: image, url: canonicalUrl };
 
                         const ancestors = getCategoryAncestors(categoryId, allCategories);
                         const breadcrumbItems = [
