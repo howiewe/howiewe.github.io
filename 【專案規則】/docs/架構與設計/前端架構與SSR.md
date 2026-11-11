@@ -28,7 +28,7 @@
 | `head` | `HeadRewriter` | Canonical 規範網址、Open Graph 與 Twitter Cards 標籤 |
 | `head` | `StructuredDataInjector` | Schema.org 結構化資料（Product, CollectionPage, BreadcrumbList, SportsGoodsStore） |
 
-主路由先跳過靜態資源、API 與公開 API，依路徑選擇模板。沒有 D1 綁定時交給靜態服務；查詢失敗會記錄錯誤，仍可能回傳未完整注入的模板，不是統一錯誤頁。首頁與探索大廳依賴 SSR，沒有等效的瀏覽器分類資料載入流程。
+根 middleware 先依管理區路徑執行登入驗證；主路由處理舊頁面導向後，跳過管理區、靜態資源與 API，依公開路徑選擇模板。沒有 D1 綁定時交給靜態服務；查詢失敗會記錄錯誤，仍可能回傳未完整注入的模板，不是統一錯誤頁。首頁與探索大廳依賴 SSR，沒有等效的瀏覽器分類資料載入流程。管理路由與保護契約見 [API 與安全保護](../功能、資料與契約/API與安全保護.md)。
 
 SSR 產品列表直接使用 D1 列，與已解析圖片的產品 API 不同；相關格式與已確認缺口見 [資料庫與儲存](../功能、資料與契約/資料庫與儲存.md)。首頁精選與大廳分類也有依「運動用品」「居家用品」名稱選取或排除的現行邏輯，不能當成可任意套用的通用分類元件。大廳先排除精選分類再交給注入器，但注入器又依「運動用品」父節點找子分類，可能漏掉該群子分類，見 [分類呈現與刪除規則](../../代辦/07-分類呈現與刪除規則.md)。
 
@@ -56,6 +56,8 @@ SSR 產品列表直接使用 D1 列，與已解析圖片的產品 API 不同；�
 
 SSR 改寫 title，並向 head 追加 description、canonical、OG、Twitter Cards 與 JSON-LD。靜態 HTML 原有的 description 未移除，現況可能產生重複描述標籤，不能視為已去重。
 
+描述的純文字與換行、HTML 屬性、圖片來源及 JSON-LD script 邊界各自處理，SSR 與瀏覽器共用輸出工具；用途與限制集中於 [輸出安全](../功能、資料與契約/API與安全保護.md#輸出安全)，不以 JSON 序列化或單一文字轉義取代所有情境的檢查。
+
 - **Canonical URL**：主路由決定網址，`seo.js` 負責輸出標籤。產品與分類詳情使用 ID 與編碼名稱，全產品頁使用 `/catalog`；首頁與大廳使用 `url.href`，仍可能保留查詢參數。
 - **結構化資料 (JSON-LD)**：
   - 首頁：`SportsGoodsStore`（含電話、地址、描述）
@@ -81,7 +83,7 @@ SSR 改寫 title，並向 head 追加 description、canonical、OG、Twitter Car
 | **`js/customer/`** | `customer-app.js`<br>`slider.js`<br>`lightbox.js` | 前台型錄 SPA 主控制、輪播元件與大圖縮放燈箱 |
 | **`js/admin/`** | `admin-app.js`<br>`category-manager.js`<br>`idb-cache.js` | 後台商品管理主控制、分類管理 Modal 與 IndexedDB 快取 |
 | **`js/tools/`** | `batch-upload.js`<br>`print-catalog.js` | 批次建檔工作台 (CSV+圖片) 與 A4 PDF 型錄列印排版 |
-| **`js/shared/`** | `theme.js`<br>`ui-utils.js`<br>`cropper-helper.js`<br>`category-utils.js` | 主題與 Toast 工具，以及尚未接入呼叫端的裁切佇列、分類輔助；不可只因檔案存在就認定全站共用 |
+| **`js/shared/`** | `output-utils.js`<br>`theme.js`<br>`ui-utils.js`<br>`cropper-helper.js`<br>`category-utils.js` | 前後端共用的安全輸出、主題與 Toast 工具，以及尚未接入呼叫端的裁切佇列、分類輔助；不可只因檔案存在就認定全站共用 |
 
 ---
 
@@ -94,8 +96,8 @@ SSR 改寫 title，並向 head 追加 description、canonical、OG、Twitter Car
 | `base.css` | 全域設計 Token（顏色、陰影、圓角、字體）、深淺色切換、基礎 reset 與響應式容器 | **全頁面** |
 | `layout.css` | 頁首 Header、導覽列、側邊欄分類樹、遮罩、深淺色切換圖示 | 除 `print` 外所有頁面 |
 | `components.css` | 通用按鈕 (`.btn`)、Toast 提示、通用 Modal 彈窗骨架、表單元件、分頁器、**共用麵包屑樣式** | 除 `print` 外所有頁面 |
-| `catalog.css` | 目錄頁工具列 (搜尋/排序)、產品卡網格 (單/雙欄)、產品詳情彈窗、輪播 Slider、Lightbox 燈箱 | `catalog.html`, `admin.html` |
+| `catalog.css` | 目錄頁工具列 (搜尋/排序)、產品卡網格 (單/雙欄)、產品詳情彈窗、輪播 Slider、Lightbox 燈箱 | `catalog.html`, `admin/index.html` |
 | `index.css` | 首頁專屬：全螢幕沉浸式 Hero、分類卡片網格、骨架屏載入動畫、頁尾 | `index.html` |
 | `lobby.css` | 探索大廳專屬：精選大卡片、母/子分類網格排版、麵包屑導覽 | `catalog-lobby.html` |
-| `admin.css` | 後台管理專屬：批次建檔工作台、分類管理 Modal、圖片裁切與縮圖排序 | `admin.html`, `batch-upload.html` |
-| `print-catalog.css` | A4 目錄產生器專用排版與列印樣式 | `print-catalog.html` |
+| `admin.css` | 後台管理專屬：批次建檔工作台、分類管理 Modal、圖片裁切與縮圖排序 | `admin/index.html`, `admin/batch-upload.html` |
+| `print-catalog.css` | A4 目錄產生器專用排版與列印樣式 | `admin/print-catalog.html` |
