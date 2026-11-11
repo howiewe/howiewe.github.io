@@ -2,6 +2,7 @@
 // 專職管理前台商品詳情彈窗內的圖片輪播互動
 
 window.ProductSlider = (function () {
+    const { escapeHtml, safeImageUrl, imageSize } = OutputSafety;
     let state = {
         wrapper: null,
         dotsContainer: null,
@@ -72,9 +73,9 @@ window.ProductSlider = (function () {
 
         if (state.totalSlides > 0) {
             imageUrls.forEach((item, index) => {
-                const imgUrl = item.url || '';
-                const imgSize = item.size || 90;
-                state.wrapper.innerHTML += `<div class="slide"><img src="${imgUrl}" alt="${productName} - 圖片 ${index + 1}" style="--img-scale: ${imgSize / 100}; transform: scale(${imgSize / 100});"></div>`;
+                const imgUrl = escapeHtml(safeImageUrl(item.url));
+                const imgSize = imageSize(item.size);
+                state.wrapper.innerHTML += `<div class="slide"><img src="${imgUrl}" alt="${escapeHtml(productName)} - 圖片 ${index + 1}" style="--img-scale: ${imgSize / 100}; transform: scale(${imgSize / 100});"></div>`;
                 if (state.thumbnailsContainer) {
                     state.thumbnailsContainer.innerHTML += `<div class="thumbnail-item ${index === 0 ? 'active' : ''}"><img src="${imgUrl}" data-index="${index}" alt="縮圖 ${index + 1}"></div>`;
                 }

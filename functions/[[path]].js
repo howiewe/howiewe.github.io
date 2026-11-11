@@ -39,10 +39,21 @@ function getCategoryAncestors(categoryId, allCategories) {
 export async function onRequest(context) {
     const { request, env, next } = context;
 
-    if (!env.D1_DB) return next();
-
     const url = new URL(request.url);
     const pathname = url.pathname;
+    const legacyPages = {
+        '/admin.html': '/admin/',
+        '/batch-upload': '/admin/batch-upload',
+        '/batch-upload.html': '/admin/batch-upload',
+        '/print-catalog': '/admin/print-catalog',
+        '/print-catalog.html': '/admin/print-catalog'
+    };
+    if (Object.hasOwn(legacyPages, pathname)) {
+        url.pathname = legacyPages[pathname];
+        return Response.redirect(url.href, 308);
+    }
+    if (pathname === '/admin' || pathname.startsWith('/admin/')) return next();
+    if (!env.D1_DB) return next();
 
     const isAsset = pathname.slice(1).includes('.') || pathname.startsWith('/api/') || pathname.startsWith('/public/');
     if (isAsset) return next();
@@ -381,7 +392,7 @@ export async function onRequest(context) {
             if (categoryId) {
                 const category = await env.D1_DB.prepare("SELECT description FROM categories WHERE id = ?").bind(categoryId).first();
                 if (category && category.description) {
-                    const descHtml = `<p>${category.description.replace(/\n/g, '<br>')}</p>`;
+                    const descHtml = `<p>${escapeXml(category.description).replace(/\r?\n/g, '<br>')}</p>`;
                     rewriters.push(['#category-description-container', new ContentInjector('', descHtml)]);
                 }
             }

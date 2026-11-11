@@ -1,17 +1,8 @@
 // functions/_lib/utils.js
 
-export const escapeXml = (unsafe) => {
-    const str = String(unsafe || '');
-    return str.replace(/[<>&'"]/g, (c) => {
-        switch (c) {
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '&': return '&amp;';
-            case '\'': return '&apos;';
-            case '"': return '&quot;';
-        }
-    });
-};
+import outputSafety from '../../js/shared/output-utils.js';
+
+export const { escapeHtml: escapeXml, safeImageUrl, imageSize } = outputSafety;
 
 export const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), {
     status,

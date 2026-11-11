@@ -1,6 +1,7 @@
 // script-batch-upload.js (整合裁切流程版)
 
 document.addEventListener('DOMContentLoaded', () => {
+    const { escapeHtml, safeImageUrl } = OutputSafety;
     // --- State Management ---
     let state = {
         // 【修改】images 陣列現在將儲存處理過的 blob，而非原始 file
@@ -49,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const thumb = document.createElement('div');
             thumb.className = `img-thumbnail ${img.status}`;
             thumb.dataset.imageId = img.id;
-            thumb.innerHTML = `<img src="${img.previewUrl}" alt="product-image">`;
+            thumb.innerHTML = `<img src="${escapeHtml(safeImageUrl(img.previewUrl, true))}" alt="product-image">`;
             if (img.status !== 'assigned') {
                 thumb.addEventListener('click', () => handleImageClick(img.id));
             }
@@ -63,8 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = `data-item ${prod.status}`;
             item.dataset.productId = prod.id;
-            const assignedImagesHtml = prod.assignedImageIds.map(imgId => state.images.find(i => i.id === imgId)?.previewUrl).filter(Boolean).map(url => `<img src="${url}">`).join('');
-            item.innerHTML = `<div class="data-item-header"><span class="data-item-status ${prod.status === 'assigned' ? 'assigned' : ''}">${prod.status === 'assigned' ? '✅' : '⚪️'}</span><span>${prod.data.name} (${prod.data.sku})</span></div><div class="data-item-images">${assignedImagesHtml}</div>`;
+            const assignedImagesHtml = prod.assignedImageIds.map(imgId => state.images.find(i => i.id === imgId)?.previewUrl).filter(Boolean).map(url => `<img src="${escapeHtml(safeImageUrl(url, true))}">`).join('');
+            item.innerHTML = `<div class="data-item-header"><span class="data-item-status ${prod.status === 'assigned' ? 'assigned' : ''}">${prod.status === 'assigned' ? '✅' : '⚪️'}</span><span>${escapeHtml(prod.data.name)} (${escapeHtml(prod.data.sku)})</span></div><div class="data-item-images">${assignedImagesHtml}</div>`;
             item.addEventListener('click', () => handleProductClick(prod.id));
             dataList.appendChild(item);
         });
@@ -221,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fileName = `batch-${img.id}-${Date.now()}.webp`;
                 try {
                     // 【修改】上傳的來源從 img.file 改為 img.blob
-                    const response = await fetch(`/api/upload/${fileName}`, { method: 'PUT', body: img.blob });
+                    const response = await fetch(`/admin/api/upload/${fileName}`, { method: 'PUT', body: img.blob });
                     if (!response.ok) throw new Error('圖片上傳失敗');
                     const result = await response.json();
                     img.r2Url = result.url; // 將上傳後的 URL 存回 state，避免重複上傳
@@ -247,12 +248,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             finalSubmitBtn.textContent = '正在儲存至資料庫...';
-            const response = await fetch('/api/batch-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToSubmit }) });
+            const response = await fetch('/admin/api/batch-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ products: productsToSubmit }) });
             if (!response.ok) { const errorResult = await response.json(); throw new Error(errorResult.details || '儲存產品時發生未知錯誤'); }
 
             const result = await response.json();
             alert(`批次建檔成功！\n${result.message}`);
-            window.location.href = '/admin.html';
+            window.location.href = '/admin/';
 
         } catch (e) {
             alert(`發生錯誤: ${e.message}`);

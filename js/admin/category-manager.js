@@ -2,6 +2,7 @@
 // 專職管理後台分類管理 Modal、雙視圖切換 (列表 ⇄ 編輯)、Sortable 拖曳排序與分類 CRUD
 
 window.CategoryManager = (function () {
+    const { escapeHtml } = OutputSafety;
     let elements = {};
     let config = {
         getAllCategories: () => [],
@@ -99,10 +100,10 @@ window.CategoryManager = (function () {
                             <circle cx="12" cy="19" r="1"></circle>
                         </svg>
                     </span>
-                    <span class="cm-name">${cat.name}</span>
+                    <span class="cm-name">${escapeHtml(cat.name)}</span>
                     <div class="cm-actions">
-                        <button data-id="${cat.id}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button>
-                        <button data-id="${cat.id}" class="action-btn delete-cat-btn" title="刪除分類">×</button>
+                        <button data-id="${escapeHtml(cat.id)}" class="action-btn edit-cat-btn" title="編輯名稱">✎</button>
+                        <button data-id="${escapeHtml(cat.id)}" class="action-btn delete-cat-btn" title="刪除分類">×</button>
                     </div>
                 `;
                 elements.list.appendChild(item);
@@ -225,7 +226,7 @@ window.CategoryManager = (function () {
 
     async function saveCategory(categoryData) {
         try {
-            const response = await fetch('/api/categories', {
+            const response = await fetch('/admin/api/categories', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(categoryData)
@@ -245,7 +246,7 @@ window.CategoryManager = (function () {
 
     async function reorderCategories(reorderData) {
         try {
-            const response = await fetch('/api/reorder-categories', {
+            const response = await fetch('/admin/api/reorder-categories', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(reorderData)
@@ -266,7 +267,7 @@ window.CategoryManager = (function () {
 
     async function removeCategory(id) {
         try {
-            const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/admin/api/categories/${id}`, { method: 'DELETE' });
             if (!response.ok) {
                 const errData = await response.json();
                 throw new Error(errData.error || '刪除失敗');

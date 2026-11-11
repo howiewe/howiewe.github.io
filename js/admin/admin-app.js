@@ -2,6 +2,7 @@
 // 後台商品管理主調度控制器 (商品 CRUD、編輯 Modal、多圖裁切上傳、即時條碼與工具列)
 
 document.addEventListener('DOMContentLoaded', () => {
+    const { escapeHtml, safeImageUrl, imageSize: normalizeImageSize } = OutputSafety;
     // --- DOM 元素宣告 ---
     const productList = document.getElementById('product-list');
     const searchBox = document.getElementById('search-box');
@@ -120,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.searchTerm) params.append('search', state.searchTerm);
 
         try {
-            const response = await fetch(`/api/products?${params.toString()}`);
+            const response = await fetch(`/admin/api/products?${params.toString()}`);
             if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
             const data = await response.json();
 
@@ -145,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchCategories(showToastOnError = true) {
         try {
-            const response = await fetch('/api/all-data?t=' + new Date().getTime());
+            const response = await fetch('/admin/api/all-data?t=' + new Date().getTime());
             if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
             const data = await response.json();
             allCategories = data.categories || [];
@@ -165,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function saveProduct(productData) {
         try {
-            const response = await fetch('/api/products', {
+            const response = await fetch('/admin/api/products', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(productData)
@@ -185,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteProductApi(id) {
         if (!confirm('您確定要刪除這個產品嗎？')) return;
         try {
-            const response = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/admin/api/products/${id}`, { method: 'DELETE' });
             if (!response.ok) {
                 const errJson = await response.json();
                 throw new Error(`伺服器錯誤: ${errJson.details || response.statusText}`);
@@ -215,10 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const imageUrl = firstImageObject ? firstImageObject.url : '';
             const imageSize = firstImageObject ? firstImageObject.size : 90;
             const priceHtml = (product.price !== null && product.price !== undefined)
-                ? `<p class="price">$${product.price}</p>`
+                ? `<p class="price">$${escapeHtml(product.price)}</p>`
                 : `<p class="price price-empty">&nbsp;</p>`;
 
-            card.innerHTML = `<div class="image-container"><img src="${imageUrl}" class="product-image" alt="${product.name}" loading="lazy" style="transform: scale(${imageSize / 100});"></div><div class="product-info"><h3>${product.name}</h3>${priceHtml}</div>`;
+            card.innerHTML = `<div class="image-container"><img src="${escapeHtml(safeImageUrl(imageUrl))}" class="product-image" alt="${escapeHtml(product.name)}" loading="lazy" style="transform: scale(${normalizeImageSize(imageSize) / 100});"></div><div class="product-info"><h3>${escapeHtml(product.name)}</h3>${priceHtml}</div>`;
             productList.appendChild(card);
         });
     }
@@ -316,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentImageItems.forEach((item, index) => item.isActive = (index === 0));
             }
             const activeItem = currentImageItems[activeIndex];
-            mainImagePreview.src = activeItem.url;
+            mainImagePreview.src = safeImageUrl(activeItem.url, true);
             mainImagePreview.style.display = 'block';
             mainImagePreview.style.transform = `scale(${activeItem.size / 100})`;
             imageSizeSlider.value = activeItem.size;
@@ -326,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const thumb = document.createElement('div');
                 thumb.className = 'thumbnail-item';
                 if (index === activeIndex) thumb.classList.add('active');
-                thumb.innerHTML = `<img src="${item.url}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`;
+                thumb.innerHTML = `<img src="${escapeHtml(safeImageUrl(item.url, true))}" data-index="${index}"><button type="button" class="delete-thumb-btn" data-index="${index}">&times;</button>`;
                 thumbnailListAdmin.insertBefore(thumb, addMoreImagesBtn);
             });
         } else {
@@ -351,8 +352,8 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const node of nodes) {
                 const hasChildren = node.children && node.children.length > 0;
                 subHtml += `<li class="${hasChildren ? 'has-children' : ''}">`;
-                subHtml += `<a href="#" data-id="${node.id}">`;
-                subHtml += `<span>${node.name}</span>`;
+                subHtml += `<a href="#" data-id="${escapeHtml(node.id)}">`;
+                subHtml += `<span>${escapeHtml(node.name)}</span>`;
                 if (hasChildren) {
                     subHtml += `<span class="category-toggle-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></span>`;
                 }
@@ -384,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function createSelectOptions(nodes, depth = 0) {
             nodes.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
             nodes.forEach(node => {
-                selectOptions += `<option value="${node.id}">${'—'.repeat(depth)} ${node.name}</option>`;
+                selectOptions += `<option value="${escapeHtml(node.id)}">${'—'.repeat(depth)} ${escapeHtml(node.name)}</option>`;
                 if (node.children.length > 0) {
                     createSelectOptions(node.children, depth + 1);
                 }
@@ -531,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function uploadImage(blob, fileName) {
         try {
-            const response = await fetch(`/api/upload/${fileName}`, {
+            const response = await fetch(`/admin/api/upload/${fileName}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': blob.type },
                 body: blob

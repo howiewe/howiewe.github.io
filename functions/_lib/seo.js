@@ -1,10 +1,11 @@
 // functions/_lib/seo.js
 
+import { escapeXml as escape, safeImageUrl } from './utils.js';
+
 export function generateMetaTagsHTML(data) {
-    const escape = (str) => str ? str.replace(/"/g, '&quot;') : '';
     const description = (data.description || '').substring(0, 160);
     const canonicalUrl = data.url || '';
-    const imageUrl = data.image || '';
+    const imageUrl = safeImageUrl(data.image);
     return `
         <link rel="canonical" href="${escape(canonicalUrl)}" />
         <meta name="description" content="${escape(description)}" />

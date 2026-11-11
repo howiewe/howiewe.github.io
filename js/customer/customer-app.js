@@ -2,6 +2,7 @@
 // 前台客戶端主調度控制器 (History 狀態同步、產品分頁渲染、分類樹、多層麵包屑與工具列)
 
 document.addEventListener('DOMContentLoaded', () => {
+    const { escapeHtml, safeImageUrl, imageSize: normalizeImageSize } = OutputSafety;
     // --- DOM 元素宣告 ---
     const productList = document.getElementById('product-list');
     const categoryTreeContainer = document.getElementById('category-tree');
@@ -43,17 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
         order: 'asc'
     };
     let searchDebounceTimer;
-
-    // --- 輔助函式：HTML 轉義 ---
-    function escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return String(unsafe)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
 
     // --- 輔助函式：取得分類祖先鏈 ---
     function getCategoryAncestors(categoryId, categories) {
@@ -185,12 +175,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const imageUrl = firstImageObject ? firstImageObject.url : '';
             const imageSize = firstImageObject ? firstImageObject.size : 90;
             const priceHtml = (product.price !== null && product.price !== undefined)
-                ? `<p class="price">$${product.price}</p>`
+                ? `<p class="price">$${escapeHtml(product.price)}</p>`
                 : `<p class="price price-empty">&nbsp;</p>`;
 
             cardLink.innerHTML = `
                 <div class="image-container">
-                    <img src="${imageUrl}" class="product-image" alt="${escapeHtml(product.name)}" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});">
+                    <img src="${escapeHtml(safeImageUrl(imageUrl))}" class="product-image" alt="${escapeHtml(product.name)}" loading="lazy" style="--img-scale: ${normalizeImageSize(imageSize) / 100}; transform: scale(${normalizeImageSize(imageSize) / 100});">
                 </div>
                 <div class="product-info">
                     <h3>${escapeHtml(product.name)}</h3>
@@ -466,7 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const category = allCategories.find(c => c.id === product.categoryId);
         detailInfo.innerHTML = `
             <h2>${escapeHtml(product.name)}</h2>
-            <p class="price">$${product.price}</p>
+            <p class="price">$${escapeHtml(product.price)}</p>
             <p class="product-description-display">${escapeHtml(product.description || '')}</p>
             <dl class="details-grid">
                 <dt>分類</dt><dd>${category ? escapeHtml(category.name) : '未分類'}</dd>

@@ -1,6 +1,7 @@
 // script-print-catalog.js (最終修改版)
 
 document.addEventListener('DOMContentLoaded', () => {
+    const { escapeHtml, safeImageUrl } = OutputSafety;
     // --- DOM Elements (保持不變) ---
     const categoryTreeWrapper = document.getElementById('category-tree-wrapper');
     const generatePreviewBtn = document.getElementById('generate-preview-btn');
@@ -83,13 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 1. 初始化 (保持不變) ---
     async function init() {
         try {
-            const response = await fetch('/api/all-data');
+            const response = await fetch('/admin/api/all-data');
             if (!response.ok) throw new Error('無法載入分類資料');
             const data = await response.json();
             allCategories = data.categories || [];
             buildCategoryTree();
         } catch (error) {
-            categoryTreeWrapper.innerHTML = `<p class="empty-message error">${error.message}</p>`;
+            categoryTreeWrapper.innerHTML = `<p class="empty-message error">${escapeHtml(error.message)}</p>`;
         }
         generatePreviewBtn.addEventListener('click', handleGeneratePreview);
         downloadPdfBtn.addEventListener('click', handleDownloadPDF);
@@ -113,8 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
             nodes.forEach(node => {
                 const li = document.createElement('li');
                 li.innerHTML = `
-                    <input type="checkbox" id="cat-${node.id}" data-id="${node.id}">
-                    <label for="cat-${node.id}">${node.name}</label>
+                    <input type="checkbox" id="cat-${escapeHtml(node.id)}" data-id="${escapeHtml(node.id)}">
+                    <label for="cat-${escapeHtml(node.id)}">${escapeHtml(node.name)}</label>
                 `;
                 if (node.children.length > 0) {
                     li.appendChild(createTreeHTML(node.children, depth + 1));
@@ -181,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 後端 API 已被修改為會回傳正確排序的產品列表
-            const response = await fetch(`/api/products?categoryIds=${selectedIds.join(',')}`);
+            const response = await fetch(`/admin/api/products?categoryIds=${selectedIds.join(',')}`);
             if (!response.ok) throw new Error('獲取產品資料失敗');
             const data = await response.json();
 
@@ -190,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             downloadPdfBtn.disabled = false;
         } catch (error) {
-            previewContainer.innerHTML = `<div class="preview-placeholder"><p class="error">${error.message}</p></div>`;
+            previewContainer.innerHTML = `<div class="preview-placeholder"><p class="error">${escapeHtml(error.message)}</p></div>`;
         } finally {
             generatePreviewBtn.disabled = false;
             generatePreviewBtn.textContent = '產生預覽';
@@ -328,23 +329,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 【修改】如果 EAN13 存在，則產生一個帶有唯一 ID 的 SVG 元素容器
         const barcodeSvgHtml = product.ean13
-            ? `<svg id="barcode-${product.id}-${Math.random()}" class="product-barcode-svg"></svg>`
+            ? `<svg id="barcode-${escapeHtml(product.id)}-${Math.random()}" class="product-barcode-svg"></svg>`
             : '';
 
         const skuHtml = product.sku
-            ? `<span class="product-sku">${product.sku}</span>`
+            ? `<span class="product-sku">${escapeHtml(product.sku)}</span>`
             : '';
 
         item.innerHTML = `
         <div class="product-item-print-img">
-            <img src="${firstImage}" alt="${product.name}" loading="lazy" crossorigin="anonymous">
+            <img src="${escapeHtml(safeImageUrl(firstImage))}" alt="${escapeHtml(product.name)}" loading="lazy" crossorigin="anonymous">
         </div>
         <div class="product-item-print-info">
             ${skuHtml}
-            <h3 class="product-name">${product.name}</h3>
+            <h3 class="product-name">${escapeHtml(product.name)}</h3>
             ${barcodeSvgHtml}
         </div>
-        <p class="product-price">${price}</p>
+        <p class="product-price">${escapeHtml(price)}</p>
     `;
         return item;
     }

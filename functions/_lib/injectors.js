@@ -1,5 +1,5 @@
 // functions/_lib/injectors.js
-import { escapeXml } from './utils.js';
+import { escapeXml, safeImageUrl, imageSize as normalizeImageSize } from './utils.js';
 import { generateMetaTagsHTML } from './seo.js';
 
 export class CategoryLobbyInjector {
@@ -42,7 +42,7 @@ export class CategoryLobbyInjector {
                 categoriesHtml += `
                     <a href="${categoryHref}" class="${cardClass}">
                         <div class="category-card-image">
-                            <img src="${imageUrl}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});">
+                            <img src="${escapeXml(safeImageUrl(imageUrl))}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy" style="--img-scale: ${normalizeImageSize(imageSize) / 100}; transform: scale(${normalizeImageSize(imageSize) / 100});">
                         </div>
                         <div class="category-card-content">
                             <h3>${escapeXml(cat.name)}</h3>
@@ -79,7 +79,7 @@ export class FeaturedCategoryInjector {
         const html = `
             <a href="${categoryHref}" class="featured-category">
                 <div class="featured-image-container">
-                    <img src="${imageUrl}" alt="${escapeXml(this.category.name)}" class="featured-image" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});">
+                    <img src="${escapeXml(safeImageUrl(imageUrl))}" alt="${escapeXml(this.category.name)}" class="featured-image" loading="lazy" style="--img-scale: ${normalizeImageSize(imageSize) / 100}; transform: scale(${normalizeImageSize(imageSize) / 100});">
                 </div>
                 <div class="featured-content">
                     <div class="featured-label">Featured Collection</div>
@@ -111,7 +111,9 @@ export class StructuredDataInjector {
     constructor(jsonData) { this.jsonData = jsonData; }
     element(element) {
         if (this.jsonData) {
-            const scriptContent = JSON.stringify(this.jsonData, null, 2);
+            const scriptContent = JSON.stringify(this.jsonData, null, 2)
+                .replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
+                .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
             element.append(`<script type="application/ld+json">${scriptContent}<\/script>`, { html: true });
         }
     }
@@ -160,10 +162,10 @@ export class ProductListInjector {
                 const altText = this.categoryName
                     ? `${escapeXml(this.categoryName)} - ${escapeXml(product.name)}`
                     : escapeXml(product.name);
-                const priceHtml = (product.price !== null && product.price !== undefined) ? `<p class="price">$${product.price}</p>` : `<p class="price price-empty">&nbsp;</p>`;
+                const priceHtml = (product.price !== null && product.price !== undefined) ? `<p class="price">$${escapeXml(product.price)}</p>` : `<p class="price price-empty">&nbsp;</p>`;
                 productsHtml += `
                     <a href="${productHref}" class="product-card">
-                        <div class="image-container"><img src="${imageUrl}" class="product-image" alt="${altText}" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});"></div>
+                        <div class="image-container"><img src="${escapeXml(safeImageUrl(imageUrl))}" class="product-image" alt="${altText}" loading="lazy" style="--img-scale: ${normalizeImageSize(imageSize) / 100}; transform: scale(${normalizeImageSize(imageSize) / 100});"></div>
                         <div class="product-info"><h3>${escapeXml(product.name)}</h3>${priceHtml}</div>
                     </a>
                 `;
@@ -261,7 +263,7 @@ export class HomepageCategoriesInjector {
             html += `
                 <a href="${categoryHref}" class="card">
                     <div class="card-image">
-                        <img src="${imageUrl}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy" style="--img-scale: ${imageSize / 100}; transform: scale(${imageSize / 100});">
+                        <img src="${escapeXml(safeImageUrl(imageUrl))}" alt="光華工業 ${escapeXml(cat.name)} 系列" loading="lazy" style="--img-scale: ${normalizeImageSize(imageSize) / 100}; transform: scale(${normalizeImageSize(imageSize) / 100});">
                     </div>
                     <div class="card-content">
                         <h3>${escapeXml(cat.name)}</h3>
@@ -294,7 +296,7 @@ export class ProductSliderSSRInjector {
         this.imageUrls.forEach((img, i) => {
             const url = img.url || '';
             const size = img.size || 90;
-            html += `<div class="slide"><img src="${url}" alt="${escapeXml(this.productName)} - 圖片 ${i + 1}" style="--img-scale: ${size / 100}; transform: scale(${size / 100});"></div>`;
+            html += `<div class="slide"><img src="${escapeXml(safeImageUrl(url))}" alt="${escapeXml(this.productName)} - 圖片 ${i + 1}" style="--img-scale: ${normalizeImageSize(size) / 100}; transform: scale(${normalizeImageSize(size) / 100});"></div>`;
         });
         element.setInnerContent(html, { html: true });
     }
@@ -313,7 +315,7 @@ export class ProductThumbnailsSSRInjector {
         let html = '';
         this.imageUrls.forEach((img, i) => {
             const url = img.url || '';
-            html += `<div class="thumbnail-item ${i === 0 ? 'active' : ''}"><img src="${url}" data-index="${i}" alt="縮圖 ${i + 1}"></div>`;
+            html += `<div class="thumbnail-item ${i === 0 ? 'active' : ''}"><img src="${escapeXml(safeImageUrl(url))}" data-index="${i}" alt="縮圖 ${i + 1}"></div>`;
         });
         element.setInnerContent(html, { html: true });
     }
@@ -328,7 +330,7 @@ export class ProductDetailInfoSSRInjector {
     element(element) {
         if (!this.product) return;
         const p = this.product;
-        const priceHtml = (p.price !== null && p.price !== undefined) ? `<p class="price">$${p.price}</p>` : `<p class="price price-empty">&nbsp;</p>`;
+        const priceHtml = (p.price !== null && p.price !== undefined) ? `<p class="price">$${escapeXml(p.price)}</p>` : `<p class="price price-empty">&nbsp;</p>`;
         const descHtml = p.description ? `<p class="product-description-display">${escapeXml(p.description)}</p>` : '';
         const html = `
             <h2>${escapeXml(p.name)}</h2>
