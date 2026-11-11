@@ -1,12 +1,12 @@
 # API 與安全保護
 
-API 由 Cloudflare Pages Functions 實作，共用 [資料層](../functions/_lib/db.js) 與 JSON 回應工具。路由與資料格式描述目前的跨端契約；變更時需核對呼叫端、部署策略及既有資料的影響，不代表永久固定技術選擇。
+API 由 Cloudflare Pages Functions 實作，共用 [資料層](../../../functions/_lib/db.js) 與 JSON 回應工具。路由與資料格式描述目前的跨端契約；變更時需核對呼叫端、部署策略及既有資料的影響，不代表永久固定技術選擇。
 
 ## 管理 API：`/api/*`
 
-入口為 [管理路由](../functions/api/[[path]].js)，程式內沒有額外 Token 驗證。已透過 Cloudflare API 核對目前的 Access 應用 `admin Panel`：目標為 `kwanghwatw.pages.dev/admin*` 與 `kwanghwatw.pages.dev/api/*`，使用指定電子郵件的 allow 策略。
+入口為 [管理路由](../../../functions/api/[[path]].js)，程式內沒有額外 Token 驗證。已透過 Cloudflare API 核對目前的 Access 應用 `admin Panel`：目標為 `kwanghwatw.pages.dev/admin*` 與 `kwanghwatw.pages.dev/api/*`，使用指定電子郵件的 allow 策略。
 
-該帳號目前列出的 Access 應用未包含 `/batch-upload.html` 與 `/print-catalog.html`，兩頁不能宣稱受到同一層頁面保護；其資料請求仍使用受保護的管理 API。以上為設定核對，未以未登入瀏覽器實測登入或繞過效果。變更路由或網域時需重新核對對應策略，見 [建置、驗證與運維](建置驗證與運維.md)。
+該帳號目前列出的 Access 應用未包含 `/batch-upload.html` 與 `/print-catalog.html`，兩頁不能宣稱受到同一層頁面保護；其資料請求仍使用受保護的管理 API。以上為設定核對，未以未登入瀏覽器實測登入或繞過效果。變更路由或網域時需重新核對對應策略，見 [建置、驗證與運維](../建置、驗證與運維/建置驗證與運維.md)。
 
 | 方法 | 路徑 | 行為 |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ API 由 Cloudflare Pages Functions 實作，共用 [資料層](../functions/_lib
 
 ## 公開唯讀 API：`/public/*`
 
-入口為 [公開路由](../functions/public/[[path]].js)，只需要 `D1_DB`。環境檢查通過後，非 GET 請求回傳 405。
+入口為 [公開路由](../../../functions/public/[[path]].js)，只需要 `D1_DB`。環境檢查通過後，非 GET 請求回傳 405。
 
 | 方法 | 路徑 | 行為 |
 | --- | --- | --- |
@@ -43,4 +43,4 @@ API 由 Cloudflare Pages Functions 實作，共用 [資料層](../functions/_lib
 
 ## D1 查詢方式
 
-現有查詢以 `prepare()` 建立敘述，有資料參數時使用 `bind()`；查詢條件、IN 佔位符與白名單排序會組合成 SQL 結構，不直接拼接使用者資料值。分頁的總數與資料查詢、分類排序及批次產品寫入使用 `db.batch()`，分類建立則依階層順序執行。擴充位置與驗證方式見 [開發規範](開發規範.md)。
+現有查詢以 `prepare()` 建立敘述，有資料參數時使用 `bind()`；查詢條件、IN 佔位符與白名單排序會組合成 SQL 結構，不直接拼接使用者資料值。分頁的總數與資料查詢、分類排序及批次產品寫入使用 `db.batch()`，分類建立則依階層順序執行。擴充位置與驗證方式見 [開發規範](../開發規範/開發規範.md)。
